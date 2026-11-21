@@ -42,7 +42,7 @@ function normaliseRoomEvents(input: unknown) {
       type,
       label,
       occurredAt: Number.isFinite(timestamp) ? new Date(timestamp) : new Date(),
-      source: "webxr-room-interaction",
+      source: "clinical-simulation-client",
     }];
   });
 }
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
         : "browser-simulation",
     completedAt: new Date(),
     learningOnly: true,
-    version: 3,
+    version: 4,
   };
 
   try {
