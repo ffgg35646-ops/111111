@@ -65,30 +65,31 @@ export async function POST(request: NextRequest) {
     await livekit.room.createRoom({
       name: roomName,
       emptyTimeout: 600,
-      maxParticipants: 2,
+      maxParticipants: 3,
     });
 
-    const createParticipantToken = async (role: "supervisor" | "trainee") => {
+    const createParticipantToken = async (role: "supervisor" | "trainee" | "vr-device") => {
       const accessToken = new AccessToken(apiKey, apiSecret, {
         identity: `participant-${randomUUID()}`,
-        name: role === "supervisor" ? "المشرف الأكاديمي" : "المتدرب",
+        name: role === "supervisor" ? "المشرف الأكاديمي" : role === "trainee" ? "المتدرب" : "محرك VR",
         ttl: "2h",
         metadata: JSON.stringify({ role }),
       });
       accessToken.addGrant({
         roomJoin: true,
         room: roomName,
-        canPublish: true,
+        canPublish: role !== "vr-device",
         canPublishData: true,
-        canSubscribe: true,
+        canSubscribe: role !== "vr-device",
         roomAdmin: role === "supervisor",
       });
       return accessToken.toJwt();
     };
 
-    const [supervisorToken, traineeInviteToken] = await Promise.all([
+    const [supervisorToken, traineeInviteToken, vrDeviceToken] = await Promise.all([
       createParticipantToken("supervisor"),
       createParticipantToken("trainee"),
+      createParticipantToken("vr-device"),
     ]);
 
     let supervisorId = await readSupervisorSession(request);
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
       serverUrl: clientUrl,
       supervisorToken,
       traineeInviteToken,
+      vrDeviceToken,
       traineeCode,
       traineeName,
       scenarioTitle,
