@@ -19,6 +19,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
+import { RealtimeClinicalVoice } from "@/components/realtime-clinical-voice";
 import { getCaseById, trainingCases } from "@/lib/platform-catalog";
 import "./simulation.css";
 
@@ -518,6 +519,25 @@ function SimulationWorkspace() {
             <span>العنصر المحدد: <b>{selectedTarget}</b></span>
             <span>في النظارة: وجّه المؤشر إلى لوحة المقابلة واضغط لبدء الكلام</span>
           </div>
+
+          <RealtimeClinicalVoice
+            personaId={voicePersona}
+            scenario={voiceScenario}
+            onConnecting={() => {
+              recognitionRef.current?.abort();
+              shouldSendSpeechRef.current = false;
+              setListening(false);
+              stopAvatarSpeech();
+            }}
+            onSpeakingChange={setAvatarSpeaking}
+            onEvent={recordRoomEvent}
+            onTranscript={(turn) => {
+              const nextConversation = [...conversationRef.current, turn].slice(-20);
+              conversationRef.current = nextConversation;
+              setConversation(nextConversation);
+              recordRoomEvent(turn.role === "user" ? "realtime_user_transcript" : "realtime_assistant_transcript", turn.role === "user" ? "تم حفظ نص كلام المتدرب من الاتصال الصوتي الحي." : "تم حفظ رد الشخصية من الاتصال الصوتي الحي.");
+            }}
+          />
 
           <div className="simulation-voice-console">
             <div className="simulation-voice-heading">
