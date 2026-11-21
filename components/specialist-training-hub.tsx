@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Activity, ArrowLeft, BookOpen, Brain, CheckCircle2, ClipboardCheck,
+  Activity, ArrowLeft, BookOpen, Brain, CheckCircle2,
   ClipboardList, FileCheck2, GraduationCap, HeartHandshake, Lightbulb,
   Microscope, ShieldAlert, Sparkles, Stethoscope, Users, Workflow
 } from "lucide-react";
@@ -157,6 +157,7 @@ export default function SpecialistTrainingHub() {
   const activeTrack = tracks.find((track) => track.id === activeTrackId) ?? tracks[0];
   const activeTool = scaleTools.find((tool) => tool.id === selectedToolId) ?? scaleTools[0];
   const TrackIcon = activeTrack.icon;
+  const academyTrackId = activeTrackId === "psychotherapy" ? "cbt" : activeTrackId === "intellectual-disability" ? "developmental" : activeTrackId;
 
   const updateDraft = (key: keyof typeof initialCaseDraft, value: string) => {
     setCaseDraft((current) => ({ ...current, [key]: value }));
@@ -237,7 +238,7 @@ export default function SpecialistTrainingHub() {
                 </div>
                 <div className="specialist-practice-note"><Lightbulb size={17} /><span><strong>تطبيق عملي</strong>{activeTrack.practice}</span></div>
                 <div className="specialist-detail-actions">
-                  <Link href={"/academy?track=" + activeTrack.id} className="specialist-primary">الدورات والبرامج <ArrowLeft size={15} /></Link>
+                  <Link href={"/academy?track=" + academyTrackId} className="specialist-primary">الدورات والبرامج <ArrowLeft size={15} /></Link>
                   <Link href="/cases" className="specialist-secondary">الحالات التدريبية <ArrowLeft size={15} /></Link>
                 </div>
               </article>
