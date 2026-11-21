@@ -68,12 +68,12 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const [telemetry, setTelemetry] = useState<RoomTelemetry[]>([]);
   const [scores, setScores] = useState<Record<RubricKey, number>>({
-    communication: 3,
-    activeListening: 3,
-    clinicalAssessment: 3,
-    empathy: 3,
-    nonverbalCommunication: 3,
-    safetyAndProfessionalism: 3,
+    communication: 0,
+    activeListening: 0,
+    clinicalAssessment: 0,
+    empathy: 0,
+    nonverbalCommunication: 0,
+    safetyAndProfessionalism: 0,
   });
   const [feedbackNotes, setFeedbackNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -151,9 +151,12 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
     };
   }, [room]);
 
+  const allScoresSelected = Object.values(scores).every((value) => Number.isInteger(value) && value >= 1 && value <= 5);
   const averageScore = useMemo(() =>
-    (Object.values(scores).reduce((total, value) => total + value, 0) / rubric.length).toFixed(2),
-  [scores]);
+    allScoresSelected
+      ? (Object.values(scores).reduce((total, value) => total + value, 0) / rubric.length).toFixed(2)
+      : "—",
+  [scores, allScoresSelected]);
 
   const sendCoachNote = async () => {
     const text = coachDraft.trim();
@@ -189,6 +192,10 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
 
   const saveReport = async () => {
     if (!isSupervisor) return;
+    if (!allScoresSelected) {
+      setError("أكمل تقييم الكفاءات الست قبل حفظ التقرير.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -262,10 +269,10 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
 
         {isSupervisor && <section className="supervision-card report-card">
           <div className="supervision-card-title"><ClipboardCheck size={17}/><div><strong>تقييم الكفاءات المهنية</strong><small>درجة كل كفاءة من 1 إلى 5</small></div></div>
-          <div className="rubric-list">{rubric.map((item)=><label key={item.key}><span>{item.label}</span><select value={scores[item.key]} onChange={(event)=>setScores((current)=>({...current,[item.key]:Number(event.target.value)}))}>{[1,2,3,4,5].map((score)=><option value={score} key={score}>{score} / 5</option>)}</select></label>)}</div>
+          <div className="rubric-list">{rubric.map((item)=><label key={item.key}><span>{item.label}</span><select value={scores[item.key]} onChange={(event)=>setScores((current)=>({...current,[item.key]:Number(event.target.value)}))}><option value={0}>اختر الدرجة</option>{[1,2,3,4,5].map((score)=><option value={score} key={score}>{score} / 5</option>)}</select></label>)}</div>
           <div className="report-average"><span>المتوسط الإجمالي</span><strong>{averageScore} / 5</strong></div>
           <textarea className="report-notes" value={feedbackNotes} onChange={(event)=>setFeedbackNotes(event.target.value)} rows={3} maxLength={3000} placeholder="ملاحظات المشرف وخطة التحسين..."/>
-          <button className="save-report-button" onClick={saveReport} disabled={saving}>{saving ? "جارٍ حفظ التقرير..." : <><Check size={15}/> حفظ في ملف الكفاءات</>}</button>
+          <button className="save-report-button" onClick={saveReport} disabled={saving || !allScoresSelected}>{saving ? "جارٍ حفظ التقرير..." : <><Check size={15}/> حفظ في ملف الكفاءات</>}</button>
           {savedReport && <p className="report-saved">تم حفظ التقرير بنجاح · {savedReport.slice(0,8)}</p>}
         </section>}
 
