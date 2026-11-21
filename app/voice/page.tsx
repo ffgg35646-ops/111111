@@ -51,6 +51,17 @@ export default function VoiceAgentPage() {
   useEffect(()=>{
     const speechWindow=window as SpeechWindow;
     setSupported(Boolean(speechWindow.SpeechRecognition||speechWindow.webkitSpeechRecognition));
+
+    const params=new URLSearchParams(window.location.search);
+    const incomingPersona=params.get("persona");
+    const incomingScenario=params.get("scenario");
+    if(incomingPersona&&personas.some(item=>item.id===incomingPersona)){
+      setPersona(incomingPersona as PersonaId);
+    }
+    if(incomingScenario){
+      setScenario(incomingScenario.slice(0,5000));
+    }
+
     return ()=>{recognition.current?.abort();aborter.current?.abort();window.speechSynthesis?.cancel();};
   },[]);
 
