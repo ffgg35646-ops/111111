@@ -46,3 +46,10 @@
 .simulation-realtime-error{flex-basis:100%;margin:0;color:#a45f54;font-size:9px;line-height:1.7}
 .simulation-realtime-voice audio{width:1px;height:1px;position:absolute;opacity:0;pointer-events:none}
 @media(max-width:600px){.simulation-realtime-voice{align-items:stretch;flex-direction:column}.simulation-realtime-actions button{flex:1}}
+
+.simulation-vr-consent{margin:-2px 0 13px;padding:10px 13px;border:1px solid #e2ece9;border-radius:9px;background:#f8fbfa}
+.simulation-vr-consent label{display:flex;align-items:flex-start;gap:9px;cursor:pointer}
+.simulation-vr-consent input{width:15px;height:15px;margin:2px 0 0;accent-color:#187e75;flex:0 0 auto}
+.simulation-vr-consent span{display:grid;gap:4px}
+.simulation-vr-consent b{font-size:9px;color:#426b65}
+.simulation-vr-consent small{font-size:8px;line-height:1.7;color:#81918d}
