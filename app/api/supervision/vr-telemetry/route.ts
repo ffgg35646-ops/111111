@@ -16,6 +16,9 @@ const allowedTypes = new Set([
   "procedure_step",
   "head_pose_sample",
   "head_direction_angle_degrees",
+  "eye_gaze_sample",
+  "eye_gaze_angle_degrees",
+  "eye_gaze_confidence",
   "hand_tracking_sample",
   "hand_pinch_interaction",
 ]);
