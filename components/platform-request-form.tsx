@@ -48,6 +48,7 @@ export default function PlatformRequestForm({
       if(!response.ok)throw new Error(result.error||"تعذر التحقق من الطلب.");
       setRequestStatus(result.status);
       setRequestJoinUrl(typeof result.zoomMeeting?.joinUrl==="string"?result.zoomMeeting.joinUrl:"");
+      setQuote(typeof result.quotedAmount==="number"?{amount:result.quotedAmount,currency:typeof result.currency==="string"?result.currency:"EGP",paymentStatus:typeof result.paymentStatus==="string"?result.paymentStatus:"payment_due"}:null);
     }catch(cause){
       setStatusError(cause instanceof Error?cause.message:"تعذر التحقق من الطلب.");
     }finally{setStatusChecking(false);}
@@ -101,9 +102,10 @@ export default function PlatformRequestForm({
     <small>الحالة الحالية: {requestStatus==="approved"?"تمت الموافقة":requestStatus==="rejected"?"تم رفض الطلب":requestStatus==="provisioning"?"جارٍ تجهيز اجتماع Zoom":"قيد المراجعة"}</small>
     {requestJoinUrl&&<a className="request-join-link" href={requestJoinUrl} target="_blank" rel="noreferrer">دخول الفصل عبر Zoom</a>}
     {requestStatus==="approved"&&!requestJoinUrl&&<small>تمت الموافقة على الطلب. سيتواصل معك الفريق لتأكيد التفاصيل.</small>}
+    {requestStatus==="approved"&&quote&&<small>إجمالي الطلب: {quote.amount} {quote.currency} — بانتظار استكمال الدفع والتسليم من فريق المتجر.</small>}
     {statusError&&<p className="request-error" role="alert">{statusError}</p>}
     <button onClick={checkStatus} disabled={statusChecking}>{statusChecking?"جارٍ التحقق...":"تحديث حالة الطلب"}</button>
-    <button onClick={()=>{setSuccess("");setRequestStatus("");setRequestJoinUrl("");setStatusError("");}}>إرسال طلب آخر</button>
+    <button onClick={()=>{setSuccess("");setRequestStatus("");setRequestJoinUrl("");setQuote(null);setStatusError("");}}>إرسال طلب آخر</button>
   </div>;
 
   return <form className="platform-request-form" onSubmit={submit}>
