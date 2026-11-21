@@ -20,6 +20,7 @@ public:
 
 protected:
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+    virtual void Tick(float DeltaSeconds) override;
 
     void PressLeftPointer();
     void ReleaseLeftPointer();
@@ -43,6 +44,15 @@ protected:
 
     UPROPERTY(VisibleAnywhere, Category = "Clinical VR")
     TObjectPtr<UWidgetInteractionComponent> RightPointer;
+
+    UPROPERTY(VisibleAnywhere, Category = "Clinical VR|Hand Interaction")
+    TObjectPtr<UWidgetInteractionComponent> LeftHandPointer;
+
+    UPROPERTY(VisibleAnywhere, Category = "Clinical VR|Hand Interaction")
+    TObjectPtr<UWidgetInteractionComponent> RightHandPointer;
+
+    bool bLeftHandPinching = false;
+    bool bRightHandPinching = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Clinical VR")
     TObjectPtr<UClinicalVRTelemetryComponent> Telemetry;
