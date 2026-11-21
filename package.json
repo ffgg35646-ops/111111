@@ -24,7 +24,8 @@
     "livekit-client": "^2.25.0",
     "livekit-server-sdk": "^2.20.1",
     "mongodb": "^7.9.1",
-    "jose": "^6.2.18"
+    "jose": "^6.2.18",
+    "@react-three/xr": "^6.6.32"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
