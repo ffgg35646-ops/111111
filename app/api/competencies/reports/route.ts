@@ -213,13 +213,18 @@ export async function POST(request: NextRequest) {
     scores[key] = score;
   }
 
-  const db = await getClinicalDatabase();
+  const db = await getClinicalDatabase().catch(() => null);
+  if (!db) return NextResponse.json({ error: "تعذر الاتصال بقاعدة بيانات التقارير." }, { status: 503 });
   const nativeTelemetryCollection = db.collection("clinical_vr_device_telemetry");
   const pendingDeviceTelemetry = await nativeTelemetryCollection
     .find({ roomName: verified.roomName, reportId: { $exists: false } })
     .sort({ receivedAt: 1 })
     .limit(300)
-    .toArray();
+    .toArray()
+    .catch(() => null);
+  if (!pendingDeviceTelemetry) {
+    return NextResponse.json({ error: "تعذر تحميل قياسات جهاز VR لهذه الجلسة." }, { status: 503 });
+  }
   const telemetry = normaliseTelemetry([
     ...(Array.isArray(data.telemetry) ? data.telemetry : []),
     ...pendingDeviceTelemetry.map((entry) => entry.event),
