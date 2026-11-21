@@ -6,6 +6,7 @@
 
 class AActor;
 class FJsonObject;
+class USceneComponent;
 
 UCLASS(ClassGroup=(ClinicalVR), meta=(BlueprintSpawnableComponent))
 class CLINICALTRAININGVR_API UClinicalVRTelemetryComponent : public UActorComponent
@@ -17,6 +18,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Clinical VR|Connection")
     void ConfigureTelemetryEndpoint(const FString& InPlatformBaseUrl, const FString& InRoomName, const FString& InDeviceToken);
+
+    UFUNCTION(BlueprintCallable, Category="Clinical VR|Privacy")
+    void SetEyeGazeConsent(bool bConsentGiven);
 
     UFUNCTION(BlueprintCallable, Category="Clinical VR|Telemetry")
     void PublishNumericEvidence(const FString& Type, const FString& Label, float Value, const FString& Unit);
@@ -32,13 +36,14 @@ protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Clinical VR|Assessment")
-    TObjectPtr<AActor> PatientTarget;
+    TObjectPtr<USceneComponent> PatientTargetComponent;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Clinical VR|Assessment")
     float HeadPoseSampleIntervalSeconds = 5.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Clinical VR|Privacy")
     bool bEnableEyeGazeTelemetry = false;
+    bool bEyeGazeConsentProvided = false;
 
     void PublishHeadPoseSample();
     void SendEvents(const TArray<TSharedPtr<FJsonObject>>& Events);
