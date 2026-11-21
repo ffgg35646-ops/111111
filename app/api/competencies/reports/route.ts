@@ -71,13 +71,37 @@ function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
   });
 
   const headPoseSamples = telemetry.filter((event) => event.type === "head_pose_sample").length;
+  const headAngles = telemetry
+    .filter((event) => event.type === "head_direction_angle_degrees" && typeof event.value === "number" && event.value >= 0 && event.value <= 180)
+    .map((event) => event.value as number);
   const handSamples = telemetry.filter((event) => event.type === "hand_tracking_sample").length;
   const pinchEvents = telemetry.filter((event) => event.type === "hand_pinch_interaction").length;
   const distanceValues = telemetry
     .filter((event) => event.type === "interaction_distance_cm" && typeof event.value === "number" && event.value >= 0 && event.value <= 1000)
     .map((event) => event.value as number);
 
+  const headAngleEvidence = headAngles.length
+    ? [{
+        type: "head_direction_angle",
+        label: "متوسط انحراف اتجاه الرأس عن موضع الحالة",
+        samples: headAngles.length,
+        averageValue: Number((headAngles.reduce((sum, value) => sum + value, 0) / headAngles.length).toFixed(1)),
+        unit: "درجة",
+        evidenceOnly: true,
+        note: "اتجاه الرأس لا يمثل اتجاه العين أو جودة التواصل البصري.",
+      }, {
+        type: "head_direction_within_30_degrees",
+        label: "عينات اتجاه الرأس ضمن 30 درجة",
+        samples: headAngles.filter((value) => value <= 30).length,
+        averageValue: Math.round(headAngles.filter((value) => value <= 30).length / headAngles.length * 100),
+        unit: "%",
+        evidenceOnly: true,
+        note: "نسبة هندسية وصفية وليست مقياساً للتواصل البصري.",
+      }]
+    : [];
+
   const observationalEvidence = [
+    ...headAngleEvidence,
     ...(headPoseSamples ? [{
       type: "head_pose_samples",
       label: "عينات اتجاه الرأس (دليل مكاني فقط)",
