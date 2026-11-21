@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowRight, LoaderCircle, ShieldAlert } from "lucide-react";
 
 type RoomConfig = {
-  token:string; serverUrl:string; roomName:string; role:"supervisor"|"trainee";
+  token:string; vrDeviceToken:string; serverUrl:string; roomName:string; role:"supervisor"|"trainee";
   supervisorName:string; traineeName:string; traineeCode:string; scenarioTitle:string; inviteUrl:string;
 };
 
@@ -46,7 +46,9 @@ export default function SupervisionRoomPage() {
       }
 
       setConfig({
-        token, serverUrl, roomName, role,
+        token,
+        vrDeviceToken:sessionStorage.getItem("clinical-vr-device-token") || "",
+        serverUrl, roomName, role,
         supervisorName:sessionStorage.getItem("clinical-supervisor-name") || "",
         traineeName:sessionStorage.getItem("clinical-trainee-name") || "",
         traineeCode:sessionStorage.getItem("clinical-trainee-code") || "",
