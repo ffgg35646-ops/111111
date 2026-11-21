@@ -1,0 +1,65 @@
+import { randomUUID } from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { getClinicalDatabase } from "@/lib/mongodb";
+import { getCaseById } from "@/lib/platform-catalog";
+
+export const runtime = "nodejs";
+
+export async function POST(request: NextRequest) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "بيانات النشاط غير صالحة." }, { status: 400 });
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "بيانات النشاط غير مكتملة." }, { status: 400 });
+  }
+
+  const data = body as Record<string, unknown>;
+  const caseId = typeof data.caseId === "string" ? data.caseId.slice(0, 80) : "";
+  const item = getCaseById(caseId);
+  if (item.id !== caseId) return NextResponse.json({ error: "الحالة التدريبية غير موجودة." }, { status: 404 });
+
+  const answers = Array.isArray(data.answers) ? data.answers.slice(0, 20).flatMap((answer) => {
+    if (!answer || typeof answer !== "object") return [];
+    const row = answer as Record<string, unknown>;
+    const stepId = typeof row.stepId === "string" ? row.stepId.slice(0, 80) : "";
+    const choiceId = typeof row.choiceId === "string" ? row.choiceId.slice(0, 80) : "";
+    const step = item.steps.find((candidate) => candidate.id === stepId);
+    const choice = step?.choices.find((candidate) => candidate.id === choiceId);
+    return step && choice ? [{ stepId, choiceId, earned: choice.score, max: 20 }] : [];
+  }) : [];
+
+  if (answers.length !== item.steps.length) {
+    return NextResponse.json({ error: "لم تكتمل جميع خطوات الحالة التدريبية." }, { status: 400 });
+  }
+
+  const earned = answers.reduce((sum, answer) => sum + answer.earned, 0);
+  const maximum = item.steps.length * 20;
+  const record = {
+    activityId: randomUUID(),
+    caseId: item.id,
+    caseTitle: item.title,
+    answers,
+    score: Math.round((earned / maximum) * 100),
+    maximumScore: 100,
+    completedAt: new Date(),
+    learningOnly: true,
+    version: 1,
+  };
+
+  try {
+    const db = await getClinicalDatabase();
+    const result = await db.collection("platform_learning_activities").insertOne(record);
+    return NextResponse.json({
+      success: true,
+      activityId: record.activityId,
+      score: record.score,
+      recordId: String(result.insertedId),
+    }, { status: 201, headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Unable to save learning activity", error);
+    return NextResponse.json({ error: "تعذر حفظ نتيجة التدريب." }, { status: 503 });
+  }
+}
