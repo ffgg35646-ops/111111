@@ -49,20 +49,27 @@ export default function VoiceAgentPage() {
   const activePersona = personas.find(item=>item.id===persona)!;
 
   useEffect(()=>{
-    const speechWindow=window as SpeechWindow;
-    setSupported(Boolean(speechWindow.SpeechRecognition||speechWindow.webkitSpeechRecognition));
+    const frameId=window.requestAnimationFrame(()=>{
+      const speechWindow=window as SpeechWindow;
+      setSupported(Boolean(speechWindow.SpeechRecognition||speechWindow.webkitSpeechRecognition));
 
-    const params=new URLSearchParams(window.location.search);
-    const incomingPersona=params.get("persona");
-    const incomingScenario=params.get("scenario");
-    if(incomingPersona&&personas.some(item=>item.id===incomingPersona)){
-      setPersona(incomingPersona as PersonaId);
-    }
-    if(incomingScenario){
-      setScenario(incomingScenario.slice(0,5000));
-    }
+      const params=new URLSearchParams(window.location.search);
+      const incomingPersona=params.get("persona");
+      const incomingScenario=params.get("scenario");
+      if(incomingPersona&&personas.some(item=>item.id===incomingPersona)){
+        setPersona(incomingPersona as PersonaId);
+      }
+      if(incomingScenario){
+        setScenario(incomingScenario.slice(0,5000));
+      }
+    });
 
-    return ()=>{recognition.current?.abort();aborter.current?.abort();window.speechSynthesis?.cancel();};
+    return ()=>{
+      window.cancelAnimationFrame(frameId);
+      recognition.current?.abort();
+      aborter.current?.abort();
+      window.speechSynthesis?.cancel();
+    };
   },[]);
 
   useEffect(()=>{scrollRef.current?.scrollTo({top:scrollRef.current.scrollHeight,behavior:"smooth"});},[messages,interim]);
