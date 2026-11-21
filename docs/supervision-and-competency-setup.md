@@ -49,7 +49,7 @@ MONGODB_DATABASE=clinical_learning
 - `interaction_distance_cm`: مسافة تفاعل رقمية، ولا تتحول وحدها إلى درجة كفاءة.
 - `procedure_step`: حدث إكمال خطوة إجرائية.
 
-يمكن استخدام الدالة `publishVrTelemetry` من `components/vr-telemetry-bridge.ts` في عميل متصل بالغرفة. إذا كان محرك Unreal/OpenXR مستقلاً عن تطبيق الويب، يلزم ربط Data Channel عبر SDK مناسب للمحرك أو عبر جسر WebRTC؛ لم تتم إضافة مكوّن Unreal أصلي إلى المستودع بعد.
+يمكن استخدام الدالتين `publishVrTelemetry` و`publishVrSceneState` من `components/vr-telemetry-bridge.ts` في عميل متصل بالغرفة. الأولى ترسل مؤشرات الأداء، والثانية تزامن اسم المشهد والخطوة الحالية وموضع المتدرب ليظهر التحديث للمشرف لحظياً. إذا كان محرك Unreal/OpenXR مستقلاً عن تطبيق الويب، يلزم ربط Data Channel عبر SDK مناسب للمحرك أو عبر جسر WebRTC؛ لم تتم إضافة مكوّن Unreal أصلي إلى المستودع بعد.
 
 ## حفظ ملف الكفاءات
 
