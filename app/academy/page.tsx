@@ -22,7 +22,7 @@ function AcademyWorkspace() {
   const chosen=courses.find(course=>course.id===selectedCourse);
 
   return <PlatformLayout title="الأكاديمية والمسارات التدريبية" description="برامج منظمة للتأهيل في الخدمة الاجتماعية والصحة النفسية وCBT والتوحد والاضطرابات النمائية، مع محتوى مسجل ولقاءات مباشرة.">
-    <div className="portal-callout">التسجيل هنا يرسل طلب التحاق للمراجعة. فتح الدروس المسجلة وجدولة الفصول المباشرة وربط حساب المتدرب ولوحة المدرب تأتي ضمن تهيئة التشغيل المؤسسي.</div>
+    <div className="portal-callout">اختر دورة لفتح وحداتها التعليمية والأنشطة القصيرة واختبار الفهم. تسجيلات الفيديو تظهر عند إضافة رابط التسجيل المعتمد لكل دورة، أما الفصول المباشرة فتُنسق عبر Zoom بعد اعتماد طلب الالتحاق.</div>
     <div className="portal-section-title"><div><h2>المسارات التخصصية</h2><p>اختر مجالاً لاستعراض البرامج ذات الصلة</p></div></div>
     <div className="portal-grid">
       {learningTracks.map(item=><article className="portal-card track-card" key={item.id}>
@@ -45,7 +45,7 @@ function AcademyWorkspace() {
         <div className="course-card-top"><span className={"course-mode "+course.mode}>{modeLabels[course.mode]}</span><small>{course.level}</small></div>
         <h3>{course.title}</h3><p>{course.summary}</p>
         <div className="course-meta"><span><Clock3 size={13}/>{course.duration}</span><span><BookOpen size={13}/>{course.lessons.length} وحدات</span></div>
-        <button className="portal-button" onClick={()=>setSelectedCourse(course.id)}>تفاصيل وطلب الالتحاق</button>
+        <div className="course-card-actions"><Link className="portal-button" href={"/academy/"+course.id}>ابدأ التعلم</Link><button className="portal-button secondary" onClick={()=>setSelectedCourse(course.id)}>طلب الالتحاق</button></div>
       </article>)}
     </div>
     {chosen&&<section className="course-detail-panel">
