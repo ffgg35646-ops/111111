@@ -12,6 +12,7 @@ public class ClinicalTrainingVR : ModuleRules
             "Engine",
             "InputCore",
             "HeadMountedDisplay",
+            "XRBase",
             "UMG",
             "Slate",
             "SlateCore",
