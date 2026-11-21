@@ -1,5 +1,7 @@
 "use client";
 
+import "./avatar-studio.css";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Baby, Check, ChevronDown, CircleHelp, Download, FileUp, HeartPulse, PersonStanding, RotateCcw, ScanFace, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Users, Video } from "lucide-react";
