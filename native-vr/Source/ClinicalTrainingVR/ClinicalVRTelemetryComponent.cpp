@@ -2,6 +2,8 @@
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/World.h"
+#include "EyeTrackerFunctionLibrary.h"
+#include "EyeTrackerTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "HeadMountedDisplayTypes.h"
@@ -106,6 +108,36 @@ void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
 
     SampleTrackedHand(EControllerHand::Left, TEXT("left"));
     SampleTrackedHand(EControllerHand::Right, TEXT("right"));
+
+    // Eye tracking is opt-in and only emits coarse, non-identifying evidence.
+    // No raw eye images, pupil measurements, or detailed gaze traces are stored.
+    if (bEnableEyeGazeTelemetry && PatientTarget && UEyeTrackerFunctionLibrary::IsEyeTrackerConnected())
+    {
+        FEyeTrackerGazeData GazeData;
+        if (UEyeTrackerFunctionLibrary::GetGazeData(GazeData) && GazeData.ConfidenceValue >= 0.35f)
+        {
+            const FVector GazeDirection = GazeData.GazeDirection.GetSafeNormal();
+            const FVector ToPatientFromGaze = (PatientTarget->GetActorLocation() - GazeData.GazeOrigin).GetSafeNormal();
+            const float GazeAngle = FMath::RadiansToDegrees(FMath::Acos(
+                FMath::Clamp(FVector::DotProduct(GazeDirection, ToPatientFromGaze), -1.0f, 1.0f)));
+
+            TArray<TSharedPtr<FJsonObject>> EyeEvents;
+            auto AddEyeEvent = [&EyeEvents](const FString& Type, const FString& Label, float Value, const FString& Unit)
+            {
+                TSharedPtr<FJsonObject> Event = MakeShared<FJsonObject>();
+                Event->SetStringField(TEXT("type"), Type);
+                Event->SetStringField(TEXT("label"), Label);
+                Event->SetNumberField(TEXT("value"), Value);
+                Event->SetStringField(TEXT("unit"), Unit);
+                EyeEvents.Add(Event);
+            };
+
+            AddEyeEvent(TEXT("eye_gaze_sample"), TEXT("Opt-in eye gaze sample valid"), 1.0f, TEXT("sample"));
+            AddEyeEvent(TEXT("eye_gaze_angle_degrees"), TEXT("Eye gaze direction angle to simulated patient"), GazeAngle, TEXT("degrees"));
+            AddEyeEvent(TEXT("eye_gaze_confidence"), TEXT("Eye gaze confidence"), GazeData.ConfidenceValue, TEXT("ratio"));
+            SendEvents(EyeEvents);
+        }
+    }
 }
 
 void UClinicalVRTelemetryComponent::PublishHandTrackingSample(const FString& Handedness, float ThumbIndexDistanceCm)
