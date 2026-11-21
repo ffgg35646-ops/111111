@@ -36,6 +36,7 @@ PLATFORM_ADMIN_API_KEY=at-least-32-random-characters
 - يجب منح تطبيق Zoom نطاقات إدارة وقراءة المستخدم وإنشاء الاجتماعات المطلوبة (راجع إعداد التطبيق في Zoom Marketplace).
 - واجهة إنشاء الاجتماعات اليدوية `POST /api/zoom/meetings` تتطلب رأس `x-platform-admin-key`؛ لا تضع المفتاح داخل JavaScript العميل.
 - قائمة الطلبات الإدارية المحمية: `GET /api/platform/admin/requests?status=pending_review`. يمكن تصفية `kind` و`limit`.
+- يتابع مقدم الطلب حالته عبر `GET /api/platform/requests?requestId=...&email=...`، ويظهر له رابط الحضور فقط بعد اعتماد الاجتماع.
 - اعتماد أو رفض طلب: `PATCH /api/platform/admin/requests` مع `requestId` و`action` (approve/reject) ورأس `x-platform-admin-key`.
 - عند اعتماد طلب قاعة أو فصل مباشر، ينشئ الخادم اجتماع Zoom تلقائياً ويضيف `joinUrl` إلى سجل الطلب، مع بقاء `hostStartUrl` داخل سجل الخادم فقط. إذا فشل إنشاء الاجتماع، يعود الطلب إلى حالة المراجعة.
 - تأجير القاعة وطلب الفصل يظلان قيد المراجعة حتى يتخذ المسؤول القرار.
