@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
           waiting_room: true,
           participant_video: true,
           host_video: false,
-          approval_type: 2,
         },
       }),
       cache: "no-store",
