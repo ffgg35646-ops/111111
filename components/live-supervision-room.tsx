@@ -26,10 +26,14 @@ type RoomTelemetry = {
 type CoachMessage = { id: string; text: string; sender: string; role: Role; sentAt: string };
 type SceneSnapshot = { sceneId: string; scenarioTitle: string; activeTask: string; position?: {x:number;y:number;z:number}; updatedAt: string };
 
-function signedRole(metadata?: string): Role | null {
+type ParticipantRole = Role | "vr-device";
+
+function participantRole(metadata?: string): ParticipantRole | null {
   try {
     const parsed = JSON.parse(metadata || "") as { role?: string };
-    return parsed.role === "supervisor" || parsed.role === "trainee" ? parsed.role : null;
+    return parsed.role === "supervisor" || parsed.role === "trainee" || parsed.role === "vr-device"
+      ? parsed.role
+      : null;
   } catch {
     return null;
   }
@@ -84,8 +88,11 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
   const [deviceTokenCopied, setDeviceTokenCopied] = useState(false);
 
   useEffect(() => {
-    const syncSignedRole = () => setSignedRoomRole(signedRole(room.localParticipant.metadata));
-    const onMetadataChanged = (participant: Participant) => {
+    const syncSignedRole = () => {
+      const currentRole = participantRole(room.localParticipant.metadata);
+      setSignedRoomRole(currentRole === "supervisor" || currentRole === "trainee" ? currentRole : null);
+    };
+    const onMetadataChanged = (_previousMetadata: string, participant: Participant) => {
       if (participant.identity === room.localParticipant.identity) syncSignedRole();
     };
     room.on(RoomEvent.Connected, syncSignedRole);
@@ -100,17 +107,23 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
     ) => {
       try {
         const event = JSON.parse(new TextDecoder().decode(payload)) as Record<string, unknown>;
-        if (topic === "clinical-coaching" && event.type === "coach-note" && typeof event.text === "string") {
+        const senderRole = participantRole(participant?.metadata);
+        if (
+          topic === "clinical-coaching" &&
+          event.type === "coach-note" &&
+          typeof event.text === "string" &&
+          (senderRole === "supervisor" || senderRole === "trainee")
+        ) {
           setCoachMessages((current) => [{
             id: typeof event.id === "string" ? event.id : crypto.randomUUID(),
             text: event.text as string,
-            role: signedRole(participant?.metadata) ?? "trainee",
-            sender: signedRole(participant?.metadata) === "supervisor" ? "المشرف الأكاديمي" : "المتدرب",
+            role: senderRole,
+            sender: senderRole === "supervisor" ? "المشرف الأكاديمي" : "المتدرب",
             sentAt: typeof event.sentAt === "string" ? event.sentAt : new Date().toISOString(),
           }, ...current].slice(0, 60));
         }
 
-        if (topic === "vr-scene-state" && event.type === "scene_state") {
+        if (senderRole === "vr-device" && topic === "vr-scene-state" && event.type === "scene_state") {
           const position = event.position && typeof event.position === "object"
             ? event.position as {x?:unknown;y?:unknown;z?:unknown}
             : undefined;
@@ -125,7 +138,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
           });
         }
 
-        if (topic === "vr-telemetry" && typeof event.type === "string") {
+        if (senderRole === "vr-device" && topic === "vr-telemetry" && typeof event.type === "string") {
           const value = typeof event.value === "number" && Number.isFinite(event.value)
             ? event.value
             : typeof event.value === "string" || typeof event.value === "boolean"
@@ -194,11 +207,18 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
 
   const copyVrDeviceToken = async () => {
     try {
-      await navigator.clipboard.writeText(vrDeviceToken);
+      const deviceConnection = {
+        serverUrl,
+        roomName,
+        token: vrDeviceToken,
+        role: "vr-device",
+        permissions: ["roomJoin", "publishData"],
+      };
+      await navigator.clipboard.writeText(JSON.stringify(deviceConnection, null, 2));
       setDeviceTokenCopied(true);
       window.setTimeout(() => setDeviceTokenCopied(false), 2200);
     } catch {
-      setError("تعذر نسخ رمز محرك VR. تحقق من صلاحية الحافظة في المتصفح.");
+      setError("تعذر نسخ بيانات محرك VR. تحقق من صلاحية الحافظة في المتصفح.");
     }
   };
 
@@ -254,7 +274,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
 
         {isSupervisor && <>
           <button className="invite-copy-button" onClick={copyInvite}><Copy size={15}/>{copied ? "تم نسخ رابط المتدرب" : "نسخ رابط دعوة المتدرب"}</button>
-          <button className="device-token-copy-button" onClick={copyVrDeviceToken} disabled={!vrDeviceToken}><Copy size={14}/>{deviceTokenCopied ? "تم نسخ رمز محرك VR" : "نسخ رمز ربط محرك VR"}</button>
+          <button className="device-token-copy-button" onClick={copyVrDeviceToken} disabled={!vrDeviceToken}><Copy size={14}/>{deviceTokenCopied ? "تم نسخ بيانات الاتصال" : "نسخ بيانات ربط محرك VR"}</button>
           <p className="device-token-warning">رمز الجهاز يسمح بإرسال بيانات VR فقط، وينتهي بعد ساعتين. لا تشاركه إلا مع محرك الجلسة الموثوق.</p>
         </>}
 
