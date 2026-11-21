@@ -37,6 +37,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Clinical VR|Assessment")
     float HeadPoseSampleIntervalSeconds = 5.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Clinical VR|Privacy")
+    bool bEnableEyeGazeTelemetry = false;
+
     void PublishHeadPoseSample();
     void SendEvents(const TArray<TSharedPtr<FJsonObject>>& Events);
 
