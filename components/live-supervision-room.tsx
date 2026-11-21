@@ -194,17 +194,37 @@ function RoomTools({ role, serverUrl, roomName, supervisorName, traineeName, tra
     const text = coachDraft.trim();
     if (!text || !isSupervisor) return;
     try {
+      const destinationIdentities = Array.from(room.remoteParticipants.values())
+        .filter((participant) => {
+          const participantRole = participantRole(participant.metadata);
+          return participantRole === "supervisor" || participantRole === "trainee";
+        })
+        .map((participant) => participant.identity);
+
+      if (!destinationIdentities.length) {
+        setError("لا يوجد متدرب متصل حالياً لاستلام التوجيه.");
+        return;
+      }
+
+      const sentAt = new Date().toISOString();
+      const messageId = crypto.randomUUID();
       await room.localParticipant.publishData(
         new TextEncoder().encode(JSON.stringify({
           type: "coach-note",
-          id: crypto.randomUUID(),
+          id: messageId,
           text,
-          sender: supervisorName || "المشرف الأكاديمي",
-          role,
-          sentAt: new Date().toISOString(),
+          role: "supervisor",
+          sentAt,
         })),
-        { reliable: true, topic: "clinical-coaching" },
+        { reliable: true, topic: "clinical-coaching", destinationIdentities },
       );
+      setCoachMessages((current) => [{
+        id: messageId,
+        text,
+        sender: supervisorName || "المشرف الأكاديمي",
+        role: "supervisor",
+        sentAt,
+      }, ...current].slice(0, 60));
       setCoachDraft("");
       setError("");
     } catch {
