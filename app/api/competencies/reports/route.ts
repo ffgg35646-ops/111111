@@ -78,6 +78,9 @@ function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
   const eyeGazeAngles = telemetry
     .filter((event) => event.type === "eye_gaze_angle_degrees" && typeof event.value === "number" && event.value >= 0 && event.value <= 180)
     .map((event) => event.value as number);
+  const eyeGazeConfidence = telemetry
+    .filter((event) => event.type === "eye_gaze_confidence" && typeof event.value === "number" && event.value >= 0 && event.value <= 1)
+    .map((event) => event.value as number);
   const handSamples = telemetry.filter((event) => event.type === "hand_tracking_sample").length;
   const pinchEvents = telemetry.filter((event) => event.type === "hand_pinch_interaction").length;
   const distanceValues = telemetry
@@ -113,7 +116,15 @@ function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
         unit: "درجة",
         evidenceOnly: true,
         note: "يتطلب نظارة تدعم تتبع العين وموافقة منفصلة. الاتجاه لا يثبت جودة التواصل أو الفهم.",
-      }]
+      }, ...(eyeGazeConfidence.length ? [{
+        type: "eye_gaze_confidence",
+        label: "متوسط موثوقية إشارة العين",
+        samples: eyeGazeConfidence.length,
+        averageValue: Number((eyeGazeConfidence.reduce((sum, value) => sum + value, 0)).toFixed(2)),
+        unit: "من 1",
+        evidenceOnly: true,
+        note: "مؤشر جودة الإشارة من الجهاز فقط، وليس درجة أداء أو استنتاجاً نفسياً.",
+      }] : [])]
     : [];
 
   const observationalEvidence = [
