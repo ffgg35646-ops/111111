@@ -72,6 +72,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "اختر نوع الاستشارة وموعداً مفضلاً صحيحاً." }, { status: 400 });
     }
     record.serviceId = serviceId;
+    if (Date.parse(preferredAt) < Date.now() + 5 * 60 * 1000) {
+      return NextResponse.json({ error: "اختر موعداً مستقبلياً بعد خمس دقائق على الأقل." }, { status: 400 });
+    }
     record.preferredAt = new Date(preferredAt);
     record.consent = data.consent === true;
     record.requestNote = cleanText(data.requestNote, 500);
@@ -84,6 +87,9 @@ export async function POST(request: NextRequest) {
     const attendees = Number(data.attendees);
     if (!Number.isFinite(Date.parse(preferredAt)) || !Number.isInteger(durationMinutes) || durationMinutes < 30 || durationMinutes > 240 || !Number.isInteger(attendees) || attendees < 2 || attendees > 500) {
       return NextResponse.json({ error: "تحقق من موعد القاعة ومدتها وعدد الحضور." }, { status: 400 });
+    }
+    if (Date.parse(preferredAt) < Date.now() + 5 * 60 * 1000) {
+      return NextResponse.json({ error: "اختر موعداً مستقبلياً بعد خمس دقائق على الأقل." }, { status: 400 });
     }
     record.preferredAt = new Date(preferredAt);
     record.durationMinutes = durationMinutes;
