@@ -68,9 +68,21 @@ void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
     const float HeadAngle = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Forward, ToPatient), -1.0f, 1.0f)));
     const float DistanceCm = FVector::Distance(HeadLocation, PatientTarget->GetActorLocation());
 
-    PublishNumericEvidence(TEXT("head_pose_sample"), TEXT("Unreal OpenXR head pose sample"), 1.0f, TEXT("sample"));
-    PublishNumericEvidence(TEXT("head_direction_angle_degrees"), TEXT("Head direction angle to simulated patient"), HeadAngle, TEXT("degrees"));
-    PublishNumericEvidence(TEXT("interaction_distance_cm"), TEXT("Approximate distance to simulated patient"), DistanceCm, TEXT("cm"));
+    TArray<TSharedPtr<FJsonObject>> Events;
+    auto AddNumericEvent = [&Events](const FString& Type, const FString& Label, float Value, const FString& Unit)
+    {
+        TSharedPtr<FJsonObject> Event = MakeShared<FJsonObject>();
+        Event->SetStringField(TEXT("type"), Type);
+        Event->SetStringField(TEXT("label"), Label);
+        Event->SetNumberField(TEXT("value"), Value);
+        Event->SetStringField(TEXT("unit"), Unit);
+        Events.Add(Event);
+    };
+
+    AddNumericEvent(TEXT("head_pose_sample"), TEXT("Unreal OpenXR head pose sample"), 1.0f, TEXT("sample"));
+    AddNumericEvent(TEXT("head_direction_angle_degrees"), TEXT("Head direction angle to simulated patient"), HeadAngle, TEXT("degrees"));
+    AddNumericEvent(TEXT("interaction_distance_cm"), TEXT("Approximate distance to simulated patient"), DistanceCm, TEXT("cm"));
+    SendEvents(Events);
 }
 
 void UClinicalVRTelemetryComponent::PublishHandTrackingSample(const FString& Handedness, float ThumbIndexDistanceCm)
