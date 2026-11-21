@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowUpLeft, BookOpen, Brain, CalendarDays, FileBadge, GraduationCap, HeartHandshake, Library, Video } from "lucide-react";
