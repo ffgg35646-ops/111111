@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
   FileText, GraduationCap, LayoutDashboard, Library, MessageCircle, Settings,
-  ShieldCheck, ShoppingBag, Stethoscope, Users, Video, Glasses, Plus, Search,
+  ShieldCheck, ShoppingBag, Users, Video, Glasses, Plus, Search,
   Bell, ChevronLeft, Clock3, CircleHelp, PanelRightClose
 } from "lucide-react";
 
@@ -36,8 +36,7 @@ export default function HomePage() {
   return <main className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
       <div className="brand-block">
-        <div className="brand-mark"><Stethoscope size={21}/></div>
-        <div><strong>منصة التدريب السريري</strong><span>الإدارة والتشغيل</span></div>
+        <div className="brand-copy"><strong>منصة التدريب السريري</strong><span>الإدارة والتشغيل</span></div>
         <button className="icon-button sidebar-toggle" onClick={()=>setSidebarOpen(false)} aria-label="إخفاء القائمة"><PanelRightClose size={18}/></button>
       </div>
       <div className="workspace-label">مساحة العمل</div>
