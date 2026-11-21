@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import "./supervision.css";
 import { ArrowRight, Copy, DoorOpen, ShieldCheck, Users, Video } from "lucide-react";
 import "./supervision.css";
 
