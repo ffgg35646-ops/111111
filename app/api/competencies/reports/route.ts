@@ -74,6 +74,10 @@ function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
   const headAngles = telemetry
     .filter((event) => event.type === "head_direction_angle_degrees" && typeof event.value === "number" && event.value >= 0 && event.value <= 180)
     .map((event) => event.value as number);
+  const eyeGazeSamples = telemetry.filter((event) => event.type === "eye_gaze_sample").length;
+  const eyeGazeAngles = telemetry
+    .filter((event) => event.type === "eye_gaze_angle_degrees" && typeof event.value === "number" && event.value >= 0 && event.value <= 180)
+    .map((event) => event.value as number);
   const handSamples = telemetry.filter((event) => event.type === "hand_tracking_sample").length;
   const pinchEvents = telemetry.filter((event) => event.type === "hand_pinch_interaction").length;
   const distanceValues = telemetry
@@ -100,7 +104,20 @@ function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
       }]
     : [];
 
+  const eyeGazeEvidence = eyeGazeSamples && eyeGazeAngles.length
+    ? [{
+        type: "eye_gaze_direction",
+        label: "اتجاه العين نحو موضع الحالة (تتبع اختياري)",
+        samples: eyeGazeSamples,
+        averageValue: Number((eyeGazeAngles.reduce((sum, value) => sum + value, 0) / eyeGazeAngles.length).toFixed(1)),
+        unit: "درجة",
+        evidenceOnly: true,
+        note: "يتطلب نظارة تدعم تتبع العين وموافقة منفصلة. الاتجاه لا يثبت جودة التواصل أو الفهم.",
+      }]
+    : [];
+
   const observationalEvidence = [
+    ...eyeGazeEvidence,
     ...headAngleEvidence,
     ...(headPoseSamples ? [{
       type: "head_pose_samples",
