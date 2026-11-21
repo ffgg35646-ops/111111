@@ -2,7 +2,10 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimInstance.h"
 
 AClinicalVRRoomEnvironment::AClinicalVRRoomEnvironment()
 {
@@ -10,6 +13,16 @@ AClinicalVRRoomEnvironment::AClinicalVRRoomEnvironment()
 
     SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
     SetRootComponent(SceneRoot);
+
+    PatientAnchor = CreateDefaultSubobject<USceneComponent>(TEXT("PatientAnchor"));
+    PatientAnchor->SetupAttachment(SceneRoot);
+    PatientAnchor->SetRelativeLocation(FVector(0.0f, 490.0f, 0.0f));
+    PatientGazeTarget = CreateDefaultSubobject<USceneComponent>(TEXT("PatientGazeTarget"));
+    PatientGazeTarget->SetupAttachment(PatientAnchor);
+    PatientGazeTarget->SetRelativeLocation(FVector(0.0f, 0.0f, 160.0f));
+    PatientCharacter = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PatientCharacter"));
+    PatientCharacter->SetupAttachment(PatientAnchor);
+    PatientCharacter->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 
     Floor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Floor"));
     Floor->SetupAttachment(SceneRoot);
@@ -22,9 +35,9 @@ AClinicalVRRoomEnvironment::AClinicalVRRoomEnvironment()
     InterviewDesk = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("InterviewDesk"));
     InterviewDesk->SetupAttachment(SceneRoot);
     PatientBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PatientBodyPlaceholder"));
-    PatientBody->SetupAttachment(SceneRoot);
+    PatientBody->SetupAttachment(PatientAnchor);
     PatientHead = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PatientHeadPlaceholder"));
-    PatientHead->SetupAttachment(SceneRoot);
+    PatientHead->SetupAttachment(PatientAnchor);
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
     static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
@@ -57,9 +70,22 @@ AClinicalVRRoomEnvironment::AClinicalVRRoomEnvironment()
     InterviewDesk->SetRelativeLocation(FVector(0.0f, 240.0f, 85.0f));
     InterviewDesk->SetRelativeScale3D(FVector(180.0f, 75.0f, 8.0f));
 
-    PatientBody->SetRelativeLocation(FVector(0.0f, 490.0f, 100.0f));
+    PatientBody->SetRelativeLocation(FVector(0.0f, 0.0f, 100.0f));
     PatientBody->SetRelativeScale3D(FVector(0.65f, 0.35f, 1.2f));
 
-    PatientHead->SetRelativeLocation(FVector(0.0f, 485.0f, 235.0f));
+    PatientHead->SetRelativeLocation(FVector(0.0f, -5.0f, 235.0f));
     PatientHead->SetRelativeScale3D(FVector(0.42f, 0.42f, 0.42f));
+}
+
+
+void AClinicalVRRoomEnvironment::BeginPlay()
+{
+    Super::BeginPlay();
+    if (PatientSkeletalMeshAsset && PatientCharacter)
+    {
+        PatientCharacter->SetSkeletalMesh(PatientSkeletalMeshAsset);
+        if (PatientAnimationClass) PatientCharacter->SetAnimInstanceClass(PatientAnimationClass);
+        PatientBody->SetHiddenInGame(true, true);
+        PatientHead->SetHiddenInGame(true, true);
+    }
 }
