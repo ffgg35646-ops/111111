@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
   const normalisedRoomEvents = normaliseRoomEvents(data.roomEvents);
   const headPoseMeasurements = normalisedRoomEvents.flatMap((event) => {
     if (event.type !== "head_pose_sample") return [];
-    const angleMatch = event.label.match(/زاوية اتجاه الرأس نحو موضع الحالة:\s*([0-9]+(?:\\.[0-9]+)?)\s*درجة/);
-    const distanceMatch = event.label.match(/المسافة التقريبية:\s*([0-9]+(?:\\.[0-9]+)?)\s*سم/);
+    const angleMatch = event.label.match(/زاوية اتجاه الرأس نحو موضع الحالة:\s*([0-9]+(?:\.[0-9]+)?)\s*درجة/);
+    const distanceMatch = event.label.match(/المسافة التقريبية:\s*([0-9]+(?:\.[0-9]+)?)\s*سم/);
     if (!angleMatch || !distanceMatch) return [];
     const angle = Number(angleMatch[1]);
     const distance = Number(distanceMatch[1]);
