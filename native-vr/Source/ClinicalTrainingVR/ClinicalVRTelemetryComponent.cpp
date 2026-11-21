@@ -78,6 +78,8 @@ void UClinicalVRTelemetryComponent::PublishHandTrackingSample(const FString& Han
     const FString Side = Handedness == TEXT("left") ? TEXT("left") : Handedness == TEXT("right") ? TEXT("right") : TEXT("unknown");
     const float Distance = FMath::Clamp(ThumbIndexDistanceCm, 0.0f, 50.0f);
     const bool bPinching = Distance <= 3.5f;
+    const bool bWasPinching = HandPinchingState.FindRef(Side);
+    HandPinchingState.Add(Side, bPinching);
 
     TSharedPtr<FJsonObject> Event = MakeShared<FJsonObject>();
     Event->SetStringField(TEXT("type"), TEXT("hand_tracking_sample"));
@@ -88,7 +90,7 @@ void UClinicalVRTelemetryComponent::PublishHandTrackingSample(const FString& Han
     Events.Add(Event);
     SendEvents(Events);
 
-    if (bPinching)
+    if (bPinching && !bWasPinching)
     {
         PublishHandPinchInteraction(Side, Distance);
     }
