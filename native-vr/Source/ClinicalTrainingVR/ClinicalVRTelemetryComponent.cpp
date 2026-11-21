@@ -37,7 +37,14 @@ void UClinicalVRTelemetryComponent::ConfigureTelemetryEndpoint(
 void UClinicalVRTelemetryComponent::BeginPlay()
 {
     Super::BeginPlay();
-    if (HeadPoseSampleIntervalSeconds > 0.5f)
+    if (bEnableEyeGazeTelemetry && GetWorld())
+    {
+        if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+        {
+            UEyeTrackerFunctionLibrary::SetEyeTrackedPlayer(PlayerController);
+        }
+    }
+    if (GetWorld() && HeadPoseSampleIntervalSeconds > 0.5f)
     {
         GetWorld()->GetTimerManager().SetTimer(
             HeadPoseTimer,
@@ -56,6 +63,10 @@ void UClinicalVRTelemetryComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
         GetWorld()->GetTimerManager().ClearTimer(HeadPoseTimer);
     }
     DeviceToken.Reset();
+    if (bEnableEyeGazeTelemetry)
+    {
+        UEyeTrackerFunctionLibrary::SetEyeTrackedPlayer(nullptr);
+    }
     Super::EndPlay(EndPlayReason);
 }
 
