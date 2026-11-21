@@ -432,7 +432,7 @@ function VoiceBoard({
   return (
     <group position={[2.65, 1.55, -0.35]} rotation={[0, -0.32, 0]}>
       <mesh>
-        <planeGeometry args={[3.12, 2.72]} />
+        <planeGeometry args={[3.12, 3.25]} />
         <meshStandardMaterial color="#17333e" roughness={0.8} metalness={0.08} />
       </mesh>
       <mesh position={[0, 1.31, 0.012]}>
