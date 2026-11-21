@@ -27,6 +27,11 @@ type ClinicalRoomStageProps = {
   onSelect: (target: string) => void;
   onRoomEvent?: (type: string, label: string) => void;
   onImmersiveChange?: (active: boolean) => void;
+  realtimeStatus: "idle" | "connecting" | "live" | "error";
+  realtimeMuted: boolean;
+  onStartRealtimeVoice: () => void;
+  onStopRealtimeVoice: () => void;
+  onToggleRealtimeMute: () => void;
   scenarioTitle: string;
   avatarModelUrl: string | null;
   avatarSpeaking: boolean;
@@ -399,22 +404,24 @@ function VoiceBoard({
   status,
   latestUserText,
   latestAssistantText,
-  listening,
-  busy,
-  avatarSpeaking,
+  realtimeStatus,
+  realtimeMuted,
+  onStartRealtimeVoice,
+  onStopRealtimeVoice,
+  onToggleRealtimeMute,
   onStartListening,
   onStopListening,
-  onStopSpeaking,
 }: {
   status: string;
   latestUserText: string;
   latestAssistantText: string;
-  listening: boolean;
-  busy: boolean;
-  avatarSpeaking: boolean;
+  realtimeStatus: "idle" | "connecting" | "live" | "error";
+  realtimeMuted: boolean;
+  onStartRealtimeVoice: () => void;
+  onStopRealtimeVoice: () => void;
+  onToggleRealtimeMute: () => void;
   onStartListening: () => void;
   onStopListening: () => void;
-  onStopSpeaking: () => void;
 }) {
   const latest = latestAssistantText
     ? "الشخصية: " + latestAssistantText
@@ -432,26 +439,34 @@ function VoiceBoard({
         <planeGeometry args={[3.12, 0.035]} />
         <meshBasicMaterial color="#62c9b7" />
       </mesh>
-      <CanvasLabel text="المقابلة الصوتية المباشرة" position={[0, 1.04, 0.025]} size={[2.88, 0.28]} fontSize={35} />
-      <CanvasLabel text={status} position={[0, 0.7, 0.025]} size={[2.82, 0.24]} fontSize={31} color={listening ? "#7fe0c8" : "#a8c9c7"} />
+      <CanvasLabel text="المقابلة الصوتية الحية" position={[0, 1.04, 0.025]} size={[2.88, 0.28]} fontSize={35} />
+      <CanvasLabel text={realtimeStatus === "live" ? "الاتصال الحي متصل" : realtimeStatus === "connecting" ? "جارٍ الاتصال بالخدمة" : realtimeStatus === "error" ? "تعذر الاتصال الحي" : status} position={[0, 0.7, 0.025]} size={[2.82, 0.24]} fontSize={31} color={realtimeStatus === "live" ? "#7fe0c8" : "#a8c9c7"} />
       <CanvasLabel text={latest} position={[0, 0.04, 0.025]} size={[2.82, 0.84]} fontSize={26} color="#e1ebeb" />
       <WorldButton
-        label={listening ? "إنهاء الكلام وإرسال" : busy ? "الشخصية تجهز الرد..." : "اضغط هنا وتحدث"}
+        label={realtimeStatus === "live" ? "الصوت الحي يعمل الآن" : realtimeStatus === "connecting" ? "جارٍ إنشاء الاتصال..." : "ابدأ المحادثة الصوتية الحية"}
         position={[0, -0.83, 0.045]}
-        onClick={listening ? onStopListening : onStartListening}
-        selected={listening}
-        disabled={busy || avatarSpeaking}
+        onClick={onStartRealtimeVoice}
+        selected={realtimeStatus === "live"}
+        disabled={realtimeStatus === "live" || realtimeStatus === "connecting"}
         width={2.74}
         height={0.34}
       />
       <WorldButton
-        label="إيقاف صوت الشخصية"
+        label={realtimeStatus === "live" ? (realtimeMuted ? "تشغيل الميكروفون" : "كتم الميكروفون") : "الوضع البديل: اضغط وتحدث"}
         position={[0, -1.22, 0.045]}
-        onClick={onStopSpeaking}
-        disabled={!avatarSpeaking}
+        onClick={realtimeStatus === "live" ? onToggleRealtimeMute : (listening ? onStopListening : onStartListening)}
+        selected={realtimeStatus === "live" && realtimeMuted}
+        disabled={realtimeStatus === "connecting" || (realtimeStatus !== "live" && busy)}
         width={2.74}
         height={0.28}
       />
+      {realtimeStatus === "live" && <WorldButton
+        label="إنهاء الاتصال الحي"
+        position={[0, -1.52, 0.045]}
+        onClick={onStopRealtimeVoice}
+        width={2.74}
+        height={0.24}
+      />}
     </group>
   );
 }
@@ -570,7 +585,8 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
 
   return (
     <group>
-      <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} />\n      <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} />
+      <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} />
+      <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
         <planeGeometry args={[9, 8.5]} />
         <meshStandardMaterial color="#e7edef" roughness={0.92} />
@@ -682,9 +698,13 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
         listening={props.listening}
         busy={props.busy}
         avatarSpeaking={props.avatarSpeaking}
+        realtimeStatus={props.realtimeStatus}
+        realtimeMuted={props.realtimeMuted}
+        onStartRealtimeVoice={props.onStartRealtimeVoice}
+        onStopRealtimeVoice={props.onStopRealtimeVoice}
+        onToggleRealtimeMute={props.onToggleRealtimeMute}
         onStartListening={props.onStartListening}
         onStopListening={props.onStopListening}
-        onStopSpeaking={props.onStopSpeaking}
       />
     </group>
   );
