@@ -4,7 +4,6 @@ const uri = process.env.MONGODB_URI;
 const databaseName = process.env.MONGODB_DATABASE || "clinical_learning";
 
 declare global {
-  // eslint-disable-next-line no-var
   var clinicalMongoClientPromise: Promise<MongoClient> | undefined;
 }
 
