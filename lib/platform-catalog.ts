@@ -19,6 +19,7 @@ export type Course = {
   summary: string;
   outcomes: string[];
   lessons: string[];
+  recordingUrl?: string;
 };
 
 export type CaseChoice = {
