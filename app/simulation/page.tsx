@@ -569,7 +569,7 @@ function SimulationWorkspace() {
             <div className="simulation-voice-heading">
               <div><strong>الحوار مع الشخصية</strong><small>{voiceStatus}</small></div>
               <div className="simulation-voice-actions">
-                <button type="button" className={listening ? "recording" : ""} onClick={listening ? stopListening : startListening} disabled={agentBusy}>
+                <button type="button" className={listening ? "recording" : ""} onClick={listening ? stopListening : startListening} disabled={agentBusy || realtimeActive}>
                   {listening ? <MicOff size={15} /> : <Mic size={15} />}{listening ? "إنهاء الكلام" : "تحدث"}
                 </button>
                 <button type="button" onClick={() => setAudioEnabled((value) => !value)}>
