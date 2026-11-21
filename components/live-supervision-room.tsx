@@ -66,6 +66,7 @@ type RubricKey = (typeof rubric)[number]["key"];
 function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, vrDeviceToken, inviteUrl }: Props) {
   const room = useRoomContext();
   const [signedRoomRole, setSignedRoomRole] = useState<Role | null>(null);
+  const [humanParticipantCount, setHumanParticipantCount] = useState(1);
   const isSupervisor = signedRoomRole === "supervisor";
   const isTrainee = signedRoomRole === "trainee";
   const [sceneSnapshot, setSceneSnapshot] = useState<SceneSnapshot | null>(null);
@@ -92,12 +93,25 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
       const currentRole = participantRole(room.localParticipant.metadata);
       setSignedRoomRole(currentRole === "supervisor" || currentRole === "trainee" ? currentRole : null);
     };
+    const refreshHumanParticipants = () => {
+      const remoteHumans = Array.from(room.remoteParticipants.values()).filter((remote) => {
+        const remoteRole = participantRole(remote.metadata);
+        return remoteRole === "supervisor" || remoteRole === "trainee";
+      });
+      setHumanParticipantCount(remoteHumans.length + 1);
+    };
+    const onParticipantChanged = () => refreshHumanParticipants();
     const onMetadataChanged = (_previousMetadata: string, participant: Participant) => {
       if (participant.identity === room.localParticipant.identity) syncSignedRole();
+      refreshHumanParticipants();
     };
     room.on(RoomEvent.Connected, syncSignedRole);
+    room.on(RoomEvent.Connected, refreshHumanParticipants);
+    room.on(RoomEvent.ParticipantConnected, onParticipantChanged);
+    room.on(RoomEvent.ParticipantDisconnected, onParticipantChanged);
     room.on(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
-    if (room.localParticipant.metadata) syncSignedRole();
+    syncSignedRole();
+    refreshHumanParticipants();
 
     const onData = (
       payload: Uint8Array,
@@ -161,6 +175,9 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
     room.on(RoomEvent.DataReceived, onData);
     return () => {
       room.off(RoomEvent.Connected, syncSignedRole);
+      room.off(RoomEvent.Connected, refreshHumanParticipants);
+      room.off(RoomEvent.ParticipantConnected, onParticipantChanged);
+      room.off(RoomEvent.ParticipantDisconnected, onParticipantChanged);
       room.off(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
       room.off(RoomEvent.DataReceived, onData);
     };
@@ -260,8 +277,9 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
       <section className="live-call-panel">
         <div className="live-call-heading">
           <div><span className="live-label"><i/> غرفة مباشرة</span><h2>{scenarioTitle || "جلسة إشراف سريري"}</h2><p>الغرفة: {roomNameLabel(room.name)}</p></div>
-          <div className="live-call-badges"><span><Users size={14}/> مشرف + متدرب</span><span><Wifi size={14}/> اتصال مشفر عبر WebRTC</span></div>
+          <div className="live-call-badges"><span><Users size={14}/>{humanParticipantCount >= 2 ? "المشرف والمتدرب متصلان" : "بانتظار انضمام الطرف الآخر"}</span><span><Wifi size={14}/> اتصال عبر WebRTC</span></div>
         </div>
+        <p className="vr-screen-share-hint">لمشاهدة تطبيق الواقع الافتراضي نفسه، يشارك المتدرب شاشة النظارة أو نافذة محرك VR من أدوات مشاركة الشاشة داخل الاجتماع.</p>
         <VideoConference />
         <RoomAudioRenderer />
       </section>
@@ -333,8 +351,8 @@ export default function LiveSupervisionRoom(props: Props) {
         serverUrl={props.serverUrl}
         token={props.token}
         connect={true}
-        audio={true}
-        video={true}
+        audio={false}
+        video={false}
         onError={(error) => setConnectionError(error.message)}
         onDisconnected={() => setConnectionError("انقطع اتصال الغرفة. يمكنك إعادة تحميل الصفحة للانضمام من جديد إذا كان رابط الدعوة ما زال صالحاً.")}
       >
