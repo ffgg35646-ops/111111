@@ -1,4 +1,5 @@
 #include "ClinicalVRPawn.h"
+#include "ClinicalVRTelemetryComponent.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/SceneComponent.h"
@@ -37,6 +38,8 @@ AClinicalVRPawn::AClinicalVRPawn()
     RightPointer->InteractionSource = EWidgetInteractionSource::World;
     RightPointer->InteractionDistance = 500.0f;
     RightPointer->PointerIndex = 1;
+
+    Telemetry = CreateDefaultSubobject<UClinicalVRTelemetryComponent>(TEXT("ClinicalVRTelemetry"));
 }
 
 void AClinicalVRPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
