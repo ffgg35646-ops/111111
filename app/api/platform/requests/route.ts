@@ -17,6 +17,39 @@ function isSameOrigin(request: NextRequest) {
   return !origin || origin === request.nextUrl.origin;
 }
 
+
+export async function GET(request: NextRequest) {
+  const requestId = cleanText(request.nextUrl.searchParams.get("requestId"), 60);
+  const email = cleanText(request.nextUrl.searchParams.get("email"), 180).toLowerCase();
+  if (!/^[0-9a-f-]{36}$/i.test(requestId) || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "أدخل رقم الطلب والبريد الإلكتروني المسجلين." }, { status: 400 });
+  }
+
+  try {
+    const db = await getClinicalDatabase();
+    const record = await db.collection("platform_requests").findOne(
+      { requestId, email },
+      { projection: { _id: 0, requestId: 1, kind: 1, status: 1, courseTitle: 1, preferredAt: 1, reviewedAt: 1, adminNote: 1, zoomMeeting: 1, createdAt: 1 } },
+    );
+    if (!record) return NextResponse.json({ error: "لم يتم العثور على طلب مطابق لهذه البيانات." }, { status: 404 });
+
+    return NextResponse.json({
+      requestId: record.requestId,
+      kind: record.kind,
+      status: record.status,
+      courseTitle: record.courseTitle,
+      preferredAt: record.preferredAt,
+      reviewedAt: record.reviewedAt,
+      adminNote: record.adminNote,
+      zoomMeeting: record.status === "approved" ? record.zoomMeeting : undefined,
+      createdAt: record.createdAt,
+    }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Unable to check platform request status", error);
+    return NextResponse.json({ error: "تعذر التحقق من الطلب حالياً." }, { status: 503 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "مصدر الطلب غير صالح." }, { status: 403 });
 
