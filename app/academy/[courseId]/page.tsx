@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, ChevronLeft, CirclePlay, ClipboardCheck, GraduationCap, LockKeyhole, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -71,6 +71,7 @@ const quizByTrack: Record<string,{q:string;options:string[];correct:number;why:s
 
 export default function CourseLearningPage() {
   const params = useParams<{courseId:string}>();
+  const router = useRouter();
   const course = courses.find(item=>item.id===params.courseId);
   const [activeLesson,setActiveLesson] = useState(0);
   const [completed,setCompleted] = useState<number[]>([]);
@@ -87,12 +88,18 @@ export default function CourseLearningPage() {
 
   useEffect(()=>{
     if(!course)return;
-    try{
-      const saved=JSON.parse(localStorage.getItem("clinical-course-progress:"+course.id)||"{}") as {completed?:number[];reflection?:string};
-      setCompleted(Array.isArray(saved.completed)?saved.completed.filter(n=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[]);
-      setReflection(typeof saved.reflection==="string"?saved.reflection:"");
-    }catch{setCompleted([]);}
-    finally{setProgressHydrated(true);}
+    const frame=window.requestAnimationFrame(()=>{
+      try{
+        const saved=JSON.parse(localStorage.getItem("clinical-course-progress:"+course.id)||"{}") as {completed?:number[];reflection?:string};
+        setCompleted(Array.isArray(saved.completed)?saved.completed.filter(n=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[]);
+        setReflection(typeof saved.reflection==="string"?saved.reflection:"");
+      }catch{
+        setCompleted([]);
+        setReflection("");
+      }
+      setProgressHydrated(true);
+    });
+    return ()=>window.cancelAnimationFrame(frame);
   },[course]);
 
   useEffect(()=>{
@@ -134,7 +141,7 @@ export default function CourseLearningPage() {
       <button className="portal-button" onClick={()=>setChecked(true)} disabled={Object.keys(answers).length!==quiz.length}>تصحيح الاختبار</button>
       {checked&&<p className={quizPassed?"learning-passed":"learning-failed"}>{score} من {quiz.length} — {quizPassed?"اجتزت الاختبار":"تحتاج إلى مراجعة المحتوى والمحاولة مرة أخرى"}.</p>}
     </section>
-    <section className="learning-completion"><GraduationCap size={23}/><div><strong>إتمام الدورة</strong><p>{learningComplete?"أكملت الوحدات واجتزت اختبار الفهم. أرسل طلب اعتماد الإكمال إلى إدارة المنصة.":"أكمل جميع الوحدات واجتز الاختبار لطلب اعتماد إتمام الدورة."}</p></div><button disabled={!learningComplete} onClick={()=>window.location.href="/certificates"}>الانتقال إلى الشهادات</button></section>
+    <section className="learning-completion"><GraduationCap size={23}/><div><strong>إتمام الدورة</strong><p>{learningComplete?"أكملت الوحدات واجتزت اختبار الفهم. أرسل طلب اعتماد الإكمال إلى إدارة المنصة.":"أكمل جميع الوحدات واجتز الاختبار لطلب اعتماد إتمام الدورة."}</p></div><button disabled={!learningComplete} onClick={()=>router.push("/certificates")}>الانتقال إلى الشهادات</button></section>
     {course.mode!=="recorded"&&<div className="portal-callout"><Video size={16}/> هذه الدورة تتضمن لقاءات مباشرة. <Link href="/classrooms">انتقل إلى صفحة الفصول الافتراضية</Link> لطلب الالتحاق واستلام رابط Zoom بعد اعتماد الموعد.</div>}
     <div className="portal-callout"><LockKeyhole size={15}/> تقدم هذه النسخة محفوظ محلياً في هذا المتصفح. ربط التقدم بحساب متدرب موحد يتطلب تفعيل تسجيل الدخول المؤسسي.</div>
   </PlatformLayout>;
