@@ -4,7 +4,7 @@ import "./avatar-studio.css";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Baby, Check, ChevronDown, CircleHelp, Download, FileUp, HeartPulse, MessageCircle, PersonStanding, RotateCcw, ScanFace, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Users, Video } from "lucide-react";
+import { ArrowRight, Baby, Check, FileUp, HeartPulse, MessageCircle, PersonStanding, RotateCcw, ScanFace, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Users, Video } from "lucide-react";
 import AvatarStage from "@/components/avatar-stage";
 
 type FamilyMember = {
