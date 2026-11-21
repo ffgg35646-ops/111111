@@ -34,8 +34,11 @@ PLATFORM_ADMIN_API_KEY=at-least-32-random-characters
 
 - تتصل الخوادم فقط بنقطة OAuth الرسمية وتطلب رمز account credentials، ولا يظهر Client Secret في المتصفح.
 - يجب منح تطبيق Zoom نطاقات إدارة وقراءة المستخدم وإنشاء الاجتماعات المطلوبة (راجع إعداد التطبيق في Zoom Marketplace).
-- واجهة إنشاء الاجتماعات `POST /api/zoom/meetings` تتطلب رأس `x-platform-admin-key`؛ لا تضع المفتاح داخل JavaScript العميل. استخدمها من أداة إدارية خادمية محمية.
-- تأجير القاعة هو طلب حجز ينتظر التأكيد. بعد الموافقة ينشئ المسؤول اجتماع Zoom ويرسل رابط الانضمام.
+- واجهة إنشاء الاجتماعات اليدوية `POST /api/zoom/meetings` تتطلب رأس `x-platform-admin-key`؛ لا تضع المفتاح داخل JavaScript العميل.
+- قائمة الطلبات الإدارية المحمية: `GET /api/platform/admin/requests?status=pending_review`. يمكن تصفية `kind` و`limit`.
+- اعتماد أو رفض طلب: `PATCH /api/platform/admin/requests` مع `requestId` و`action` (approve/reject) ورأس `x-platform-admin-key`.
+- عند اعتماد طلب قاعة أو فصل مباشر، ينشئ الخادم اجتماع Zoom تلقائياً ويضيف `joinUrl` إلى سجل الطلب، مع بقاء `hostStartUrl` داخل سجل الخادم فقط. إذا فشل إنشاء الاجتماع، يعود الطلب إلى حالة المراجعة.
+- تأجير القاعة وطلب الفصل يظلان قيد المراجعة حتى يتخذ المسؤول القرار.
 - تُحفظ وصلة المضيف `start_url` في الخادم فقط ولا تُعاد إلى المتصفح.
 
 ## الشهادات
