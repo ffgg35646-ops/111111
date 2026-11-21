@@ -3,6 +3,8 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "HeadMountedDisplayFunctionLibrary.h"
+#include "HeadMountedDisplayTypes.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
@@ -83,6 +85,27 @@ void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
     AddNumericEvent(TEXT("head_direction_angle_degrees"), TEXT("Head direction angle to simulated patient"), HeadAngle, TEXT("degrees"));
     AddNumericEvent(TEXT("interaction_distance_cm"), TEXT("Approximate distance to simulated patient"), DistanceCm, TEXT("cm"));
     SendEvents(Events);
+
+    const auto SampleTrackedHand = [this](const EControllerHand Hand, const FString& Handedness)
+    {
+        FXRHandTrackingState HandState;
+        UHeadMountedDisplayFunctionLibrary::GetHandTrackingState(this, EXRSpaceType::World, Hand, HandState);
+        const int32 ThumbTipIndex = static_cast<int32>(EHandKeypoint::ThumbTip);
+        const int32 IndexTipIndex = static_cast<int32>(EHandKeypoint::IndexTip);
+        if (!HandState.bValid || HandState.TrackingStatus == ETrackingStatus::NotTracked ||
+            HandState.HandKeyLocations.Num() <= FMath::Max(ThumbTipIndex, IndexTipIndex))
+        {
+            return;
+        }
+
+        const float ThumbIndexDistanceCm = FVector::Distance(
+            HandState.HandKeyLocations[ThumbTipIndex],
+            HandState.HandKeyLocations[IndexTipIndex]);
+        PublishHandTrackingSample(Handedness, ThumbIndexDistanceCm);
+    };
+
+    SampleTrackedHand(EControllerHand::Left, TEXT("left"));
+    SampleTrackedHand(EControllerHand::Right, TEXT("right"));
 }
 
 void UClinicalVRTelemetryComponent::PublishHandTrackingSample(const FString& Handedness, float ThumbIndexDistanceCm)
