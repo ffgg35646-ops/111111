@@ -7,7 +7,7 @@ This directory is a native Unreal Engine starting point for the clinical trainin
 - Unreal project descriptor targeting Unreal Engine 5.8.
 - OpenXR and OpenXR hand-tracking plugin declarations.
 - A VR pawn with HMD camera, left/right motion-controller components, and world-space widget pointers.
-- A primitive interview-room actor and a placeholder patient silhouette.
+- A modular interview-room actor with a target anchor, replaceable skeletal patient mesh, and optional animation Blueprint; simple primitives remain as a fallback when no licensed character asset is assigned.
 - A Blueprint-spawnable telemetry component that sends head-pose observations and hand-tracking observations to the platform through an authenticated HTTPS endpoint.
 - A least-privilege device token path: the copied LiveKit VR device token is restricted to joining the room and publishing data; it cannot publish/subscribe audio/video or administer the room.
 
@@ -29,7 +29,7 @@ No Unreal Engine executable or device runtime is available in this GitHub-only w
    - **platformUrl** from the copied device connection JSON (this is the web platform HTTPS address, not LiveKit's serverUrl)
    - The exact **roomName** from the copied device connection data
    - The short-lived **token** from the copied device connection data
-4. Assign **PatientTarget** to the patient actor in the level. The component samples the HMD camera direction and distance to that actor every five seconds.
+4. The game mode automatically spawns the room and telemetry resolves its **PatientGazeTarget** anchor; no manual patient actor assignment is needed in the default scene.
 The native telemetry component now calls Unreal's **GetHandTrackingState** for the left and right hands every five seconds, reads **ThumbTip** and **IndexTip** in world space, and sends their distance through **PublishHandTrackingSample**. This depends on the OpenXR hand-tracking extension and the selected runtime returning valid hand joints. The Blueprint-callable method remains available for custom input integrations.
 6. The component posts to **/api/supervision/vr-telemetry**. The server verifies the signed LiveKit device token and checks that the requested room matches the token. The supervisor's next competency report for that room includes the pending device events.
 
@@ -37,7 +37,7 @@ The token is a temporary credential. Keep it in memory for the training session,
 
 ## Current limits — do not treat these as complete features
 
-- The native room and patient are primitive placeholders; there is no licensed realistic skeletal patient avatar, rig, facial animation, or phoneme-synchronised lip sync in this Unreal starter.
+- The native project has a replaceable Skeletal Mesh and Animation Blueprint slot, but no character mesh/rig is bundled. Supply an appropriately licensed realistic character asset and animation blueprint. Native lip-sync/viseme mapping to realtime audio is not included yet.
 - The native pawn supports both controller pointers and hand pointers. When OpenXR supplies valid hand joints, a world-space pointer follows the index fingertip; thumb-to-index pinch presses the UMG widget, and releasing the pinch releases it. If hand tracking is unavailable, the pointer deactivates and controller triggers remain available. The behavior still requires runtime testing on the target headset.
 - The web /simulation route has a separate Realtime/WebRTC full-duplex voice client with server-issued ephemeral credentials. That browser client is not embedded into this native Unreal executable. Native audio needs a dedicated Unreal audio/WebRTC integration and device test.
 - Eye gaze support is optional and off by default. It requires a runtime/device that implements **XR_EXT_eye_gaze_interaction**, permission and informed consent. The HMD direction signal is not substituted for missing eye gaze.
