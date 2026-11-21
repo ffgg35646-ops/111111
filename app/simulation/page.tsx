@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -86,6 +86,8 @@ function SimulationWorkspace() {
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
   const [uploadedAvatarName, setUploadedAvatarName] = useState("");
   const [immersiveMode, setImmersiveMode] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<"idle" | "connecting" | "live" | "error">("idle");
+  const [realtimeMuted, setRealtimeMuted] = useState(false);
 
   const recognitionRef = useRef<RecognitionInstance | null>(null);
   const shouldSendSpeechRef = useRef(false);
@@ -94,6 +96,10 @@ function SimulationWorkspace() {
   const busyRef = useRef(false);
   const aborterRef = useRef<AbortController | null>(null);
   const uploadedAvatarObjectUrlRef = useRef<string | null>(null);
+  const realtimeControlsRef = useRef<{ start: () => void; stop: () => void; toggleMute: () => void } | null>(null);
+  const registerRealtimeControls = useCallback((controls: { start: () => void; stop: () => void; toggleMute: () => void } | null) => {
+    realtimeControlsRef.current = controls;
+  }, []);
 
   const activeCase = useMemo(() => getCaseById(caseId), [caseId]);
   const activeStep = activeCase.steps[stepIndex];
@@ -126,13 +132,18 @@ function SimulationWorkspace() {
   const answeredCount = activeCase.steps.filter((step) => Boolean(answers[step.id])).length;
   const latestUserText = [...conversation].reverse().find((turn) => turn.role === "user")?.content ?? "";
   const latestAssistantText = [...conversation].reverse().find((turn) => turn.role === "assistant")?.content ?? "";
-  const voiceStatus = listening
-    ? "الميكروفون يستمع إليك الآن"
-    : agentBusy
-      ? "الشخصية تفهم كلامك وتجهز الرد"
-      : avatarSpeaking
-        ? "الشخصية تتحدث إليك الآن"
-        : "الشخصية جاهزة للمقابلة";
+  const voiceStatus = realtimeStatus === "live"
+    ? "اتصال صوتي حي ثنائي الاتجاه"
+    : realtimeStatus === "connecting"
+      ? "جارٍ إنشاء الاتصال الصوتي الحي"
+      : listening
+        ? "الميكروفون يستمع إليك الآن"
+        : agentBusy
+          ? "الشخصية تفهم كلامك وتجهز الرد"
+          : avatarSpeaking
+            ? "الشخصية تتحدث إليك الآن"
+            : "الشخصية جاهزة للمقابلة";
+  const realtimeActive = realtimeStatus === "live" || realtimeStatus === "connecting";
 
   useEffect(() => () => {
     recognitionRef.current?.abort();
@@ -481,6 +492,11 @@ function SimulationWorkspace() {
               onSelect={setSelectedTarget}
               onRoomEvent={recordRoomEvent}
               onImmersiveChange={setImmersiveMode}
+              realtimeStatus={realtimeStatus}
+              realtimeMuted={realtimeMuted}
+              onStartRealtimeVoice={() => realtimeControlsRef.current?.start()}
+              onStopRealtimeVoice={() => realtimeControlsRef.current?.stop()}
+              onToggleRealtimeMute={() => realtimeControlsRef.current?.toggleMute()}
               scenarioTitle={activeCase.title}
               avatarModelUrl={avatarModelUrl}
               avatarSpeaking={avatarSpeaking}
@@ -530,9 +546,15 @@ function SimulationWorkspace() {
             onConnecting={() => {
               recognitionRef.current?.abort();
               shouldSendSpeechRef.current = false;
+              aborterRef.current?.abort();
+              busyRef.current = false;
+              setAgentBusy(false);
               setListening(false);
               stopAvatarSpeech();
             }}
+            onStatusChange={setRealtimeStatus}
+            onMutedChange={setRealtimeMuted}
+            onControlsReady={registerRealtimeControls}
             onSpeakingChange={setAvatarSpeaking}
             onEvent={recordRoomEvent}
             onTranscript={(turn) => {
@@ -562,7 +584,7 @@ function SimulationWorkspace() {
             </div>
             <div className="simulation-voice-input">
               <textarea value={voiceInput} onChange={(event) => setVoiceInput(event.target.value)} rows={2} placeholder="اكتب رسالتك إذا لم يتوفر التعرف الصوتي..." />
-              <button type="button" onClick={() => void sendMessage(voiceInput)} disabled={!voiceInput.trim() || agentBusy}><Sparkles size={14} /> إرسال للشخصية</button>
+              <button type="button" onClick={() => void sendMessage(voiceInput)} disabled={!voiceInput.trim() || agentBusy || realtimeActive}><Sparkles size={14} /> إرسال للشخصية</button>
             </div>
             {voiceError && <p className="simulation-error" role="alert">{voiceError}</p>}
             <small className="simulation-voice-privacy">تُرسل نصوص المحادثة إلى وكيل الذكاء الاصطناعي وتُحفظ مع نتيجة التدريب للمراجعة التعليمية. لا يُحفظ الصوت الخام. لا تستخدم بيانات مرضى حقيقية.</small>
