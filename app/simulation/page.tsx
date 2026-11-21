@@ -83,7 +83,6 @@ function SimulationWorkspace() {
   const [uploadedAvatarName, setUploadedAvatarName] = useState("");
   const [immersiveMode, setImmersiveMode] = useState(false);
 
-  const immersiveModeRef = useRef(false);
   const recognitionRef = useRef<RecognitionInstance | null>(null);
   const shouldSendSpeechRef = useRef(false);
   const speechBufferRef = useRef("");
@@ -91,7 +90,6 @@ function SimulationWorkspace() {
   const busyRef = useRef(false);
   const aborterRef = useRef<AbortController | null>(null);
   const uploadedAvatarObjectUrlRef = useRef<string | null>(null);
-  immersiveModeRef.current = immersiveMode;
 
   const activeCase = useMemo(() => getCaseById(caseId), [caseId]);
   const activeStep = activeCase.steps[stepIndex];
@@ -403,7 +401,7 @@ function SimulationWorkspace() {
           answers: activeCase.steps.map((step) => ({ stepId: step.id, choiceId: answers[step.id] })),
           roomEvents: finalRoomEvents,
           conversationTurns: conversationRef.current,
-          experienceMode: immersiveModeRef.current ? "webxr-immersive-vr" : "browser-3d-room",
+          experienceMode: immersiveMode ? "webxr-immersive-vr" : "browser-3d-room",
           avatarModelSource: uploadedAvatarUrl ? "custom-glb" : defaultAvatarModelUrl ? "library-avatar" : "age-appropriate-model-required",
         }),
       });
