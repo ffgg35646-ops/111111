@@ -35,6 +35,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "بيانات إنشاء الغرفة غير صالحة." }, { status: 400 });
   }
 
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "بيانات إنشاء الغرفة غير صالحة." }, { status: 400 });
+  }
+
   const data = body as Record<string, unknown>;
   const supervisorName = cleanText(data.supervisorName, 80);
   const traineeName = cleanText(data.traineeName, 80);
@@ -106,7 +110,6 @@ export async function POST(request: NextRequest) {
       traineeName,
       scenarioTitle,
       supervisorName,
-
     });
     response.cookies.set(sessionCookie.name, sessionCookie.value, supervisorCookieOptions(process.env.NODE_ENV === "production"));
     response.headers.set("Cache-Control", "no-store");
