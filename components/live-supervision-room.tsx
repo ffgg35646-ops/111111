@@ -63,7 +63,7 @@ const rubric = [
 
 type RubricKey = (typeof rubric)[number]["key"];
 
-function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, vrDeviceToken, inviteUrl }: Props) {
+function RoomTools({ role, serverUrl, roomName, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, vrDeviceToken, inviteUrl }: Props) {
   const room = useRoomContext();
   const [signedRoomRole, setSignedRoomRole] = useState<Role | null>(null);
   const [humanParticipantCount, setHumanParticipantCount] = useState(1);
