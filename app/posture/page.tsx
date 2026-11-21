@@ -32,6 +32,7 @@ export default function PostureAssessmentPage() {
   const poseRef = useRef<PoseLandmarker | null>(null);
   const faceRef = useRef<FaceLandmarker | null>(null);
   const lastVideoTime = useRef(-1);
+  const analyzeRef = useRef<() => void>(() => {});
   const lastTelemetryAt = useRef(0);
   const vrRoomRef = useRef<Room | null>(null);
   const [running, setRunning] = useState(false);
@@ -126,7 +127,7 @@ export default function PostureAssessmentPage() {
     const pose = poseRef.current;
     const face = faceRef.current;
     if (!video || !pose || !face || video.readyState < 2) {
-      rafRef.current = requestAnimationFrame(analyze);
+      rafRef.current = requestAnimationFrame(() => analyzeRef.current());
       return;
     }
     if (video.currentTime !== lastVideoTime.current) {
@@ -155,7 +156,6 @@ export default function PostureAssessmentPage() {
           tone: metricTone(combined, 8, 17),
         });
         const nose = body[0];
-        const earMid = body[7] && body[8] ? { x: (body[7].x + body[8].x) / 2, y: (body[7].y + body[8].y) / 2 } : nose;
         const headLean = angleFromVertical(nose.x - shoulderMid.x, shoulderMid.y - nose.y);
         next.push({
           label: "محاذاة الرأس",
@@ -228,8 +228,12 @@ export default function PostureAssessmentPage() {
         });
       }
     }
-    rafRef.current = requestAnimationFrame(analyze);
+    rafRef.current = requestAnimationFrame(() => analyzeRef.current());
   }, []);
+
+  useEffect(() => {
+    analyzeRef.current = analyze;
+  }, [analyze]);
 
   const startCamera = async () => {
     setError("");
@@ -250,7 +254,7 @@ export default function PostureAssessmentPage() {
       poseRef.current = pose;
       faceRef.current = face;
       setRunning(true);
-      rafRef.current = requestAnimationFrame(analyze);
+      rafRef.current = requestAnimationFrame(() => analyzeRef.current());
     } catch (cause) {
       stopCamera();
       setError(cause instanceof Error ? cause.message : "تعذر تشغيل الكاميرا أو نماذج الرؤية.");
