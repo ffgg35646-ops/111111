@@ -1,24 +1,68 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, ClipboardCheck, Info, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ClipboardCheck,
+  Info,
+  Mic,
+  MicOff,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import { getCaseById, trainingCases } from "@/lib/platform-catalog";
 import "./simulation.css";
 
 const ClinicalRoomStage = dynamic(() => import("@/components/clinical-room-stage"), {
   ssr: false,
-  loading: () => <div className="simulation-stage-loading">جارٍ تجهيز الغرفة الافتراضية...</div>,
+  loading: () => <div className="simulation-stage-loading">جارٍ تجهيز القاعة والشخصية الافتراضية...</div>,
 });
 
+const AVATAR_MODEL_URLS = {
+  father: "https://memoriesrohit.github.io/avatar-studio/models/daniel_formal.glb",
+  mother: "https://memoriesrohit.github.io/avatar-studio/models/aisha_formal.glb",
+} as const;
+
+type PersonaId = "father" | "mother" | "child" | "teen";
+type ConversationTurn = { role: "user" | "assistant"; content: string };
 type RoomEvent = { type: string; label: string; occurredAt: string };
+type RecognitionAlternative = { transcript: string };
+type RecognitionResult = { isFinal: boolean; 0: RecognitionAlternative };
+type RecognitionEvent = Event & { resultIndex: number; results: ArrayLike<RecognitionResult> };
+type RecognitionErrorEvent = Event & { error: string };
+type RecognitionInstance = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: RecognitionEvent) => void) | null;
+  onerror: ((event: RecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+};
+type SpeechWindow = Window & {
+  SpeechRecognition?: new () => RecognitionInstance;
+  webkitSpeechRecognition?: new () => RecognitionInstance;
+};
 
 function SimulationWorkspace() {
   const params = useSearchParams();
-  const [caseId, setCaseId] = useState(trainingCases[0].id);
+  const [caseId, setCaseId] = useState(() => {
+    const requested = params.get("case");
+    return requested && trainingCases.some((item) => item.id === requested)
+      ? requested
+      : trainingCases[0].id;
+  });
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
@@ -28,24 +72,75 @@ function SimulationWorkspace() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
+  const [conversation, setConversation] = useState<ConversationTurn[]>([]);
+  const [voiceInput, setVoiceInput] = useState("");
+  const [listening, setListening] = useState(false);
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [avatarSpeaking, setAvatarSpeaking] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [voiceError, setVoiceError] = useState("");
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
+  const [uploadedAvatarName, setUploadedAvatarName] = useState("");
+  const [immersiveMode, setImmersiveMode] = useState(false);
 
-  useEffect(() => {
-    const query = params.get("case");
-    if (query && trainingCases.some((item) => item.id === query)) setCaseId(query);
-  }, [params]);
+  const immersiveModeRef = useRef(false);
+  const recognitionRef = useRef<RecognitionInstance | null>(null);
+  const shouldSendSpeechRef = useRef(false);
+  const speechBufferRef = useRef("");
+  const conversationRef = useRef<ConversationTurn[]>([]);
+  const busyRef = useRef(false);
+  const aborterRef = useRef<AbortController | null>(null);
+  const uploadedAvatarObjectUrlRef = useRef<string | null>(null);
+  immersiveModeRef.current = immersiveMode;
 
   const activeCase = useMemo(() => getCaseById(caseId), [caseId]);
   const activeStep = activeCase.steps[stepIndex];
-  const voicePersona = activeCase.ageGroup === "طفل" ? "child" : activeCase.ageGroup === "مراهق" ? "teen" : activeCase.track === "الخدمة الاجتماعية" ? "mother" : "father";
-  const voiceScenario = "العنوان: " + activeCase.title +
-    "\nنوع الحالة: " + activeCase.track +
-    "\nالعمر/الفئة: " + activeCase.ageGroup +
-    "\nمكان المقابلة: " + activeCase.setting +
-    "\nملخص الحالة: " + activeCase.briefing +
-    "\nأهداف التدريب: " + activeCase.learningGoals.join("، ") +
-    "\nتعليمات الشخصية: أجب من منظور الشخصية فقط وبما يتناسب مع المعلومات الواردة في الملخص. لا تكشف كل التفاصيل دفعة واحدة. لا تخترع معلومات طبية أو اجتماعية غير مذكورة. لا تقدم تشخيصاً أو علاجاً.\n";
-  const voiceHref = "/voice?persona=" + voicePersona + "&scenario=" + encodeURIComponent(voiceScenario);
+  const voicePersona: PersonaId = activeCase.ageGroup === "طفل"
+    ? "child"
+    : activeCase.ageGroup === "مراهق"
+      ? "teen"
+      : activeCase.track === "الخدمة الاجتماعية"
+        ? "mother"
+        : "father";
+
+  const voiceScenario = useMemo(() => [
+    "العنوان: " + activeCase.title,
+    "نوع الحالة: " + activeCase.track,
+    "العمر/الفئة: " + activeCase.ageGroup,
+    "مكان المقابلة: " + activeCase.setting,
+    "ملخص الحالة: " + activeCase.briefing,
+    "أهداف التدريب: " + activeCase.learningGoals.join("، "),
+    "تعليمات الشخصية: أجب من منظور الشخصية فقط وبما يتناسب مع المعلومات الواردة في ملف الحالة. لا تكشف كل التفاصيل دفعة واحدة. لا تخترع معلومات طبية أو اجتماعية غير مذكورة. لا تقدم تشخيصاً أو علاجاً.",
+  ].join("\n"), [activeCase]);
+
+  const defaultAvatarModelUrl = voicePersona === "father"
+    ? AVATAR_MODEL_URLS.father
+    : voicePersona === "mother"
+      ? AVATAR_MODEL_URLS.mother
+      : null;
+  const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
+  const avatarModelLabel = uploadedAvatarName
+    || (voicePersona === "father" ? "شخصية رجل واقعية مرخصة" : voicePersona === "mother" ? "شخصية امرأة واقعية مرخصة" : "يتطلب موديل مناسباً للعمر");
   const answeredCount = activeCase.steps.filter((step) => Boolean(answers[step.id])).length;
+  const latestUserText = [...conversation].reverse().find((turn) => turn.role === "user")?.content ?? "";
+  const latestAssistantText = [...conversation].reverse().find((turn) => turn.role === "assistant")?.content ?? "";
+  const voiceStatus = listening
+    ? "الميكروفون يستمع إليك الآن"
+    : agentBusy
+      ? "الشخصية تفهم كلامك وتجهز الرد"
+      : avatarSpeaking
+        ? "الشخصية تتحدث إليك الآن"
+        : "الشخصية جاهزة للمقابلة";
+
+  useEffect(() => () => {
+    recognitionRef.current?.abort();
+    aborterRef.current?.abort();
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    if (uploadedAvatarObjectUrlRef.current) {
+      URL.revokeObjectURL(uploadedAvatarObjectUrlRef.current);
+      uploadedAvatarObjectUrlRef.current = null;
+    }
+  }, []);
 
   const recordRoomEvent = (type: string, label: string) => {
     setRoomEvents((current) => [
@@ -54,7 +149,208 @@ function SimulationWorkspace() {
     ].slice(-120));
   };
 
+  const stopAvatarSpeech = () => {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    setAvatarSpeaking(false);
+  };
+
+  const speakResponse = (text: string) => {
+    if (!audioEnabled) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setVoiceError("الصوت المنطوق غير مدعوم في هذا المتصفح. يمكنك متابعة رد الشخصية نصياً.");
+      return;
+    }
+
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ar-SA";
+    utterance.rate = 0.94;
+    utterance.pitch = 1;
+    const voices = synth.getVoices();
+    const arabicVoice = voices.find((voice) => voice.lang.toLowerCase().startsWith("ar-sa"))
+      ?? voices.find((voice) => voice.lang.toLowerCase().startsWith("ar"));
+    if (arabicVoice) utterance.voice = arabicVoice;
+    utterance.onstart = () => setAvatarSpeaking(true);
+    utterance.onend = () => setAvatarSpeaking(false);
+    utterance.onerror = () => setAvatarSpeaking(false);
+    synth.speak(utterance);
+  };
+
+  const sendMessage = async (rawText: string) => {
+    const text = rawText.trim().slice(0, 1800);
+    if (!text || busyRef.current) return;
+
+    shouldSendSpeechRef.current = false;
+    busyRef.current = true;
+    setAgentBusy(true);
+    setVoiceError("");
+    setVoiceInput("");
+    speechBufferRef.current = "";
+    stopAvatarSpeech();
+
+    const nextMessages = [...conversationRef.current, { role: "user" as const, content: text }].slice(-20);
+    conversationRef.current = nextMessages;
+    setConversation(nextMessages);
+    conversationRef.current = [...nextMessages, { role: "assistant", content: "" }].slice(-20);
+    setConversation(conversationRef.current);
+    recordRoomEvent("conversation_turn_started", "أرسل المتدرب سؤالاً صوتياً أو نصياً إلى الشخصية الافتراضية.");
+
+    const controller = new AbortController();
+    aborterRef.current = controller;
+    try {
+      const response = await fetch("/api/clinical-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaId: voicePersona,
+          scenario: voiceScenario,
+          messages: nextMessages.map(({ role, content }) => ({ role, content })),
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "تعذر الاتصال بالشخصية الافتراضية.");
+      }
+      if (!response.body) throw new Error("لم يصل رد من خدمة المحادثة.");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let answer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        answer += decoder.decode(value, { stream: true });
+        const updated = [...nextMessages, { role: "assistant" as const, content: answer }].slice(-20);
+        conversationRef.current = updated;
+        setConversation(updated);
+      }
+      answer += decoder.decode();
+      if (!answer.trim()) throw new Error("وصل رد فارغ من الشخصية الافتراضية.");
+
+      const finalMessages = [...nextMessages, { role: "assistant" as const, content: answer }].slice(-20);
+      conversationRef.current = finalMessages;
+      setConversation(finalMessages);
+      recordRoomEvent("conversation_reply_received", "أجابت الشخصية الافتراضية على سؤال المتدرب.");
+      speakResponse(answer);
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === "AbortError") return;
+      const message = cause instanceof Error ? cause.message : "حدث خطأ غير متوقع أثناء المحادثة.";
+      setVoiceError(message);
+      conversationRef.current = nextMessages;
+      setConversation(nextMessages);
+    } finally {
+      busyRef.current = false;
+      setAgentBusy(false);
+      aborterRef.current = null;
+    }
+  };
+
+  const startListening = () => {
+    if (busyRef.current || listening) return;
+    stopAvatarSpeech();
+    const speechWindow = window as SpeechWindow;
+    const Constructor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!Constructor) {
+      setVoiceError("التعرف على الكلام غير متاح في هذا المتصفح. استخدم حقل الكتابة أسفل القاعة، أو افتح التجربة في متصفح يدعم SpeechRecognition.");
+      return;
+    }
+
+    const instance = new Constructor();
+    recognitionRef.current = instance;
+    speechBufferRef.current = "";
+    shouldSendSpeechRef.current = true;
+    setVoiceInput("");
+    setVoiceError("");
+    instance.lang = "ar-SA";
+    instance.continuous = false;
+    instance.interimResults = true;
+
+    instance.onresult = (event) => {
+      let finalText = "";
+      let interimText = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        if (result.isFinal) finalText += result[0].transcript + " ";
+        else interimText += result[0].transcript;
+      }
+      if (finalText) speechBufferRef.current = (speechBufferRef.current + " " + finalText).trim();
+      setVoiceInput((speechBufferRef.current + (interimText ? " " + interimText : "")).trim());
+    };
+
+    instance.onerror = (event) => {
+      shouldSendSpeechRef.current = false;
+      setListening(false);
+      setVoiceError(event.error === "not-allowed"
+        ? "لم يتم السماح باستخدام الميكروفون. فعّل إذن الميكروفون من المتصفح."
+        : "تعذر التقاط الصوت: " + event.error);
+    };
+
+    instance.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+      const recognisedText = speechBufferRef.current.trim();
+      if (shouldSendSpeechRef.current && recognisedText) {
+        shouldSendSpeechRef.current = false;
+        void sendMessage(recognisedText);
+      } else if (shouldSendSpeechRef.current && !recognisedText) {
+        shouldSendSpeechRef.current = false;
+        setVoiceError("لم ألتقط كلاماً واضحاً. حاول مرة أخرى أو اكتب رسالتك.");
+      }
+    };
+
+    try {
+      instance.start();
+      setListening(true);
+      recordRoomEvent("microphone_started", "بدأ المتدرب التحدث إلى الشخصية الافتراضية.");
+    } catch {
+      shouldSendSpeechRef.current = false;
+      setListening(false);
+      setVoiceError("تعذر تشغيل الميكروفون. تحقق من أذونات الموقع والجهاز.");
+    }
+  };
+
+  const stopListening = () => {
+    shouldSendSpeechRef.current = true;
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
+
+  const handleAvatarUpload = (file?: File) => {
+    if (!file) return;
+    if (!/\.glb$/i.test(file.name)) {
+      setVoiceError("ارفع ملف GLB فقط حتى يحتوي ملف الشخصية على الخامات والحركة في ملف واحد.");
+      return;
+    }
+    if (file.size > 80 * 1024 * 1024) {
+      setVoiceError("حجم ملف الشخصية أكبر من 80 ميجابايت. استخدم نسخة محسّنة للنظارة.");
+      return;
+    }
+    if (uploadedAvatarObjectUrlRef.current) URL.revokeObjectURL(uploadedAvatarObjectUrlRef.current);
+    const objectUrl = URL.createObjectURL(file);
+    uploadedAvatarObjectUrlRef.current = objectUrl;
+    setUploadedAvatarUrl(objectUrl);
+    setUploadedAvatarName(file.name);
+    setVoiceError("");
+    recordRoomEvent("avatar_model_loaded", "تم تحميل موديل بشري مخصص داخل القاعة.");
+  };
+
+  const removeCustomAvatar = () => {
+    if (uploadedAvatarObjectUrlRef.current) URL.revokeObjectURL(uploadedAvatarObjectUrlRef.current);
+    uploadedAvatarObjectUrlRef.current = null;
+    setUploadedAvatarUrl(null);
+    setUploadedAvatarName("");
+  };
+
   const changeCase = (id: string) => {
+    recognitionRef.current?.abort();
+    shouldSendSpeechRef.current = false;
+    aborterRef.current?.abort();
+    stopAvatarSpeech();
+    busyRef.current = false;
+    conversationRef.current = [];
     setCaseId(id);
     setStepIndex(0);
     setAnswers({});
@@ -62,6 +358,11 @@ function SimulationWorkspace() {
     setCompleted(false);
     setSavedScore(null);
     setError("");
+    setVoiceError("");
+    setAgentBusy(false);
+    setListening(false);
+    setConversation([]);
+    setVoiceInput("");
     setRoomEvents([{ type: "room_entered", label: "بدء حالة تدريبية جديدة", occurredAt: new Date().toISOString() }]);
     window.history.replaceState(null, "", "/simulation?case=" + id);
   };
@@ -81,7 +382,7 @@ function SimulationWorkspace() {
   };
 
   const finish = async () => {
-    if (answeredCount !== activeCase.steps.length || saving) return;
+    if (answeredCount !== activeCase.steps.length || saving || listening || agentBusy) return;
     setSaving(true);
     setError("");
     const completionEvent: RoomEvent = {
@@ -100,7 +401,9 @@ function SimulationWorkspace() {
           caseId: activeCase.id,
           answers: activeCase.steps.map((step) => ({ stepId: step.id, choiceId: answers[step.id] })),
           roomEvents: finalRoomEvents,
-          experienceMode: "webxr-clinical-room",
+          conversationTurns: conversationRef.current,
+          experienceMode: immersiveModeRef.current ? "webxr-immersive-vr" : "browser-3d-room",
+          avatarModelSource: uploadedAvatarUrl ? "custom-glb" : defaultAvatarModelUrl ? "library-avatar" : "age-appropriate-model-required",
         }),
       });
       const result = await response.json();
@@ -129,9 +432,9 @@ function SimulationWorkspace() {
 
   return (
     <PlatformLayout
-      title="قاعة المحاكاة ودراسة الحالة"
-      eyebrow="IMMERSIVE VR CASE SIMULATION"
-      description="ادخل القاعة الافتراضية، تفاعل مع الحالة، واتخذ قراراتك من لوحة التقييم الموجودة داخل المشهد ثلاثي الأبعاد."
+      title="قاعة المحاكاة والمقابلة السريرية"
+      eyebrow="IMMERSIVE VR LIVE PATIENT"
+      description="واجه شخصية بشرية ثلاثية الأبعاد وجهاً لوجه، تحدث معها بالصوت، ثم أكمل خطوات التقييم واحفظ نتيجة التدريب."
     >
       <div className="simulation-toolbar">
         <label>اختر الحالة
@@ -139,7 +442,7 @@ function SimulationWorkspace() {
             {trainingCases.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
           </select>
         </label>
-        <div><span className="simulation-live-indicator" /> جلسة تدريبية افتراضية · لا يوجد مريض حقيقي</div>
+        <div><span className="simulation-live-indicator" /> {immersiveMode ? "النظارة داخل جلسة VR غامرة" : "معاينة ثلاثية الأبعاد · لا يوجد مريض حقيقي"}</div>
       </div>
 
       <div className="simulation-layout">
@@ -147,15 +450,37 @@ function SimulationWorkspace() {
           <div className="simulation-panel-head">
             <div>
               <strong>غرفة المقابلة السريرية</strong>
-              <small>اختر الإجابات وتقدم بين خطوات التقييم من اللوحة العائمة داخل القاعة باستخدام مؤشر النظارة أو وحدات التحكم</small>
+              <small>اجلس أمام الشخصية، افتح الميكروفون من لوحة المقابلة داخل المشهد، واتبع الحوار بصوتها وحركة وجهها</small>
             </div>
             <span className="room-ready-chip"><i /> الغرفة جاهزة</span>
           </div>
+
+          <div className="simulation-avatar-toolbar">
+            <div><b>الشخصية:</b> {avatarModelLabel}</div>
+            <label className="simulation-avatar-upload">
+              <Upload size={14} /> تحميل شخصية GLB مخصصة
+              <input type="file" accept=".glb,model/gltf-binary" onChange={(event) => handleAvatarUpload(event.target.files?.[0])} />
+            </label>
+            {uploadedAvatarUrl && <button type="button" className="simulation-remove-avatar" onClick={removeCustomAvatar}>العودة للشخصية الافتراضية</button>}
+          </div>
+
           <div className="simulation-stage-wrap">
             <ClinicalRoomStage
               onSelect={setSelectedTarget}
               onRoomEvent={recordRoomEvent}
+              onImmersiveChange={setImmersiveMode}
               scenarioTitle={activeCase.title}
+              avatarModelUrl={avatarModelUrl}
+              avatarSpeaking={avatarSpeaking}
+              avatarMotion={avatarSpeaking ? "talk" : listening || agentBusy ? "listen" : "idle"}
+              voiceStatus={voiceStatus}
+              latestUserText={latestUserText}
+              latestAssistantText={latestAssistantText}
+              listening={listening}
+              busy={agentBusy}
+              onStartListening={startListening}
+              onStopListening={stopListening}
+              onStopSpeaking={stopAvatarSpeech}
               step={{
                 title: activeStep.title,
                 focus: activeStep.focus,
@@ -181,10 +506,37 @@ function SimulationWorkspace() {
               onRestart={restart}
             />
           </div>
+
           <div className="simulation-scene-footer">
             <span>العنصر المحدد: <b>{selectedTarget}</b></span>
-            <span>اسحب المشهد للتحريك · في النظارة استخدم الرأس والمؤشر أو وحدات التحكم</span>
+            <span>في النظارة: وجّه المؤشر إلى لوحة المقابلة واضغط لبدء الكلام</span>
           </div>
+
+          <div className="simulation-voice-console">
+            <div className="simulation-voice-heading">
+              <div><strong>الحوار مع الشخصية</strong><small>{voiceStatus}</small></div>
+              <div className="simulation-voice-actions">
+                <button type="button" className={listening ? "recording" : ""} onClick={listening ? stopListening : startListening} disabled={agentBusy}>
+                  {listening ? <MicOff size={15} /> : <Mic size={15} />}{listening ? "إنهاء الكلام" : "تحدث"}
+                </button>
+                <button type="button" onClick={() => setAudioEnabled((value) => !value)}>
+                  {audioEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}{audioEnabled ? "صوت الشخصية مفعل" : "تفعيل الصوت"}
+                </button>
+              </div>
+            </div>
+            <div className="simulation-voice-transcript">
+              {latestUserText && <p><b>أنت:</b> {latestUserText}</p>}
+              {latestAssistantText && <p><b>الشخصية:</b> {latestAssistantText}</p>}
+              {!latestUserText && !latestAssistantText && <p>ابدأ بسؤال مفتوح. ستسمع رد الشخصية وترى حركة فمها أثناء التحدث.</p>}
+            </div>
+            <div className="simulation-voice-input">
+              <textarea value={voiceInput} onChange={(event) => setVoiceInput(event.target.value)} rows={2} placeholder="اكتب رسالتك إذا لم يتوفر التعرف الصوتي..." />
+              <button type="button" onClick={() => void sendMessage(voiceInput)} disabled={!voiceInput.trim() || agentBusy}><Sparkles size={14} /> إرسال للشخصية</button>
+            </div>
+            {voiceError && <p className="simulation-error" role="alert">{voiceError}</p>}
+            <small className="simulation-voice-privacy">تُرسل نصوص المحادثة إلى وكيل الذكاء الاصطناعي وتُحفظ مع نتيجة التدريب للمراجعة التعليمية. لا يُحفظ الصوت الخام. لا تستخدم بيانات مرضى حقيقية.</small>
+          </div>
+
           <div className="simulation-case-brief">
             <div>
               <span className="portal-chip">{activeCase.track}</span>
@@ -199,7 +551,7 @@ function SimulationWorkspace() {
           {!completed ? (
             <>
               <div className="simulation-panel-head">
-                <div><strong>ملخص التقييم المتزامن</strong><small>المرحلة {stepIndex + 1} من {activeCase.steps.length}</small></div>
+                <div><strong>مسار التقييم المهني</strong><small>المرحلة {stepIndex + 1} من {activeCase.steps.length}</small></div>
                 <b>{Math.round(answeredCount / activeCase.steps.length * 100)}%</b>
               </div>
               <div className="simulation-progress"><i style={{ width: (answeredCount / activeCase.steps.length * 100) + "%" }} /></div>
@@ -229,8 +581,8 @@ function SimulationWorkspace() {
                 {stepIndex < activeCase.steps.length - 1 ? (
                   <button className="simulation-next" onClick={() => moveToStep(stepIndex + 1)}>المرحلة التالية <ArrowRight size={14} /></button>
                 ) : (
-                  <button className="simulation-next" onClick={finish} disabled={saving || answeredCount !== activeCase.steps.length}>
-                    {saving ? "جارٍ حساب وحفظ التقييم..." : <><ClipboardCheck size={15} /> إنهاء وتقييم الجلسة</>}
+                  <button className="simulation-next" onClick={finish} disabled={saving || listening || agentBusy || answeredCount !== activeCase.steps.length}>
+                    {saving ? "جارٍ حساب وحفظ التقييم..." : <><ClipboardCheck size={15} /> إنهاء وحفظ الجلسة</>}
                   </button>
                 )}
               </div>
@@ -247,6 +599,7 @@ function SimulationWorkspace() {
                   return <div key={step.id}><span>{step.title}</span><b>{choice?.score ?? 0}/20</b><small>{choice?.feedback}</small></div>;
                 })}
               </div>
+              <p className="simulation-result-dialogue">تم حفظ {conversation.length} رسالة نصية من الحوار ضمن سجل النشاط للمراجعة، دون حفظ تسجيل صوتي.</p>
               <button className="simulation-next" onClick={restart}><RotateCcw size={15} /> إعادة المحاكاة</button>
             </div>
           )}
@@ -255,13 +608,12 @@ function SimulationWorkspace() {
       </div>
 
       <div className="simulation-bottom-links">
-        <Link href={voiceHref}>بدء مقابلة صوتية مع الحالة <ArrowRight size={14} /></Link>
         <Link href="/posture">تقييم لغة الجسد <ArrowRight size={14} /></Link>
         <Link href="/supervision">إشراف أكاديمي مباشر <ArrowRight size={14} /></Link>
         <Link href="/competencies">ملف الكفاءات المهنية <ArrowRight size={14} /></Link>
       </div>
       <div className="portal-callout simulation-disclaimer">
-        <Info size={16} /> تقييم المحاكاة مخصص للتعلم ومراجعة القرارات. يعتمد على Rubric الحالة الذي أعده المختص، ولا يمثل تشخيصاً أو مقياساً نفسياً مقنناً. أحداث التفاعل المسجلة توثق استخدام عناصر القاعة ولا تثبت وحدها كفاءة سريرية.
+        <Info size={16} /> الحوار الصوتي يستخدم التعرف على الكلام والصوت المنطوق المتاحين في المتصفح، وقد تختلف جودتهما حسب النظارة والمتصفح واللغة المثبتة. تقييم الدرجة يعتمد على Rubric الحالة؛ ويُحفظ نص الحوار كدليل للمراجعة ولا يصدر حكماً مهنياً آلياً نهائياً.
       </div>
     </PlatformLayout>
   );

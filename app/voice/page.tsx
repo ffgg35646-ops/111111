@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, AudioLines, Bot, Check, CircleAlert, LoaderCircle, Mic, MicOff, Pause, Send, Settings2, ShieldCheck, Square, UserRound, Video, Volume2, VolumeX } from "lucide-react";
 import "./voice.css";
@@ -30,9 +31,13 @@ const personas: { id: PersonaId; name: string; role: string; description: string
   { id:"teen",name:"المراهق السعودي",role:"مراجع مراهق",description:"مراهق يحتاج إلى حوار هادئ وبناء الثقة." },
 ];
 
-export default function VoiceAgentPage() {
-  const [persona,setPersona] = useState<PersonaId>("father");
-  const [scenario,setScenario] = useState("");
+function VoiceAgentWorkspace() {
+  const params = useSearchParams();
+  const [persona,setPersona] = useState<PersonaId>(() => {
+    const requested = params.get("persona");
+    return personas.some(item => item.id === requested) ? requested as PersonaId : "father";
+  });
+  const [scenario,setScenario] = useState(() => params.get("scenario")?.slice(0,5000) ?? "");
   const [messages,setMessages] = useState<Message[]>([]);
   const [draft,setDraft] = useState("");
   const [busy,setBusy] = useState(false);
@@ -41,7 +46,6 @@ export default function VoiceAgentPage() {
   const [voiceEnabled,setVoiceEnabled] = useState(true);
   const [interim,setInterim] = useState("");
   const [error,setError] = useState("");
-  const [supported,setSupported] = useState(true);
   const recognition = useRef<RecognitionInstance | null>(null);
   const aborter = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -49,19 +53,6 @@ export default function VoiceAgentPage() {
   const activePersona = personas.find(item=>item.id===persona)!;
 
   useEffect(()=>{
-    const speechWindow=window as SpeechWindow;
-    setSupported(Boolean(speechWindow.SpeechRecognition||speechWindow.webkitSpeechRecognition));
-
-    const params=new URLSearchParams(window.location.search);
-    const incomingPersona=params.get("persona");
-    const incomingScenario=params.get("scenario");
-    if(incomingPersona&&personas.some(item=>item.id===incomingPersona)){
-      setPersona(incomingPersona as PersonaId);
-    }
-    if(incomingScenario){
-      setScenario(incomingScenario.slice(0,5000));
-    }
-
     return ()=>{recognition.current?.abort();aborter.current?.abort();window.speechSynthesis?.cancel();};
   },[]);
 
@@ -162,7 +153,6 @@ export default function VoiceAgentPage() {
           {error&&<div className="voice-error"><CircleAlert size={16}/>{error}</div>}
           <div className="voice-composer"><textarea value={draft} onChange={event=>setDraft(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();void send(draft);}}} placeholder="اكتب رسالتك أو اضغط الميكروفون وتحدث..." rows={2}/><div className="composer-actions"><div className="composer-left"><button className={"mic-button "+(listening?"recording":"")} onClick={listening?stopListening:startListening} disabled={busy} title={listening?"إيقاف الاستماع":"ابدأ التحدث"}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button><button className={"sound-toggle "+(!voiceEnabled?"muted":"")} onClick={()=>{setVoiceEnabled(value=>!value);stopSpeaking();}} title={voiceEnabled?"إيقاف الصوت":"تفعيل الصوت"}>{voiceEnabled?<Volume2 size={17}/>:<VolumeX size={17}/>}</button>{speaking&&<button className="sound-toggle" onClick={stopSpeaking}><Pause size={16}/> إيقاف الصوت</button>}</div><div className="composer-right">{busy&&<button className="stop-response" onClick={()=>aborter.current?.abort()}>إيقاف الرد</button>}<button className="send-button" onClick={()=>void send(draft)} disabled={!draft.trim()||busy}><Send size={16}/> إرسال</button></div></div>
           </div>
-          {!supported&&<div className="browser-note">التعرف على الكلام غير متاح في هذا المتصفح؛ يمكنك الكتابة، وسيعمل الصوت المنطوق إذا كان مدعوماً.</div>}
         </section>
         <aside className="voice-side">
           <section className="voice-panel"><div className="panel-heading"><UserRound size={17}/><div><strong>اختيار الشخصية</strong><small>حدد الطرف الذي ستجري معه المقابلة</small></div></div><div className="persona-options">{personas.map(item=><button key={item.id} className={persona===item.id?"chosen":""} onClick={()=>{setPersona(item.id);reset();}}><span className="persona-icon"><UserRound size={17}/></span><span><b>{item.name}</b><small>{item.role}</small></span>{persona===item.id&&<Check size={16}/>}</button>)}</div></section>
@@ -173,4 +163,8 @@ export default function VoiceAgentPage() {
       <footer className="voice-footnote">المحادثة مخصصة للتدريب والمحاكاة، وليست خدمة تشخيص أو علاج. جودة التعرف على الصوت والصوت المنطوق تعتمد على دعم المتصفح والأصوات المثبتة على الجهاز.</footer>
     </div>
   </main>;
+}
+
+export default function VoiceAgentPage() {
+  return <Suspense fallback={<main className="voice-workspace" dir="rtl">تحميل وكيل المحادثة...</main>}><VoiceAgentWorkspace /></Suspense>;
 }

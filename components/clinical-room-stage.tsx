@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { Grid, OrbitControls } from "@react-three/drei";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import { createXRStore, IfInSessionMode, XR } from "@react-three/xr";
+import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import * as THREE from "three";
 import { CanvasTexture, SRGBColorSpace } from "three";
 import "./clinical-room-stage.css";
 
@@ -28,6 +30,17 @@ type ClinicalRoomStageProps = {
   onRoomEvent?: (type: string, label: string) => void;
   onImmersiveChange?: (active: boolean) => void;
   scenarioTitle: string;
+  avatarModelUrl: string | null;
+  avatarSpeaking: boolean;
+  avatarMotion: "idle" | "listen" | "talk";
+  voiceStatus: string;
+  latestUserText: string;
+  latestAssistantText: string;
+  listening: boolean;
+  busy: boolean;
+  onStartListening: () => void;
+  onStopListening: () => void;
+  onStopSpeaking: () => void;
   step: ClinicalRoomStep;
   stepIndex: number;
   stepCount: number;
@@ -191,7 +204,7 @@ function Chair({
   );
 }
 
-function PatientFigure({ onSelect }: { onSelect: () => void }) {
+function BasicPatient({ onSelect }: { onSelect: () => void }) {
   return (
     <group
       position={[0, 0, -2.35]}
@@ -199,12 +212,8 @@ function PatientFigure({ onSelect }: { onSelect: () => void }) {
         event.stopPropagation();
         onSelect();
       }}
-      onPointerOver={() => {
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = "auto";
-      }}
+      onPointerOver={() => { document.body.style.cursor = "pointer"; }}
+      onPointerOut={() => { document.body.style.cursor = "auto"; }}
     >
       <mesh position={[0, 1.12, 0]} castShadow>
         <capsuleGeometry args={[0.28, 0.72, 5, 14]} />
@@ -250,24 +259,99 @@ function PatientFigure({ onSelect }: { onSelect: () => void }) {
   );
 }
 
-function AssessmentBoard({
-  scenarioTitle,
-  step,
-  stepIndex,
-  stepCount,
-  selectedChoiceId,
-  completed,
-  score,
-  saving,
-  canFinish,
-  onChoose,
-  onPrevious,
-  onNext,
-  onFinish,
-  onRestart,
-}: Omit<ClinicalRoomStageProps, "onSelect" | "onRoomEvent">) {
+function RealisticPatient({
+  modelUrl,
+  speaking,
+  motion,
+  onSelect,
+}: {
+  modelUrl: string;
+  speaking: boolean;
+  motion: "idle" | "listen" | "talk";
+  onSelect: () => void;
+}) {
+  const gltf = useGLTF(modelUrl);
+  const model = useMemo(() => cloneSkeleton(gltf.scene), [gltf.scene]);
+  const { actions, names, ref } = useAnimations(gltf.animations);
+
+  useEffect(() => {
+    const bounds = new THREE.Box3().setFromObject(model);
+    const size = bounds.getSize(new THREE.Vector3());
+    const targetHeight = 1.78;
+    const scale = size.y > 0 ? targetHeight / size.y : 1;
+    model.scale.setScalar(scale);
+    model.position.y = -bounds.min.y * scale;
+  }, [model]);
+
+  useEffect(() => {
+    const patterns = speaking || motion === "talk"
+      ? [/talk|speak/i]
+      : motion === "listen"
+        ? [/listen|idle|think/i]
+        : [/idle|stand|neutral/i, /listen|think/i];
+    const selectedName = names.find((name) => patterns.some((pattern) => pattern.test(name))) ?? names[0];
+
+    Object.values(actions).forEach((action) => action?.fadeOut(0.18));
+    if (selectedName) actions[selectedName]?.reset().fadeIn(0.2).play();
+
+    return () => {
+      Object.values(actions).forEach((action) => action?.fadeOut(0.12));
+    };
+  }, [actions, names, speaking, motion]);
+
+  useFrame((state, delta) => {
+    const time = state.clock.getElapsedTime();
+    model.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      const dictionary = mesh.morphTargetDictionary;
+      const influences = mesh.morphTargetInfluences;
+      if (!mesh.isMesh || !dictionary || !influences) return;
+
+      Object.entries(dictionary).forEach(([name, index]) => {
+        if (!/^(jawopen|mouthopen|mouth-open)$/i.test(name)) return;
+        const target = speaking ? 0.14 + Math.max(0, Math.sin(time * 9.5)) * 0.34 : 0;
+        influences[index] = THREE.MathUtils.damp(influences[index] ?? 0, target, 11, delta);
+      });
+    });
+  });
+
   return (
-    <group position={[-2.7, 1.55, -0.35]} rotation={[0, 0.32, 0]}>
+    <group
+      position={[0, 0, -2.35]}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
+      onPointerOver={() => { document.body.style.cursor = "pointer"; }}
+      onPointerOut={() => { document.body.style.cursor = "auto"; }}
+    >
+      <group ref={ref}>
+        <primitive object={model} />
+      </group>
+    </group>
+  );
+}
+
+type AssessmentBoardProps = {
+  scenarioTitle: string;
+  step: ClinicalRoomStep;
+  stepIndex: number;
+  stepCount: number;
+  selectedChoiceId: string | null;
+  completed: boolean;
+  score: number | null;
+  saving: boolean;
+  canFinish: boolean;
+  onChoose: (choiceId: string) => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  onFinish: () => void;
+  onRestart: () => void;
+};
+
+function AssessmentBoard(props: AssessmentBoardProps) {
+  return (
+    <group position={[-2.65, 1.55, -0.35]} rotation={[0, 0.32, 0]}>
       <mesh>
         <planeGeometry args={[3.12, 2.72]} />
         <meshStandardMaterial color="#142f39" roughness={0.82} metalness={0.08} />
@@ -277,50 +361,37 @@ function AssessmentBoard({
         <meshBasicMaterial color="#5fc4b3" />
       </mesh>
 
-      {completed ? (
+      {props.completed ? (
         <>
           <CanvasLabel text="اكتملت المحاكاة" position={[0, 0.92, 0.025]} size={[2.8, 0.32]} fontSize={48} />
-          <CanvasLabel text={scenarioTitle} position={[0, 0.58, 0.025]} size={[2.8, 0.3]} fontSize={31} color="#a7c9c7" />
-          <CanvasLabel text={String(score ?? 0) + " / 100"} position={[0, 0.04, 0.025]} size={[2.8, 0.72]} fontSize={112} color="#75d6c3" />
+          <CanvasLabel text={props.scenarioTitle} position={[0, 0.58, 0.025]} size={[2.8, 0.3]} fontSize={31} color="#a7c9c7" />
+          <CanvasLabel text={String(props.score ?? 0) + " / 100"} position={[0, 0.04, 0.025]} size={[2.8, 0.72]} fontSize={112} color="#75d6c3" />
           <CanvasLabel text="تم حفظ نتيجة التدريب في سجل النشاط" position={[0, -0.48, 0.025]} size={[2.8, 0.28]} fontSize={29} color="#d0e0e0" />
-          <WorldButton label="إعادة المحاكاة" position={[0, -1.05, 0.045]} onClick={onRestart} width={2.4} height={0.34} />
+          <WorldButton label="إعادة المحاكاة" position={[0, -1.05, 0.045]} onClick={props.onRestart} width={2.4} height={0.34} />
         </>
       ) : (
         <>
-          <CanvasLabel text={scenarioTitle} position={[0, 1.08, 0.025]} size={[2.86, 0.27]} fontSize={33} />
-          <CanvasLabel
-            text={"المرحلة " + (stepIndex + 1) + " من " + stepCount}
-            position={[0, 0.81, 0.025]}
-            size={[2.82, 0.22]}
-            fontSize={29}
-            color="#73cbbd"
-          />
-          <CanvasLabel text={step.focus} position={[0, 0.55, 0.025]} size={[2.84, 0.24]} fontSize={31} color="#c5d9d8" />
-          <CanvasLabel text={step.prompt} position={[0, 0.31, 0.025]} size={[2.84, 0.36]} fontSize={25} color="#e1ebeb" />
-          {step.choices.slice(0, 4).map((choice, index) => (
+          <CanvasLabel text={props.scenarioTitle} position={[0, 1.08, 0.025]} size={[2.86, 0.27]} fontSize={33} />
+          <CanvasLabel text={"المرحلة " + (props.stepIndex + 1) + " من " + props.stepCount} position={[0, 0.81, 0.025]} size={[2.82, 0.22]} fontSize={29} color="#73cbbd" />
+          <CanvasLabel text={props.step.focus} position={[0, 0.55, 0.025]} size={[2.84, 0.24]} fontSize={31} color="#c5d9d8" />
+          <CanvasLabel text={props.step.prompt} position={[0, 0.31, 0.025]} size={[2.84, 0.36]} fontSize={25} color="#e1ebeb" />
+          {props.step.choices.slice(0, 4).map((choice, index) => (
             <WorldButton
               key={choice.id}
               label={choice.label}
               position={[0, 0.015 - index * 0.34, 0.045]}
-              onClick={() => onChoose(choice.id)}
-              selected={selectedChoiceId === choice.id}
+              onClick={() => props.onChoose(choice.id)}
+              selected={props.selectedChoiceId === choice.id}
               width={2.84}
               height={0.29}
             />
           ))}
+          <WorldButton label="السابق" position={[-0.78, -1.23, 0.045]} onClick={props.onPrevious} disabled={props.stepIndex === 0} width={1.18} height={0.28} />
           <WorldButton
-            label="السابق"
-            position={[-0.78, -1.23, 0.045]}
-            onClick={onPrevious}
-            disabled={stepIndex === 0}
-            width={1.18}
-            height={0.28}
-          />
-          <WorldButton
-            label={stepIndex === stepCount - 1 ? (saving ? "جارٍ الحفظ" : "إنهاء وتقييم") : "المرحلة التالية"}
+            label={props.stepIndex === props.stepCount - 1 ? (props.saving ? "جارٍ الحفظ" : "إنهاء وتقييم") : "المرحلة التالية"}
             position={[0.78, -1.23, 0.045]}
-            onClick={stepIndex === stepCount - 1 ? onFinish : onNext}
-            disabled={saving || (stepIndex === stepCount - 1 ? !canFinish : !selectedChoiceId)}
+            onClick={props.stepIndex === props.stepCount - 1 ? props.onFinish : props.onNext}
+            disabled={props.saving || (props.stepIndex === props.stepCount - 1 ? !props.canFinish : !props.selectedChoiceId)}
             width={1.4}
             height={0.28}
           />
@@ -330,23 +401,75 @@ function AssessmentBoard({
   );
 }
 
-function ClinicScene({
-  onSelect,
-  onRoomEvent,
-  boardProps,
+function VoiceBoard({
+  status,
+  latestUserText,
+  latestAssistantText,
+  listening,
+  busy,
+  avatarSpeaking,
+  onStartListening,
+  onStopListening,
+  onStopSpeaking,
 }: {
-  onSelect: (target: string) => void;
-  onRoomEvent?: (type: string, label: string) => void;
-  boardProps: Omit<ClinicalRoomStageProps, "onSelect" | "onRoomEvent">;
+  status: string;
+  latestUserText: string;
+  latestAssistantText: string;
+  listening: boolean;
+  busy: boolean;
+  avatarSpeaking: boolean;
+  onStartListening: () => void;
+  onStopListening: () => void;
+  onStopSpeaking: () => void;
 }) {
-  const selectPatient = () => {
-    onSelect("الشخصية الافتراضية");
-    onRoomEvent?.("patient_selected", "تم تحديد الشخصية الافتراضية داخل القاعة");
-  };
+  const latest = latestAssistantText
+    ? "الشخصية: " + latestAssistantText
+    : latestUserText
+      ? "أنت: " + latestUserText
+      : "اضغط على زر الحديث وابدأ المقابلة بالصوت.";
 
+  return (
+    <group position={[2.65, 1.55, -0.35]} rotation={[0, -0.32, 0]}>
+      <mesh>
+        <planeGeometry args={[3.12, 2.72]} />
+        <meshStandardMaterial color="#17333e" roughness={0.8} metalness={0.08} />
+      </mesh>
+      <mesh position={[0, 1.31, 0.012]}>
+        <planeGeometry args={[3.12, 0.035]} />
+        <meshBasicMaterial color="#62c9b7" />
+      </mesh>
+      <CanvasLabel text="المقابلة الصوتية المباشرة" position={[0, 1.04, 0.025]} size={[2.88, 0.28]} fontSize={35} />
+      <CanvasLabel text={status} position={[0, 0.7, 0.025]} size={[2.82, 0.24]} fontSize={31} color={listening ? "#7fe0c8" : "#a8c9c7"} />
+      <CanvasLabel text={latest} position={[0, 0.04, 0.025]} size={[2.82, 0.84]} fontSize={26} color="#e1ebeb" />
+      <WorldButton
+        label={listening ? "إنهاء الكلام وإرسال" : busy ? "الشخصية تجهز الرد..." : "اضغط هنا وتحدث"}
+        position={[0, -0.83, 0.045]}
+        onClick={listening ? onStopListening : onStartListening}
+        selected={listening}
+        disabled={busy || avatarSpeaking}
+        width={2.74}
+        height={0.34}
+      />
+      <WorldButton
+        label="إيقاف صوت الشخصية"
+        position={[0, -1.22, 0.045]}
+        onClick={onStopSpeaking}
+        disabled={!avatarSpeaking}
+        width={2.74}
+        height={0.28}
+      />
+    </group>
+  );
+}
+
+function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
+  const selectPatient = () => {
+    props.onSelect("الشخصية الافتراضية");
+    props.onRoomEvent?.("patient_selected", "تم تحديد الشخصية الافتراضية داخل القاعة");
+  };
   const openCaseFile = () => {
-    onSelect("ملف الحالة");
-    onRoomEvent?.("case_file_opened", "فتح ملف الحالة داخل القاعة");
+    props.onSelect("ملف الحالة");
+    props.onRoomEvent?.("case_file_opened", "فتح ملف الحالة داخل القاعة");
   };
 
   return (
@@ -389,7 +512,14 @@ function ClinicScene({
 
       <Chair position={[0, 0, -2.35]} rotation={0} tone="#59857f" />
       <Chair position={[0, 0, 1.45]} rotation={Math.PI} tone="#71828c" />
-      <PatientFigure onSelect={selectPatient} />
+
+      {props.avatarModelUrl ? (
+        <Suspense fallback={<BasicPatient onSelect={selectPatient} />}>
+          <RealisticPatient modelUrl={props.avatarModelUrl} speaking={props.avatarSpeaking} motion={props.avatarMotion} onSelect={selectPatient} />
+        </Suspense>
+      ) : (
+        <BasicPatient onSelect={selectPatient} />
+      )}
 
       <mesh position={[-3.2, 0.48, 1.18]} castShadow>
         <boxGeometry args={[0.9, 0.1, 0.68]} />
@@ -397,10 +527,7 @@ function ClinicScene({
       </mesh>
       <group
         position={[-3.2, 0.62, 1.18]}
-        onClick={(event) => {
-          event.stopPropagation();
-          openCaseFile();
-        }}
+        onClick={(event) => { event.stopPropagation(); openCaseFile(); }}
       >
         <mesh castShadow>
           <boxGeometry args={[0.58, 0.08, 0.42]} />
@@ -435,7 +562,33 @@ function ClinicScene({
       </mesh>
       <Grid position={[0, -0.035, 0]} args={[9, 8.5]} cellSize={0.5} cellThickness={0.35} sectionSize={2} sectionThickness={0.7} fadeDistance={12} infiniteGrid />
 
-      <AssessmentBoard {...boardProps} />
+      <AssessmentBoard
+        scenarioTitle={props.scenarioTitle}
+        step={props.step}
+        stepIndex={props.stepIndex}
+        stepCount={props.stepCount}
+        selectedChoiceId={props.selectedChoiceId}
+        completed={props.completed}
+        score={props.score}
+        saving={props.saving}
+        canFinish={props.canFinish}
+        onChoose={props.onChoose}
+        onPrevious={props.onPrevious}
+        onNext={props.onNext}
+        onFinish={props.onFinish}
+        onRestart={props.onRestart}
+      />
+      <VoiceBoard
+        status={props.voiceStatus}
+        latestUserText={props.latestUserText}
+        latestAssistantText={props.latestAssistantText}
+        listening={props.listening}
+        busy={props.busy}
+        avatarSpeaking={props.avatarSpeaking}
+        onStartListening={props.onStartListening}
+        onStopListening={props.onStopListening}
+        onStopSpeaking={props.onStopSpeaking}
+      />
     </group>
   );
 }
@@ -454,34 +607,18 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
       }
       props.onImmersiveChange?.(true);
       session.addEventListener("end", () => props.onImmersiveChange?.(false), { once: true });
-      setXrMessage("تم تشغيل وضع الواقع الافتراضي. استخدم المؤشر أو وحدات التحكم لاختيار الإجابات داخل القاعة.");
+      setXrMessage("تم تشغيل الواقع الافتراضي. اقترب من الشخصية وتحدث معها من لوحة المقابلة داخل القاعة.");
     } catch (error) {
+      props.onImmersiveChange?.(false);
       setXrMessage(error instanceof Error ? error.message : "تعذر تشغيل وضع VR في هذا المتصفح.");
     }
-  };
-
-  const boardProps = {
-    scenarioTitle: props.scenarioTitle,
-    step: props.step,
-    stepIndex: props.stepIndex,
-    stepCount: props.stepCount,
-    selectedChoiceId: props.selectedChoiceId,
-    completed: props.completed,
-    score: props.score,
-    saving: props.saving,
-    canFinish: props.canFinish,
-    onChoose: props.onChoose,
-    onPrevious: props.onPrevious,
-    onNext: props.onNext,
-    onFinish: props.onFinish,
-    onRestart: props.onRestart,
   };
 
   return (
     <div className="clinical-room-canvas">
       <div className="clinical-room-actions">
         <button type="button" onClick={enterVR}>دخول VR بالنظارة</button>
-        <span>التقييم التفاعلي موجود داخل القاعة</span>
+        <span>الشخصية الحية والمقابلة الصوتية داخل القاعة</span>
         {xrMessage && <small role="status">{xrMessage}</small>}
       </div>
       <Canvas shadows camera={{ position: [0, 1.65, 6.5], fov: 50 }} dpr={[1, 1.5]}>
@@ -490,13 +627,13 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
           <ambientLight intensity={1.35} />
           <directionalLight position={[4, 8, 5]} intensity={2.1} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
           <directionalLight position={[-5, 4, -3]} intensity={0.65} />
-          <ClinicScene onSelect={props.onSelect} onRoomEvent={props.onRoomEvent} boardProps={boardProps} />
+          <ClinicScene props={props} />
           <IfInSessionMode deny={["immersive-vr", "immersive-ar"]}>
             <OrbitControls makeDefault target={[0, 1.35, -1]} minDistance={2.7} maxDistance={13} maxPolarAngle={Math.PI / 2.03} />
           </IfInSessionMode>
         </XR>
       </Canvas>
-      <div className="clinical-room-compass"><span /> قاعة سريرية تفاعلية · WebXR · التقييم داخل المشهد</div>
+      <div className="clinical-room-compass"><span /> شخصية بشرية ثلاثية الأبعاد · حوار صوتي داخل القاعة · WebXR</div>
     </div>
   );
 }

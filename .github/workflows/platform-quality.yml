@@ -5,6 +5,7 @@ on:
     branches:
       - feature/multiuser-supervision-competency-reports
       - feature/immersive-vr-case-assessment
+      - feature/immersive-vr-live-avatar
   pull_request:
     branches:
       - main

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Brain, ClipboardList, Clock3, GraduationCap, PlayCircle, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -9,14 +10,14 @@ import { courses, learningTracks } from "@/lib/platform-catalog";
 
 const modeLabels={recorded:"مسجلة",live:"مباشرة",hybrid:"مباشرة ومسجلة"};
 
-export default function AcademyPage() {
-  const [track,setTrack]=useState("all");
+function AcademyWorkspace() {
+  const params = useSearchParams();
+  const [track,setTrack]=useState(() => {
+    const requestedTrack = params.get("track");
+    return requestedTrack && learningTracks.some(item => item.id === requestedTrack) ? requestedTrack : "all";
+  });
   const [mode,setMode]=useState("all");
   const [selectedCourse,setSelectedCourse]=useState<string|null>(null);
-  useEffect(()=>{
-    const requestedTrack=new URLSearchParams(window.location.search).get("track");
-    if(requestedTrack&&learningTracks.some(item=>item.id===requestedTrack))setTrack(requestedTrack);
-  },[]);
   const filtered=useMemo(()=>courses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[track,mode]);
   const chosen=courses.find(course=>course.id===selectedCourse);
 
@@ -62,4 +63,8 @@ export default function AcademyPage() {
       <article className="portal-card"><Video size={20} color="#188579"/><h3>التدريب المباشر عبر Zoom</h3><p>طلبات الالتحاق بالفصول ومتابعة إعداد جلسات Zoom.</p><Link className="portal-link-button" href="/classrooms">فتح الفصول</Link></article>
     </div>
   </PlatformLayout>;
+}
+
+export default function AcademyPage() {
+  return <Suspense fallback={<div className="portal-callout">تحميل الأكاديمية...</div>}><AcademyWorkspace /></Suspense>;
 }

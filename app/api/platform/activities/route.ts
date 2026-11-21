@@ -13,6 +13,10 @@ const allowedRoomEventTypes = new Set([
   "step_changed",
   "assessment_completed",
   "assessment_restarted",
+  "conversation_turn_started",
+  "conversation_reply_received",
+  "microphone_started",
+  "avatar_model_loaded",
 ]);
 
 function normaliseRoomEvents(input: unknown) {
@@ -30,6 +34,17 @@ function normaliseRoomEvents(input: unknown) {
       occurredAt: Number.isFinite(timestamp) ? new Date(timestamp) : new Date(),
       source: "webxr-room-interaction",
     }];
+  });
+}
+
+function normaliseConversationTurns(input: unknown) {
+  if (!Array.isArray(input)) return [];
+  return input.slice(-40).flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    const role = row.role === "user" || row.role === "assistant" ? row.role : null;
+    const text = typeof row.content === "string" ? row.content.trim().slice(0, 1800) : "";
+    return role && text ? [{ role, content: text }] : [];
   });
 }
 
@@ -59,8 +74,13 @@ export async function POST(request: NextRequest) {
     return step && choice ? [{ stepId, choiceId, earned: choice.score, max: 20 }] : [];
   }) : [];
 
-  if (answers.length !== item.steps.length) {
-    return NextResponse.json({ error: "لم تكتمل جميع خطوات الحالة التدريبية." }, { status: 400 });
+  const answeredStepIds = new Set(answers.map((answer) => answer.stepId));
+  if (
+    answers.length !== item.steps.length ||
+    answeredStepIds.size !== item.steps.length ||
+    item.steps.some((step) => !answeredStepIds.has(step.id))
+  ) {
+    return NextResponse.json({ error: "لم تكتمل جميع خطوات الحالة التدريبية بصورة صحيحة." }, { status: 400 });
   }
 
   const earned = answers.reduce((sum, answer) => sum + answer.earned, 0);
@@ -73,7 +93,17 @@ export async function POST(request: NextRequest) {
     score: Math.round((earned / maximum) * 100),
     maximumScore: 100,
     roomEvents: normaliseRoomEvents(data.roomEvents),
-    experienceMode: data.experienceMode === "webxr-clinical-room" ? "webxr-clinical-room" : "browser-simulation",
+    conversationTurns: normaliseConversationTurns(data.conversationTurns),
+    avatarModelSource: data.avatarModelSource === "custom-glb"
+      ? "custom-glb"
+      : data.avatarModelSource === "library-avatar"
+        ? "library-avatar"
+        : "age-appropriate-model-required",
+    experienceMode: data.experienceMode === "webxr-immersive-vr"
+      ? "webxr-immersive-vr"
+      : data.experienceMode === "browser-3d-room"
+        ? "browser-3d-room"
+        : "browser-simulation",
     completedAt: new Date(),
     learningOnly: true,
     version: 2,
@@ -87,6 +117,8 @@ export async function POST(request: NextRequest) {
       activityId: record.activityId,
       score: record.score,
       roomEventCount: record.roomEvents.length,
+      conversationTurnCount: record.conversationTurns.length,
+      avatarModelSource: record.avatarModelSource,
       recordId: String(result.insertedId),
     }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
