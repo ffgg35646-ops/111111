@@ -12,7 +12,7 @@ import {
 const sections = [
   { title:"الرئيسية", items:[["نظرة عامة",LayoutDashboard]] },
   { title:"الأكاديمية", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة",Video],["الاختبارات والتقييمات",ClipboardCheck],["الشهادات",ShieldCheck]] },
-  { title:"المحاكاة السريرية", items:[["سيناريوهات الحالات",Brain],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity]] },
+  { title:"المحاكاة السريرية", items:[["سيناريوهات الحالات",Brain],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity]] },
   { title:"الخدمات", items:[["الاستشارات والحجوزات",CalendarDays],["المتجر المعرفي",ShoppingBag],["المكتبة العلمية",Library],["الفصول وتأجير القاعات",Video]] },
   { title:"الإدارة", items:[["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["الإعدادات والصلاحيات",Settings]] },
 ] as const;
@@ -45,7 +45,7 @@ export default function HomePage() {
       <nav className="side-nav">
         {sections.map(section=><div className="nav-section" key={section.title}>
           <p>{section.title}</p>
-          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>label==="الشخصيات الافتراضية"?router.push("/characters"):setActive(label)}>
+          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>label==="الشخصيات الافتراضية"?router.push("/characters"):label==="تقييم لغة الجسد"?router.push("/posture"):setActive(label)}>
             <Icon size={18}/><span>{label}</span>
           </button>)}
         </div>)}
