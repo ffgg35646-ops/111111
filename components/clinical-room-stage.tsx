@@ -137,7 +137,6 @@ function WorldButton({
   return (
     <group position={position}>
       <mesh
-        pointerEventsType={{ deny: "grab" }}
         onClick={(event) => {
           event.stopPropagation();
           if (!disabled) onClick();

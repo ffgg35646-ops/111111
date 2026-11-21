@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - feature/multiuser-supervision-competency-reports
-      - feature/immersive-vr-case-assessment
   pull_request:
     branches:
       - main

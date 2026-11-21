@@ -101,7 +101,7 @@ function RoomTools({ serverUrl, roomName, supervisorName, traineeName, traineeCo
       setHumanParticipantCount(remoteHumans.length + 1);
     };
     const onParticipantChanged = () => refreshHumanParticipants();
-    const onMetadataChanged = (_previousMetadata: string, participant: Participant) => {
+    const onMetadataChanged = (_previousMetadata: string | undefined, participant: Participant) => {
       if (participant.identity === room.localParticipant.identity) syncSignedRole();
       refreshHumanParticipants();
     };

@@ -1,15 +1,14 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
 function LoadedModel({ url, expression, motion }: { url: string; expression: string; motion: string }) {
   const gltf = useGLTF(url);
-  const root = useRef<THREE.Group>(null);
   const cloned = useMemo(()=>gltf.scene.clone(true),[gltf.scene]);
-  const { actions, names } = useAnimations(gltf.animations,root);
+  const { actions, names, ref } = useAnimations(gltf.animations);
   useEffect(()=>{
     Object.values(actions).forEach(action=>action?.fadeOut(0.2));
     const preferred = names.find(name=>name.toLowerCase().includes(motion.toLowerCase()))
@@ -24,8 +23,10 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
     const target = expression.toLowerCase();
     cloned.traverse(object=>{
       const mesh=object as THREE.Mesh;
-      if(!mesh.isMesh||!mesh.morphTargetDictionary||!mesh.morphTargetInfluences)return;
-      Object.entries(mesh.morphTargetDictionary).forEach(([name,index])=>{
+      const morphDictionary = mesh.morphTargetDictionary;
+      const morphInfluences = mesh.morphTargetInfluences;
+      if(!mesh.isMesh||!morphDictionary||!morphInfluences)return;
+      Object.entries(morphDictionary).forEach(([name,index])=>{
         const key=name.toLowerCase();
         const matches=(target==="محايد"&&/neutral|default/i.test(key))
           ||(target==="قلق"&&/fear|worried|anxious/i.test(key))
@@ -42,11 +43,11 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
           ||(target==="توتر"&&/nervous|tense/i.test(key))
           ||(target==="انزعاج"&&/annoy|disgust/i.test(key))
           ||(target==="اهتمام"&&/interest|attentive/i.test(key));
-        mesh.morphTargetInfluences[index]=THREE.MathUtils.damp(mesh.morphTargetInfluences[index],matches?0.85:0,5,1/60);
+        morphInfluences[index]=THREE.MathUtils.damp(morphInfluences[index] ?? 0,matches?0.85:0,5,1/60);
       });
     });
   });
-  return <group ref={root} position={[0,-1,0]}><primitive object={cloned}/></group>;
+  return <group ref={ref} position={[0,-1,0]}><primitive object={cloned}/></group>;
 }
 
 export default function AvatarStage({modelUrl,expression,motion}:{modelUrl:string|null;expression:string;motion:string}) {
