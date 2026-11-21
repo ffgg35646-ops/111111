@@ -36,7 +36,7 @@ export default function CharactersPage() {
   return <main className="avatar-workspace" dir="rtl">
     <header className="avatar-topbar">
       <Link href="/" className="back-link"><ArrowRight size={17}/> العودة للوحة التحكم</Link>
-      <div className="avatar-top-actions"><span><span className="live-dot"/> وضع تجهيز الشخصيات</span><Link href="/voice" className="avatar-quiet-button"><MessageCircle size={16}/> بدء محادثة صوتية</Link><button className="avatar-quiet-button" onClick={()=>setShowSpecs(v=>!v)}><Settings2 size={16}/> مواصفات الموديل</button></div>
+      <div className="avatar-top-actions"><span><span className="live-dot"/> وضع تجهيز الشخصيات</span><Link href="/voice" className="avatar-quiet-button"><MessageCircle size={16}/> بدء محادثة صوتية</Link><Link href="/supervision" className="avatar-quiet-button"><Video size={16}/> غرفة إشراف مشتركة</Link><button className="avatar-quiet-button" onClick={()=>setShowSpecs(v=>!v)}><Settings2 size={16}/> مواصفات الموديل</button></div>
     </header>
     <div className="avatar-content">
       <div className="avatar-heading">
