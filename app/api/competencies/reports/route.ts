@@ -44,6 +44,33 @@ function normaliseTelemetry(input: unknown) {
   });
 }
 
+function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
+  const rules = [
+    { type: "posture_score", competency: "nonverbalCommunication", label: "استقامة الجذع ووضعية الجسم" },
+    { type: "gaze_score", competency: "nonverbalCommunication", label: "التواصل البصري" },
+    { type: "clinical_assessment_score", competency: "clinicalAssessment", label: "تنفيذ خطوات التقييم السريري" },
+    { type: "safety_compliance_score", competency: "safetyAndProfessionalism", label: "الالتزام بإجراءات السلامة" },
+    { type: "communication_score", competency: "communication", label: "مؤشر التواصل" },
+    { type: "active_listening_score", competency: "activeListening", label: "مؤشر الإنصات" },
+    { type: "empathy_score", competency: "empathy", label: "مؤشر التفاعل المتعاطف" },
+  ] as const;
+
+  return rules.flatMap((rule) => {
+    const values = telemetry
+      .filter((event) => event.type === rule.type && typeof event.value === "number" && event.value >= 0 && event.value <= 5)
+      .map((event) => event.value as number);
+    if (!values.length) return [];
+    return [{
+      type: rule.type,
+      competency: rule.competency,
+      label: rule.label,
+      averageScore: Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2)),
+      samples: values.length,
+      scale: "0-5",
+    }];
+  });
+}
+
 export async function GET(request: NextRequest) {
   const supervisorId = await readSupervisorSession(request);
   if (!supervisorId) return NextResponse.json({ error: "انتهت جلسة المشرف. أنشئ غرفة جديدة للدخول إلى ملف الكفاءات." }, { status: 401 });
@@ -71,6 +98,7 @@ export async function GET(request: NextRequest) {
         scores: report.scores,
         feedbackNotes: report.feedbackNotes,
         telemetry: report.telemetry,
+        vrEvidence: report.vrEvidence || [],
         createdAt: report.createdAt,
       })),
     }, { headers: { "Cache-Control": "no-store" } });
@@ -116,6 +144,7 @@ export async function POST(request: NextRequest) {
   }
 
   const telemetry = normaliseTelemetry(data.telemetry);
+  const vrEvidence = buildVrEvidence(telemetry);
   const overallScore = Number((competencyKeys.reduce((sum, key) => sum + scores[key], 0) / competencyKeys.length).toFixed(2));
   const report = {
     reportId: randomUUID(),
@@ -130,6 +159,7 @@ export async function POST(request: NextRequest) {
     feedbackNotes,
     telemetry,
     telemetryCount: telemetry.length,
+    vrEvidence,
     createdAt: new Date(),
     version: 1,
   };
@@ -145,6 +175,7 @@ export async function POST(request: NextRequest) {
       documentId: String(result.insertedId),
       overallScore,
       telemetryCount: report.telemetryCount,
+      vrEvidence: report.vrEvidence,
       createdAt: report.createdAt.toISOString(),
     }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
