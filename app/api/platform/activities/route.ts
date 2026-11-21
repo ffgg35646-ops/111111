@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
     roomEvents: normalisedRoomEvents,
     vrHeadTrackingSamples,
     vrHeadMetrics,
+    vrHandMetrics,
     conversationTurns: normaliseConversationTurns(data.conversationTurns),
     avatarModelSource: data.avatarModelSource === "custom-glb"
       ? "custom-glb"
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
       roomEventCount: record.roomEvents.length,
       vrHeadTrackingSamples,
       vrHeadMetrics,
+      vrHandMetrics,
       conversationTurnCount: record.conversationTurns.length,
       avatarModelSource: record.avatarModelSource,
       recordId: String(result.insertedId),
