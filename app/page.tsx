@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
-  FileText, GraduationCap, LayoutDashboard, Library, MessageCircle, Settings,
+  FileText, GraduationCap, LayoutDashboard, MessageCircle, Settings,
   ShieldCheck, ShoppingBag, Users, Video, Glasses, Plus, Search,
-  Bell, ChevronLeft, Clock3, CircleHelp, PanelRightClose
+  Bell, ChevronLeft, CircleHelp, PanelRightClose
 } from "lucide-react";
 
 const sections = [
