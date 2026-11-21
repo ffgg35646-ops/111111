@@ -13,6 +13,8 @@ type RealtimeClinicalVoiceProps = {
   onSpeakingChange?: (speaking: boolean) => void;
   onEvent?: (type: string, label: string) => void;
   onConnecting?: () => void;
+  onStatusChange?: (status: "idle" | "connecting" | "live" | "error") => void;
+  onControlsReady?: (controls: { start: () => void; stop: () => void; toggleMute: () => void } | null) => void;
 };
 
 type RealtimeEvent = {
@@ -40,6 +42,8 @@ export function RealtimeClinicalVoice({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const assistantTranscriptRef = useRef("");
   const mountedRef = useRef(true);
+
+  useEffect(() => { onStatusChange?.(status); }, [onStatusChange, status]);
 
   const cleanup = useCallback(() => {
     channelRef.current?.close();
@@ -217,6 +221,15 @@ export function RealtimeClinicalVoice({
     setMuted(nextMuted);
     onEvent?.("realtime_microphone_toggled", nextMuted ? "كتم ميكروفون الصوت الحي." : "إعادة فتح ميكروفون الصوت الحي.");
   }, [muted, onEvent]);
+
+  useEffect(() => {
+    onControlsReady?.({
+      start: () => { void start(); },
+      stop,
+      toggleMute,
+    });
+    return () => onControlsReady?.(null);
+  }, [onControlsReady, start, stop, toggleMute]);
 
   return (
     <section className="simulation-realtime-voice" aria-label="المقابلة الصوتية الحية">
