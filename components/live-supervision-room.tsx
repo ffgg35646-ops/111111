@@ -9,7 +9,7 @@ import {
 } from "@livekit/components-react";
 import { RoomEvent, type Participant } from "livekit-client";
 import {
-  Activity, Check, ClipboardCheck, Copy, MessageSquareText, Send, ShieldCheck, Signal, Users, Wifi,
+  Activity, Check, ClipboardCheck, Copy, MessageSquareText, Send, ShieldCheck, Users, Wifi,
 } from "lucide-react";
 import "@livekit/components-styles";
 import "./live-supervision-room.css";
@@ -102,7 +102,6 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
           setCoachMessages((current) => [{
             id: typeof event.id === "string" ? event.id : crypto.randomUUID(),
             text: event.text as string,
-            sender: typeof event.sender === "string" ? event.sender : participant?.identity ?? "مشارك",
             role: signedRole(participant?.metadata) ?? "trainee",
             sender: signedRole(participant?.metadata) === "supervisor" ? "المشرف الأكاديمي" : "المتدرب",
             sentAt: typeof event.sentAt === "string" ? event.sentAt : new Date().toISOString(),
@@ -231,7 +230,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
       <aside className="supervision-sidebar">
         <section className="supervisor-summary">
           <div className="supervisor-avatar"><ShieldCheck size={20}/></div>
-          <div><strong>{role === "supervisor" ? supervisorName || "المشرف الأكاديمي" : "أنت: المتدرب"}</strong><small>{role === "supervisor" ? `متابعة أداء: ${traineeName || "المتدرب"}` : "جلسة تحت إشراف أكاديمي مباشر"}</small></div>
+          <div><strong>{signedRoomRole === "supervisor" ? supervisorName || "المشرف الأكاديمي" : signedRoomRole === "trainee" ? "أنت: المتدرب" : "التحقق من هوية الغرفة..."}</strong><small>{signedRoomRole === "supervisor" ? `متابعة أداء: ${traineeName || "المتدرب"}` : "جلسة تحت إشراف أكاديمي مباشر"}</small></div>
         </section>
 
         {isSupervisor && <button className="invite-copy-button" onClick={copyInvite}><Copy size={15}/>{copied ? "تم نسخ رابط المتدرب" : "نسخ رابط دعوة المتدرب"}</button>}
