@@ -19,7 +19,7 @@ type Props = {
   title: string;
   description?: string;
   fields: RequestField[];
-  initialData?: Record<string,string|number|boolean>;
+  initialData?: Record<string,unknown>;
   submitLabel?: string;
 };
 
