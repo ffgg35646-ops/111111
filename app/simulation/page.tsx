@@ -72,6 +72,7 @@ function SimulationWorkspace() {
   const [savedScore, setSavedScore] = useState<number | null>(null);
   const [vrHeadTrackingSamples, setVrHeadTrackingSamples] = useState(0);
   const [vrHeadMetrics, setVrHeadMetrics] = useState<{ averageHeadAngleDegrees: number | null; averageDistanceCm: number | null; orientedWithin30DegreesPercent: number | null } | null>(null);
+  const [vrHandMetrics, setVrHandMetrics] = useState<{ samples: number; pinchInteractions: number; handsObserved: string[] } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
@@ -361,6 +362,7 @@ function SimulationWorkspace() {
     setSavedScore(null);
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
+    setVrHandMetrics(null);
     setError("");
     setVoiceError("");
     setAgentBusy(false);
@@ -415,6 +417,7 @@ function SimulationWorkspace() {
       setSavedScore(result.score);
       setVrHeadTrackingSamples(Number(result.vrHeadTrackingSamples) || 0);
       setVrHeadMetrics(result.vrHeadMetrics ?? null);
+      setVrHandMetrics(result.vrHandMetrics ?? null);
       setCompleted(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر حفظ نتيجة التدريب.");
@@ -620,7 +623,7 @@ function SimulationWorkspace() {
               <span>اكتملت المحاكاة</span>
               <strong>{savedScore}<small> / 100</small></strong>
               <p>{savedScore !== null && savedScore >= 80 ? "أداء تدريبي متقدم. راجع الملاحظات لتعزيز المهارات." : savedScore !== null && savedScore >= 60 ? "أداء جيد مع فرص لتحسين بعض خطوات الممارسة." : "راجع التغذية الراجعة وأعد المحاكاة لتعزيز المهارات."}</p>
-              {immersiveMode && <div className="simulation-vr-evidence"><b>بيانات النظارة المسجلة</b><span>{vrHeadTrackingSamples} عينة لاتجاه الرأس والمسافة من موضع الحالة</span>{vrHeadMetrics && <><span>متوسط زاوية اتجاه الرأس: {vrHeadMetrics.averageHeadAngleDegrees ?? "—"}°</span><span>متوسط المسافة من الحالة: {vrHeadMetrics.averageDistanceCm ?? "—"} سم</span><span>نسبة العينات ضمن زاوية 30°: {vrHeadMetrics.orientedWithin30DegreesPercent ?? "—"}%</span></>}<small>هذه مؤشرات اتجاه الرأس والمسافة أثناء المحاكاة فقط؛ لا تقيس حركة العين أو التواصل البصري ولا تمثل حكماً سريرياً.</small></div>}
+              {immersiveMode && <div className="simulation-vr-evidence"><b>بيانات النظارة المسجلة</b><span>{vrHeadTrackingSamples} عينة لاتجاه الرأس والمسافة من موضع الحالة</span>{vrHeadMetrics && <><span>متوسط زاوية اتجاه الرأس: {vrHeadMetrics.averageHeadAngleDegrees ?? "—"}°</span><span>متوسط المسافة من الحالة: {vrHeadMetrics.averageDistanceCm ?? "—"} سم</span><span>نسبة العينات ضمن زاوية 30°: {vrHeadMetrics.orientedWithin30DegreesPercent ?? "—"}%</span></>}<span>رصد اليدين: {vrHandMetrics?.samples ?? 0} عينة؛ تفاعلات القرص: {vrHandMetrics?.pinchInteractions ?? 0}</span><span>اليد المرصودة: {vrHandMetrics?.handsObserved?.map((hand) => hand === "left" ? "اليسرى" : "اليمنى").join("، ") || "لم تُرصد يد خلال الجلسة"}</span><small>مؤشرات وضع الرأس والإيماءات المكانية لا تقيس حركة العين أو التواصل البصري ولا تمثل حكماً سريرياً. قد لا تظهر بيانات اليدين إذا لم يدعم الجهاز أو المتصفح تتبع اليد.</small></div>}
               <div className="simulation-result-breakdown">
                 {activeCase.steps.map((step) => {
                   const choice = step.choices.find((item) => item.id === answers[step.id]);
