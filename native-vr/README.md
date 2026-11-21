@@ -30,7 +30,7 @@ No Unreal Engine executable or device runtime is available in this GitHub-only w
    - The exact **roomName** from the copied device connection data
    - The short-lived **token** from the copied device connection data
 4. Assign **PatientTarget** to the patient actor in the level. The component samples the HMD camera direction and distance to that actor every five seconds.
-5. For hand tracking, call **PublishHandTrackingSample** with **left** or **right** and the live thumb-tip to index-tip distance in centimetres from the enabled OpenXR hand-tracking runtime. Call it only while that hand has valid tracked joint poses. This method transports the measurement; it does not itself read XR hand joints.
+The native telemetry component now calls Unreal's **GetHandTrackingState** for the left and right hands every five seconds, reads **ThumbTip** and **IndexTip** in world space, and sends their distance through **PublishHandTrackingSample**. This depends on the OpenXR hand-tracking extension and the selected runtime returning valid hand joints. The Blueprint-callable method remains available for custom input integrations.
 6. The component posts to **/api/supervision/vr-telemetry**. The server verifies the signed LiveKit device token and checks that the requested room matches the token. The supervisor's next competency report for that room includes the pending device events.
 
 The token is a temporary credential. Keep it in memory for the training session, never commit it, and clear it when the session ends. The API retains unreported telemetry for at most 30 days and reports only the events associated with the validated room.
@@ -38,7 +38,7 @@ The token is a temporary credential. Keep it in memory for the training session,
 ## Current limits — do not treat these as complete features
 
 - The native room and patient are primitive placeholders; there is no licensed realistic skeletal patient avatar, rig, facial animation, or phoneme-synchronised lip sync in this Unreal starter.
-- The native pawn has controller-based widget interaction. The OpenXR hand-tracking plugin is enabled as a project dependency, but automatic joint acquisition, pinch interaction, and controller-to-hand fallback still need to be implemented against the actual device/runtime API and tested on the chosen headset.
+- The native pawn has controller-based widget interaction. Hand-joint acquisition and pinch-event detection now use Unreal's OpenXR hand-tracking state API when the runtime returns valid joint positions. Pinch-to-world-UI interaction and controller-to-hand ray fallback are not yet wired, and must be tested on the chosen headset.
 - The web /simulation route now has a separate Realtime/WebRTC full-duplex voice client with server-issued ephemeral credentials. That browser client is not yet embedded into this native Unreal executable. Native audio needs a dedicated Unreal audio/WebRTC integration and device test.
 - There is no eye tracking in the web or native starter. Head direction is not eye gaze and must not be reported as eye contact.
 - The native source has not been compiled by Unreal Build Tool, packaged, signed, or installed on a headset. Do not advertise full compatibility with Meta Quest or other OpenXR devices until each target model and runtime passes the acceptance matrix in **docs/vr-device-integration.md**.
