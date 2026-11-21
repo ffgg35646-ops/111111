@@ -20,6 +20,7 @@ const allowedRoomEventTypes = new Set([
   "head_pose_sample",
   "hand_tracking_sample",
   "hand_pinch_interaction",
+  "spatial_telemetry_consent",
   "realtime_voice_connecting",
   "realtime_voice_connected",
   "realtime_voice_ended",
