@@ -111,6 +111,7 @@ export default function VoiceAgentPage() {
   },[busy,messages,persona,scenario,speak,stopSpeaking]);
 
   const startListening=()=>{
+    stopSpeaking();
     const speechWindow=window as SpeechWindow;
     const Constructor=speechWindow.SpeechRecognition||speechWindow.webkitSpeechRecognition;
     if(!Constructor){setError("التعرف الصوتي غير مدعوم في هذا المتصفح. استخدم الكتابة أو افتح الصفحة في متصفح يدعم التعرف على الكلام.");return;}
