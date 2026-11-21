@@ -1,7 +1,7 @@
 import type { Room } from "livekit-client";
 
 export type VrTelemetryEvent = {
-  type: "posture_score" | "gaze_score" | "clinical_assessment_score" | "safety_compliance_score" | "interaction_distance_cm" | "procedure_step";
+  type: "posture_score" | "gaze_score" | "clinical_assessment_score" | "safety_compliance_score" | "communication_score" | "active_listening_score" | "empathy_score" | "interaction_distance_cm" | "procedure_step";
   label: string;
   value: number | string | boolean;
   unit?: string;
