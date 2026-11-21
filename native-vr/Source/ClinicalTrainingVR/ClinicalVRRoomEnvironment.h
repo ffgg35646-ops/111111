@@ -6,6 +6,9 @@
 
 class USceneComponent;
 class UStaticMeshComponent;
+class USkeletalMesh;
+class USkeletalMeshComponent;
+class UAnimInstance;
 
 UCLASS()
 class CLINICALTRAININGVR_API AClinicalVRRoomEnvironment : public AActor
@@ -14,10 +17,27 @@ class CLINICALTRAININGVR_API AClinicalVRRoomEnvironment : public AActor
 
 public:
     AClinicalVRRoomEnvironment();
+    virtual void BeginPlay() override;
+    USceneComponent* GetPatientGazeTarget() const { return PatientGazeTarget; }
 
 protected:
     UPROPERTY(VisibleAnywhere, Category = "Clinical Room")
     TObjectPtr<USceneComponent> SceneRoot;
+
+    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Patient")
+    TObjectPtr<USceneComponent> PatientAnchor;
+
+    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Patient")
+    TObjectPtr<USceneComponent> PatientGazeTarget;
+
+    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Patient")
+    TObjectPtr<USkeletalMeshComponent> PatientCharacter;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clinical Room|Patient")
+    TObjectPtr<USkeletalMesh> PatientSkeletalMeshAsset;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clinical Room|Patient")
+    TSubclassOf<UAnimInstance> PatientAnimationClass;
 
     UPROPERTY(VisibleAnywhere, Category = "Clinical Room")
     TObjectPtr<UStaticMeshComponent> Floor;
