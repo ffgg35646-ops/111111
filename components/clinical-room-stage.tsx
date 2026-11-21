@@ -404,6 +404,8 @@ function VoiceBoard({
   status,
   latestUserText,
   latestAssistantText,
+  listening,
+  busy,
   realtimeStatus,
   realtimeMuted,
   onStartRealtimeVoice,
@@ -415,6 +417,8 @@ function VoiceBoard({
   status: string;
   latestUserText: string;
   latestAssistantText: string;
+  listening: boolean;
+  busy: boolean;
   realtimeStatus: "idle" | "connecting" | "live" | "error";
   realtimeMuted: boolean;
   onStartRealtimeVoice: () => void;
