@@ -189,7 +189,17 @@ export async function POST(request: NextRequest) {
     scores[key] = score;
   }
 
-  const telemetry = normaliseTelemetry(data.telemetry);
+  const db = await getClinicalDatabase();
+  const nativeTelemetryCollection = db.collection("clinical_vr_device_telemetry");
+  const pendingDeviceTelemetry = await nativeTelemetryCollection
+    .find({ roomName: verified.roomName, reportId: { $exists: false } })
+    .sort({ receivedAt: 1 })
+    .limit(300)
+    .toArray();
+  const telemetry = normaliseTelemetry([
+    ...(Array.isArray(data.telemetry) ? data.telemetry : []),
+    ...pendingDeviceTelemetry.map((entry) => entry.event),
+  ]);
   const vrEvidence = buildVrEvidence(telemetry);
   const overallScore = Number((competencyKeys.reduce((sum, key) => sum + scores[key], 0) / competencyKeys.length).toFixed(2));
   const report = {
@@ -211,10 +221,19 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const db = await getClinicalDatabase();
     const collection = db.collection("clinical_competency_reports");
     await collection.createIndex({ supervisorId: 1, traineeCode: 1, createdAt: -1 });
     const result = await collection.insertOne(report);
+    if (pendingDeviceTelemetry.length) {
+      await nativeTelemetryCollection.updateMany(
+        {
+          _id: { $in: pendingDeviceTelemetry.map((entry) => entry._id) },
+          roomName: verified.roomName,
+          reportId: { $exists: false },
+        },
+        { $set: { reportId: report.reportId, reportedAt: report.createdAt } },
+      );
+    }
     return NextResponse.json({
       success: true,
       reportId: report.reportId,
