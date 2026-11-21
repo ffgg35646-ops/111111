@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Clock3, MonitorPlay, Video, MessageCircle, Hand, ClipboardCheck, Save } from "lucide-react";
+import { BookOpen, Clock3, MonitorPlay, Video, MessageCircle, Hand, Save } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import PlatformRequestForm from "@/components/platform-request-form";
 import { courses } from "@/lib/platform-catalog";
