@@ -28,3 +28,28 @@ export async function publishVrTelemetry(room: Room, event: VrTelemetryEvent) {
     { reliable: true, topic: "vr-telemetry" },
   );
 }
+
+export type VrSceneState = {
+  sceneId: string;
+  scenarioTitle: string;
+  activeTask: string;
+  position?: { x: number; y: number; z: number };
+  updatedAt?: string;
+};
+
+/** Synchronise the learner's current virtual-room state with the supervisor. */
+export async function publishVrSceneState(room: Room, state: VrSceneState) {
+  if (!room.localParticipant) throw new Error("The VR client is not connected to a supervision room.");
+  const payload = {
+    type: "scene_state",
+    sceneId: state.sceneId.slice(0, 80),
+    scenarioTitle: state.scenarioTitle.slice(0, 160),
+    activeTask: state.activeTask.slice(0, 160),
+    position: state.position,
+    updatedAt: state.updatedAt ?? new Date().toISOString(),
+  };
+  await room.localParticipant.publishData(
+    new TextEncoder().encode(JSON.stringify(payload)),
+    { reliable: true, topic: "vr-scene-state" },
+  );
+}
