@@ -35,6 +35,7 @@ export default function PlatformRequestForm({
   const [success,setSuccess] = useState("");
   const [requestStatus,setRequestStatus] = useState("");
   const [requestJoinUrl,setRequestJoinUrl] = useState("");
+  const [quote,setQuote] = useState<{amount:number;currency:string;paymentStatus:string}|null>(null);
   const [statusChecking,setStatusChecking] = useState(false);
   const [statusError,setStatusError] = useState("");
 
