@@ -30,9 +30,7 @@ function SimulationWorkspace(){
 
   const activeCase=useMemo(()=>getCaseById(caseId),[caseId]);
   const activeStep=activeCase.steps[stepIndex];
-  const selectedChoice=activeStep?.choices.find(item=>item.id===answers[activeStep.id]);
   const answeredCount=activeCase.steps.filter(step=>Boolean(answers[step.id])).length;
-  const currentScore=activeCase.steps.reduce((sum,step)=>sum+(step.choices.find(choice=>choice.id===answers[step.id])?.score??0),0);
 
   const changeCase=(id:string)=>{
     setCaseId(id);setStepIndex(0);setAnswers({});setFeedback("");setCompleted(false);setSavedScore(null);setError("");
