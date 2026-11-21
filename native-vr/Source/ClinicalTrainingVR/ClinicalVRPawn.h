@@ -8,6 +8,7 @@ class UCameraComponent;
 class USceneComponent;
 class UMotionControllerComponent;
 class UWidgetInteractionComponent;
+class UClinicalVRTelemetryComponent;
 
 UCLASS()
 class CLINICALTRAININGVR_API AClinicalVRPawn : public APawn
@@ -42,4 +43,7 @@ protected:
 
     UPROPERTY(VisibleAnywhere, Category = "Clinical VR")
     TObjectPtr<UWidgetInteractionComponent> RightPointer;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Clinical VR")
+    TObjectPtr<UClinicalVRTelemetryComponent> Telemetry;
 };
