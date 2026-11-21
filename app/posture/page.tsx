@@ -4,12 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Camera, CameraOff, Eye, Gauge, Info, ShieldCheck, UserRound, Video } from "lucide-react";
 import { FaceLandmarker, FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
+import { Room } from "livekit-client";
+import { publishVrTelemetry } from "@/components/vr-telemetry-bridge";
 import "./posture.css";
 
 type Metric = { label: string; value: string; detail: string; tone: "good" | "warn" | "neutral" };
 type VisionLandmark = { x: number; y: number; z?: number; visibility?: number };
 type PoseResult = { landmarks: VisionLandmark[][] };
 type FaceResult = { faceLandmarks: VisionLandmark[][] };
+type VrDeviceConnection = { serverUrl: string; roomName: string; token: string; role: "vr-device" };
 
 const WASM_ROOT = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm";
 const POSE_MODEL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
@@ -29,9 +32,15 @@ export default function PostureAssessmentPage() {
   const poseRef = useRef<PoseLandmarker | null>(null);
   const faceRef = useRef<FaceLandmarker | null>(null);
   const lastVideoTime = useRef(-1);
+  const lastTelemetryAt = useRef(0);
+  const vrRoomRef = useRef<Room | null>(null);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deviceConnectionText, setDeviceConnectionText] = useState("");
+  const [connectingVrRoom, setConnectingVrRoom] = useState(false);
+  const [vrConnected, setVrConnected] = useState(false);
+  const [vrConnectionStatus, setVrConnectionStatus] = useState("غير مرتبط بغرفة إشراف");
   const [metrics, setMetrics] = useState<Metric[]>([
     { label: "استقامة الجذع", value: "بانتظار الكاميرا", detail: "يظهر بعد رصد الكتفين والوركين", tone: "neutral" },
     { label: "ميل الرأس", value: "بانتظار الكاميرا", detail: "يظهر بعد رصد الوجه والكتفين", tone: "neutral" },
@@ -40,6 +49,50 @@ export default function PostureAssessmentPage() {
   ]);
   const [deviceTilt, setDeviceTilt] = useState("غير متاح");
   const [cameraNote, setCameraNote] = useState("ضع الكاميرا أمامك بحيث يظهر الرأس والكتفان والجزء العلوي من الجسم.");
+
+  const connectVrDevice = async () => {
+    setError("");
+    setConnectingVrRoom(true);
+    try {
+      const config = JSON.parse(deviceConnectionText) as Partial<VrDeviceConnection>;
+      if (
+        typeof config.serverUrl !== "string" ||
+        typeof config.roomName !== "string" ||
+        typeof config.token !== "string" ||
+        config.role !== "vr-device"
+      ) {
+        throw new Error("بيانات الربط غير مكتملة. استخدم JSON الذي ينسخه المشرف من غرفة الإشراف.");
+      }
+      const endpoint = new URL(config.serverUrl);
+      if (endpoint.protocol !== "wss:" && endpoint.protocol !== "ws:") {
+        throw new Error("عنوان LiveKit غير صحيح.");
+      }
+      if (vrRoomRef.current) await vrRoomRef.current.disconnect();
+      const room = new Room();
+      await room.connect(config.serverUrl, config.token);
+      if (room.name !== config.roomName) {
+        await room.disconnect();
+        throw new Error("رمز الجهاز لا يطابق الغرفة المحددة.");
+      }
+      vrRoomRef.current = room;
+      setVrConnected(true);
+      setVrConnectionStatus(`متصل بالغرفة ${config.roomName.slice(-8)} — إرسال بيانات فقط`);
+      lastTelemetryAt.current = 0;
+    } catch (cause) {
+      setVrConnectionStatus("تعذر الاتصال بغرفة الإشراف");
+      setError(cause instanceof Error ? cause.message : "تعذر ربط مستشعرات الوضعية بغرفة الإشراف.");
+    } finally {
+      setConnectingVrRoom(false);
+    }
+  };
+
+  const disconnectVrDevice = async () => {
+    const room = vrRoomRef.current;
+    vrRoomRef.current = null;
+    if (room) await room.disconnect();
+    setVrConnected(false);
+    setVrConnectionStatus("غير مرتبط بغرفة إشراف");
+  };
 
   const stopCamera = useCallback(() => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -70,6 +123,8 @@ export default function PostureAssessmentPage() {
       const body = poseResult.landmarks?.[0];
       const facePoints = faceResult.faceLandmarks?.[0];
       const next: Metric[] = [];
+      let postureNumericScore: number | null = null;
+      let gazeNumericScore: number | null = null;
 
       if (body && body.length > 24 && (body[11]?.visibility ?? 0) > 0.35 && (body[12]?.visibility ?? 0) > 0.35) {
         const shoulderMid = { x: (body[11].x + body[12].x) / 2, y: (body[11].y + body[12].y) / 2 };
@@ -78,6 +133,7 @@ export default function PostureAssessmentPage() {
         const torsoLean = angleFromVertical(shoulderMid.x - hipMid.x, hipMid.y - shoulderMid.y);
         const asymmetry = Math.min(90, Math.abs(shoulderTilt));
         const combined = Math.max(torsoLean, asymmetry);
+        postureNumericScore = Math.max(0, Math.min(5, Number((5 - combined / 20).toFixed(2))));
         next.push({
           label: "استقامة الجذع والكتفين",
           value: combined < 8 ? "متوازن تقريباً" : combined < 17 ? "ميل بسيط" : "ميل ملحوظ",
@@ -107,6 +163,7 @@ export default function PostureAssessmentPage() {
         const horizontalOffset = Math.abs((irisMidX - eyeMidX) / eyeWidth);
         const noseOffset = Math.abs((nose.x - eyeMidX) / eyeWidth);
         const gazeScore = Math.max(horizontalOffset, noseOffset * 0.5);
+        gazeNumericScore = Math.max(0, Math.min(5, Number((5 - gazeScore * 12).toFixed(2))));
         next.push({
           label: "التواصل البصري التقريبي",
           value: gazeScore < 0.12 ? "النظر باتجاه الكاميرا" : gazeScore < 0.25 ? "النظر منحرف قليلاً" : "النظر بعيد عن الكاميرا",
@@ -126,6 +183,36 @@ export default function PostureAssessmentPage() {
       }
       setMetrics(next);
       setCameraNote(body && facePoints ? "تم رصد الجسم والوجه. تحرك بشكل طبيعي لملاحظة تغير المؤشرات." : "حسّن الإضاءة وموضع الكاميرا، وأظهر الرأس والكتفين والوركين.");
+
+      const telemetryRoom = vrRoomRef.current;
+      const now = Date.now();
+      if (telemetryRoom && now - lastTelemetryAt.current >= 3000) {
+        lastTelemetryAt.current = now;
+        const events: Promise<void>[] = [];
+        if (postureNumericScore !== null) {
+          events.push(publishVrTelemetry(telemetryRoom, {
+            type: "posture_score",
+            label: "استقامة الجذع والكتفين",
+            value: postureNumericScore,
+            unit: "/5",
+            source: "web-vr",
+          }));
+        }
+        if (gazeNumericScore !== null) {
+          events.push(publishVrTelemetry(telemetryRoom, {
+            type: "gaze_score",
+            label: "اتجاه النظر نحو الكاميرا",
+            value: gazeNumericScore,
+            unit: "/5",
+            source: "web-vr",
+          }));
+        }
+        void Promise.all(events).then(() => {
+          setVrConnectionStatus("متصل — تم إرسال قياسات الوضعية والنظر");
+        }).catch(() => {
+          setVrConnectionStatus("الاتصال قائم لكن تعذر إرسال القياسات");
+        });
+      }
     }
     rafRef.current = requestAnimationFrame(analyze);
   }, []);
@@ -167,6 +254,9 @@ export default function PostureAssessmentPage() {
     return () => {
       window.removeEventListener("deviceorientation", onOrientation);
       stopCamera();
+      const room = vrRoomRef.current;
+      vrRoomRef.current = null;
+      if (room) void room.disconnect();
     };
   }, [stopCamera]);
 
@@ -191,6 +281,25 @@ export default function PostureAssessmentPage() {
           {error && <div className="posture-error">{error}</div>}
         </section>
         <aside className="posture-side">
+          <section className="posture-vr-link-card">
+            <div className="posture-section-title"><ShieldCheck size={17}/><div><strong>ربط جلسة الإشراف والكفاءات</strong><small>إرسال نتائج الوضعية والنظر تلقائياً للمشرف</small></div></div>
+            <textarea
+              className="posture-device-config"
+              value={deviceConnectionText}
+              onChange={(event)=>setDeviceConnectionText(event.target.value)}
+              rows={4}
+              placeholder="الصق هنا بيانات اتصال محرك VR التي نسخها المشرف من الغرفة المشتركة..."
+              aria-label="بيانات اتصال غرفة الإشراف"
+            />
+            <div className="posture-vr-actions">
+              <button onClick={connectVrDevice} disabled={connectingVrRoom || vrConnected || !deviceConnectionText.trim()}>
+                {connectingVrRoom ? "جارٍ الاتصال..." : vrConnected ? "متصل بغرفة الإشراف" : "ربط بغرفة الإشراف"}
+              </button>
+              {vrConnected && <button className="posture-vr-disconnect" onClick={disconnectVrDevice}>قطع الاتصال</button>}
+            </div>
+            <small className={vrConnected ? "posture-vr-status connected" : "posture-vr-status"}>{vrConnectionStatus}</small>
+            <p>الصق بيانات JSON التي يرسلها المشرف إلى جهاز المتدرب. رمز الربط لا يُحفظ في قاعدة البيانات أو التخزين المحلي، ويُستخدم لإرسال القياسات فقط.</p>
+          </section>
           <section className="posture-metrics-card"><div className="posture-section-title"><Gauge size={17}/><div><strong>مؤشرات الأداء اللحظية</strong><small>تقديرات إرشادية وليست حكماً سريرياً</small></div></div>
             <div className="posture-metrics">{metrics.map(metric=><article className="posture-metric" key={metric.label}><div className={`metric-state ${metric.tone}`}/><div><strong>{metric.label}</strong><b>{metric.value}</b><small>{metric.detail}</small></div></article>)}</div>
           </section>
