@@ -20,6 +20,8 @@ export default function SupervisionRoomPage() {
   const [error,setError] = useState("");
 
   useEffect(()=>{
+    let frameId = 0;
+    frameId = window.requestAnimationFrame(() => {
     try {
       const hash = new URLSearchParams(window.location.hash.replace(/^#/,""));
       const params = new URLSearchParams(window.location.search);
@@ -58,6 +60,8 @@ export default function SupervisionRoomPage() {
     } catch {
       setError("تعذر قراءة بيانات الغرفة من المتصفح.");
     }
+    });
+    return () => window.cancelAnimationFrame(frameId);
   },[]);
 
   return <main className="room-page" dir="rtl">
