@@ -30,7 +30,7 @@ const personas: Record<string, { name: string; role: string; profile: string }> 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export async function POST(request: Request) {
-  if (!process.env.AI_GATEWAY_API_KEY && !process.env.VERCEL_OIDC_TOKEN) {
+  if (!process.env.AI_GATEWAY_API_KEY && process.env.VERCEL !== "1") {
     return NextResponse.json(
       { error: "خدمة الذكاء الاصطناعي غير مهيأة. أضف AI_GATEWAY_API_KEY إلى متغيرات البيئة." },
       { status: 503 },
