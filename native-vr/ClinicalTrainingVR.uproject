@@ -1,0 +1,17 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Category": "Training",
+  "Description": "Native OpenXR clinical training room starter project",
+  "Modules": [
+    {
+      "Name": "ClinicalTrainingVR",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    { "Name": "OpenXR", "Enabled": true },
+    { "Name": "OpenXRHandTracking", "Enabled": true }
+  ]
+}
