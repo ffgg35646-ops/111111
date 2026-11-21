@@ -7,6 +7,7 @@
 AClinicalVRGameMode::AClinicalVRGameMode()
 {
     DefaultPawnClass = AClinicalVRPawn::StaticClass();
+    RoomEnvironmentClass = AClinicalVRRoomEnvironment::StaticClass();
 }
 
 void AClinicalVRGameMode::BeginPlay()
@@ -15,6 +16,7 @@ void AClinicalVRGameMode::BeginPlay()
 
     if (UWorld* World = GetWorld())
     {
-        World->SpawnActor<AClinicalVRRoomEnvironment>(AClinicalVRRoomEnvironment::StaticClass(), FTransform::Identity);
+        const TSubclassOf<AClinicalVRRoomEnvironment> EnvironmentClass = RoomEnvironmentClass ? RoomEnvironmentClass : AClinicalVRRoomEnvironment::StaticClass();
+        World->SpawnActor<AClinicalVRRoomEnvironment>(EnvironmentClass, FTransform::Identity);
     }
 }
