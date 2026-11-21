@@ -1,6 +1,12 @@
 name: Platform quality checks
 
 on:
+  push:
+    branches:
+      - feature/multiuser-supervision-competency-reports
+      - feature/immersive-vr-case-assessment
+      - feature/immersive-vr-live-avatar
+      - feature/vr-live-avatar-main-integration
   pull_request:
     branches:
       - main
