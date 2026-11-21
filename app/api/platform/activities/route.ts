@@ -18,6 +18,15 @@ const allowedRoomEventTypes = new Set([
   "microphone_started",
   "avatar_model_loaded",
   "head_pose_sample",
+  "hand_tracking_sample",
+  "hand_pinch_interaction",
+  "realtime_voice_connecting",
+  "realtime_voice_connected",
+  "realtime_voice_ended",
+  "realtime_voice_failed",
+  "realtime_microphone_toggled",
+  "realtime_user_transcript",
+  "realtime_assistant_transcript",
 ]);
 
 function normaliseRoomEvents(input: unknown) {
@@ -106,6 +115,16 @@ export async function POST(request: NextRequest) {
         orientedWithin30DegreesPercent: Math.round((headPoseMeasurements.filter((item) => item.angle <= 30).length / vrHeadTrackingSamples) * 100),
       }
     : null;
+  const handTrackingEvents = normalisedRoomEvents.filter((event) => event.type === "hand_tracking_sample");
+  const handPinchInteractions = normalisedRoomEvents.filter((event) => event.type === "hand_pinch_interaction");
+  const observedHands = new Set(
+    handTrackingEvents.flatMap((event) => ["left", "right"].filter((hand) => event.label.includes(hand + ":"))),
+  );
+  const vrHandMetrics = {
+    samples: handTrackingEvents.length,
+    pinchInteractions: handPinchInteractions.length,
+    handsObserved: Array.from(observedHands),
+  };
   const record = {
     activityId: randomUUID(),
     caseId: item.id,
