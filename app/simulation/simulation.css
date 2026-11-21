@@ -29,3 +29,20 @@
 @media(max-width:600px){.simulation-voice-heading{align-items:flex-start;flex-direction:column}.simulation-voice-input{flex-direction:column}.simulation-voice-input button{align-self:stretch}.simulation-avatar-toolbar{align-items:flex-start;flex-direction:column}}
 
 .simulation-vr-evidence{width:100%;display:grid;gap:5px;margin:8px 0 12px;padding:10px 12px;border:1px solid #dcebe7;border-radius:8px;background:#f4faf8;text-align:right}.simulation-vr-evidence b{font-size:9px;color:#32796f}.simulation-vr-evidence span{font-size:10px;color:#526d70}.simulation-vr-evidence small{font-size:8px;line-height:1.7;color:#81918f}
+
+.simulation-realtime-voice{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 13px;padding:12px;border:1px solid #cfe4de;border-radius:9px;background:linear-gradient(135deg,#f2faf7,#fbfdfc)}
+.simulation-realtime-copy{display:grid;gap:5px;min-width:220px;flex:1}
+.simulation-realtime-copy>small{font-size:8px;line-height:1.7;color:#748b88}
+.simulation-realtime-title{display:flex;align-items:center;gap:7px;color:#276d65}
+.simulation-realtime-title strong{font-size:10px}
+.simulation-realtime-title>span{padding:3px 7px;border-radius:20px;background:#edf1ef;color:#7e8a87;font-size:8px}
+.simulation-realtime-title>span.is-live{background:#e1f4eb;color:#218363}
+.simulation-realtime-session{direction:ltr;text-align:right;font-variant-numeric:tabular-nums}
+.simulation-realtime-actions{display:flex;gap:6px;flex-wrap:wrap}
+.simulation-realtime-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;padding:8px 10px;background:#187e75;color:#fff;font:inherit;font-size:9px;cursor:pointer}
+.simulation-realtime-actions button:disabled{opacity:.5;cursor:wait}
+.simulation-realtime-actions button.simulation-realtime-muted,.simulation-realtime-actions button.simulation-realtime-volume{background:#e9f2ef;color:#52756e}
+.simulation-realtime-actions button.simulation-realtime-stop{background:#f5e9e7;color:#995a51}
+.simulation-realtime-error{flex-basis:100%;margin:0;color:#a45f54;font-size:9px;line-height:1.7}
+.simulation-realtime-voice audio{width:1px;height:1px;position:absolute;opacity:0;pointer-events:none}
+@media(max-width:600px){.simulation-realtime-voice{align-items:stretch;flex-direction:column}.simulation-realtime-actions button{flex:1}}
