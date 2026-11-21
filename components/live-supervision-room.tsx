@@ -40,6 +40,7 @@ type Props = {
   roomName: string;
   role: Role;
   liveKitToken: string;
+  vrDeviceToken: string;
   supervisorName: string;
   traineeName: string;
   traineeCode: string;
@@ -58,7 +59,7 @@ const rubric = [
 
 type RubricKey = (typeof rubric)[number]["key"];
 
-function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, inviteUrl }: Props) {
+function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, vrDeviceToken, inviteUrl }: Props) {
   const room = useRoomContext();
   const [signedRoomRole, setSignedRoomRole] = useState<Role | null>(null);
   const isSupervisor = signedRoomRole === "supervisor";
@@ -80,6 +81,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
   const [savedReport, setSavedReport] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [deviceTokenCopied, setDeviceTokenCopied] = useState(false);
 
   useEffect(() => {
     const syncSignedRole = () => setSignedRoomRole(signedRole(room.localParticipant.metadata));
@@ -190,6 +192,16 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
     }
   };
 
+  const copyVrDeviceToken = async () => {
+    try {
+      await navigator.clipboard.writeText(vrDeviceToken);
+      setDeviceTokenCopied(true);
+      window.setTimeout(() => setDeviceTokenCopied(false), 2200);
+    } catch {
+      setError("تعذر نسخ رمز محرك VR. تحقق من صلاحية الحافظة في المتصفح.");
+    }
+  };
+
   const saveReport = async () => {
     if (!isSupervisor) return;
     if (!allScoresSelected) {
@@ -240,7 +252,11 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
           <div><strong>{signedRoomRole === "supervisor" ? supervisorName || "المشرف الأكاديمي" : signedRoomRole === "trainee" ? "أنت: المتدرب" : "التحقق من هوية الغرفة..."}</strong><small>{signedRoomRole === "supervisor" ? `متابعة أداء: ${traineeName || "المتدرب"}` : "جلسة تحت إشراف أكاديمي مباشر"}</small></div>
         </section>
 
-        {isSupervisor && <button className="invite-copy-button" onClick={copyInvite}><Copy size={15}/>{copied ? "تم نسخ رابط المتدرب" : "نسخ رابط دعوة المتدرب"}</button>}
+        {isSupervisor && <>
+          <button className="invite-copy-button" onClick={copyInvite}><Copy size={15}/>{copied ? "تم نسخ رابط المتدرب" : "نسخ رابط دعوة المتدرب"}</button>
+          <button className="device-token-copy-button" onClick={copyVrDeviceToken} disabled={!vrDeviceToken}><Copy size={14}/>{deviceTokenCopied ? "تم نسخ رمز محرك VR" : "نسخ رمز ربط محرك VR"}</button>
+          <p className="device-token-warning">رمز الجهاز يسمح بإرسال بيانات VR فقط، وينتهي بعد ساعتين. لا تشاركه إلا مع محرك الجلسة الموثوق.</p>
+        </>}
 
         <section className="supervision-card">
           <div className="supervision-card-title"><MessageSquareText size={17}/><div><strong>التوجيه الحي</strong><small>تصل ملاحظات المشرف للطرفين فوراً</small></div></div>
