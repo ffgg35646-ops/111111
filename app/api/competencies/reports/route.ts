@@ -55,7 +55,7 @@ function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
     { type: "empathy_score", competency: "empathy", label: "مؤشر التفاعل المتعاطف" },
   ] as const;
 
-  return rules.flatMap((rule) => {
+  const rubricEvidence = rules.flatMap((rule) => {
     const values = telemetry
       .filter((event) => event.type === rule.type && typeof event.value === "number" && event.value >= 0 && event.value <= 5)
       .map((event) => event.value as number);
@@ -69,6 +69,48 @@ function buildVrEvidence(telemetry: ReturnType<typeof normaliseTelemetry>) {
       scale: "0-5",
     }];
   });
+
+  const headPoseSamples = telemetry.filter((event) => event.type === "head_pose_sample").length;
+  const handSamples = telemetry.filter((event) => event.type === "hand_tracking_sample").length;
+  const pinchEvents = telemetry.filter((event) => event.type === "hand_pinch_interaction").length;
+  const distanceValues = telemetry
+    .filter((event) => event.type === "interaction_distance_cm" && typeof event.value === "number" && event.value >= 0 && event.value <= 1000)
+    .map((event) => event.value as number);
+
+  const observationalEvidence = [
+    ...(headPoseSamples ? [{
+      type: "head_pose_samples",
+      label: "عينات اتجاه الرأس (دليل مكاني فقط)",
+      samples: headPoseSamples,
+      evidenceOnly: true,
+      note: "لا تمثل تتبعاً للعين ولا تُقيّم التواصل البصري.",
+    }] : []),
+    ...(handSamples ? [{
+      type: "hand_tracking_samples",
+      label: "عينات تتبع اليدين",
+      samples: handSamples,
+      evidenceOnly: true,
+      note: "وجود اليدين داخل نطاق تتبع WebXR لا يمثل درجة كفاءة.",
+    }] : []),
+    ...(pinchEvents ? [{
+      type: "hand_pinch_interactions",
+      label: "تفاعلات القرص بين الإبهام والسبابة",
+      samples: pinchEvents,
+      evidenceOnly: true,
+      note: "أحداث تفاعل واجهة فقط، وليست قياساً سريرياً.",
+    }] : []),
+    ...(distanceValues.length ? [{
+      type: "interaction_distance",
+      label: "متوسط مسافة التفاعل",
+      samples: distanceValues.length,
+      averageValue: Math.round(distanceValues.reduce((sum, value) => sum + value, 0) / distanceValues.length),
+      unit: "سم",
+      evidenceOnly: true,
+      note: "معلومة مكانية لا تتحول تلقائياً إلى درجة.",
+    }] : []),
+  ];
+
+  return [...rubricEvidence, ...observationalEvidence];
 }
 
 export async function GET(request: NextRequest) {
