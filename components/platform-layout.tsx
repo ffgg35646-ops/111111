@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpLeft, BookOpen, Brain, FileBadge, GraduationCap, HeartHandshake, Library, Video } from "lucide-react";
+import { ArrowUpLeft, BookOpen, Brain, ClipboardList, FileBadge, GraduationCap, HeartHandshake, Library, Video } from "lucide-react";
 
 const navigation = [
+  { href: "/specialties", label: "المسارات التخصصية", icon: Brain },
   { href: "/academy", label: "الأكاديمية", icon: GraduationCap },
   { href: "/cases", label: "الحالات التدريبية", icon: Brain },
+  { href: "/assessments", label: "المقاييس", icon: ClipboardList },
   { href: "/classrooms", label: "فصول Zoom", icon: Video },
   { href: "/consultations", label: "الاستشارات", icon: HeartHandshake },
   { href: "/books", label: "الكتب", icon: Library },
