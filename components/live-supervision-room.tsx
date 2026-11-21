@@ -124,9 +124,10 @@ function RoomTools({ serverUrl, roomName, supervisorName, traineeName, traineeCo
         const senderRole = participantRole(participant?.metadata);
         if (
           topic === "clinical-coaching" &&
-          event.type === "coach-note" &&
+          (event.type === "coach-note" || event.type === "trainee-reply") &&
           typeof event.text === "string" &&
-          (senderRole === "supervisor" || senderRole === "trainee")
+          ((event.type === "coach-note" && senderRole === "supervisor") ||
+            (event.type === "trainee-reply" && senderRole === "trainee"))
         ) {
           setCoachMessages((current) => [{
             id: typeof event.id === "string" ? event.id : crypto.randomUUID(),
@@ -192,28 +193,28 @@ function RoomTools({ serverUrl, roomName, supervisorName, traineeName, traineeCo
 
   const sendCoachNote = async () => {
     const text = coachDraft.trim();
-    if (!text || !isSupervisor) return;
+    if (!text || (!isSupervisor && !isTrainee)) return;
     try {
       const destinationIdentities = Array.from(room.remoteParticipants.values())
         .filter((participant) => {
           const peerRole = participantRole(participant.metadata);
-          return peerRole === "supervisor" || peerRole === "trainee";
+          return isSupervisor ? peerRole === "trainee" : peerRole === "supervisor";
         })
         .map((participant) => participant.identity);
 
       if (!destinationIdentities.length) {
-        setError("لا يوجد متدرب متصل حالياً لاستلام التوجيه.");
+        setError(isSupervisor ? "لا يوجد متدرب متصل حالياً لاستلام التوجيه." : "لا يوجد مشرف متصل حالياً لاستلام الرد.");
         return;
       }
 
+      const senderRole: Role = isSupervisor ? "supervisor" : "trainee";
       const sentAt = new Date().toISOString();
       const messageId = crypto.randomUUID();
       await room.localParticipant.publishData(
         new TextEncoder().encode(JSON.stringify({
-          type: "coach-note",
+          type: isSupervisor ? "coach-note" : "trainee-reply",
           id: messageId,
           text,
-          role: "supervisor",
           sentAt,
         })),
         { reliable: true, topic: "clinical-coaching", destinationIdentities },
@@ -221,8 +222,8 @@ function RoomTools({ serverUrl, roomName, supervisorName, traineeName, traineeCo
       setCoachMessages((current) => [{
         id: messageId,
         text,
-        sender: supervisorName || "المشرف الأكاديمي",
-        role: "supervisor",
+        sender: isSupervisor ? (supervisorName || "المشرف الأكاديمي") : (traineeName || "المتدرب"),
+        role: senderRole,
         sentAt,
       }, ...current].slice(0, 60));
       setCoachDraft("");
@@ -322,7 +323,7 @@ function RoomTools({ serverUrl, roomName, supervisorName, traineeName, traineeCo
             {coachMessages.length === 0 && <p className="coach-empty">لا توجد توجيهات بعد. يمكن للمشرف إرسال ملاحظة أثناء الجلسة.</p>}
             {coachMessages.map((message) => <article className={message.role === "supervisor" ? "coach-message coach-from-supervisor" : "coach-message"} key={message.id}><small>{message.role === "supervisor" ? "توجيه المشرف" : "رد المتدرب"}</small><p>{message.text}</p><time>{new Date(message.sentAt).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})}</time></article>)}
           </div>
-          {isSupervisor ? <div className="coach-compose"><textarea value={coachDraft} onChange={(event)=>setCoachDraft(event.target.value)} rows={3} maxLength={600} placeholder="اكتب توجيهاً قصيراً للمتدرب أثناء المحاكاة..."/><button onClick={sendCoachNote} disabled={!coachDraft.trim()}><Send size={14}/> إرسال التوجيه</button></div> : <p className="trainee-coach-hint">ستظهر توجيهات المشرف هنا أثناء الجلسة.</p>}
+          {(isSupervisor || isTrainee) ? <div className="coach-compose"><textarea value={coachDraft} onChange={(event)=>setCoachDraft(event.target.value)} rows={3} maxLength={600} placeholder={isSupervisor ? "اكتب توجيهاً قصيراً للمتدرب أثناء المحاكاة..." : "اكتب ردك أو استفسارك للمشرف أثناء الجلسة..."}/><button onClick={sendCoachNote} disabled={!coachDraft.trim()}><Send size={14}/>{isSupervisor ? "إرسال التوجيه" : "إرسال الرد للمشرف"}</button></div> : <p className="trainee-coach-hint">جارٍ التحقق من صلاحية المشارك...</p>}
         </section>
 
         <section className="supervision-card scene-card">
