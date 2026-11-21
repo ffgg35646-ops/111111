@@ -4,18 +4,40 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
-  FileText, GraduationCap, LayoutDashboard, Library, MessageCircle, Settings,
+  FileText, GraduationCap, LayoutDashboard, MessageCircle, Settings,
   ShieldCheck, ShoppingBag, Users, Video, Glasses, Plus, Search,
-  Bell, ChevronLeft, Clock3, CircleHelp, PanelRightClose
+  Bell, ChevronLeft, CircleHelp, PanelRightClose
 } from "lucide-react";
 
 const sections = [
   { title:"الرئيسية", items:[["نظرة عامة",LayoutDashboard]] },
-  { title:"الأكاديمية", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة",Video],["الاختبارات والتقييمات",ClipboardCheck],["الشهادات",ShieldCheck]] },
-  { title:"المحاكاة السريرية", items:[["سيناريوهات الحالات",Brain],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity]] },
-  { title:"الخدمات", items:[["الاستشارات والحجوزات",CalendarDays],["المتجر المعرفي",ShoppingBag],["المكتبة العلمية",Library],["الفصول وتأجير القاعات",Video]] },
+  { title:"الأكاديمية والتعلم", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة عبر Zoom",Video],["الشهادات",ShieldCheck]] },
+  { title:"المسارات التخصصية", items:[["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
+  { title:"المحاكاة السريرية", items:[["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
+  { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
   { title:"الإدارة", items:[["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["الإعدادات والصلاحيات",Settings]] },
 ] as const;
+
+const routeByLabel: Record<string,string> = {
+  "الدورات والبرامج": "/academy",
+  "الفصول المباشرة عبر Zoom": "/classrooms",
+  "الشهادات": "/certificates",
+  "الخدمة الاجتماعية": "/academy",
+  "العلاج المعرفي السلوكي CBT": "/academy",
+  "اضطراب طيف التوحد": "/academy",
+  "الاضطرابات النمائية والإعاقة الذهنية": "/academy",
+  "دراسة الحالة والمقاييس": "/assessments",
+  "مكتبة الحالات التدريبية": "/cases",
+  "قاعة محاكاة الحالة": "/simulation",
+  "الشخصيات الافتراضية": "/characters",
+  "تقييم لغة الجسد": "/posture",
+  "الغرف المشتركة": "/supervision",
+  "ملف الكفاءات المهنية": "/competencies",
+  "مختبر المقاييس": "/assessments",
+  "الاستشارات العلاجية والمهنية": "/consultations",
+  "المتجر المعرفي والكتب": "/books",
+  "تأجير قاعات Zoom": "/room-rental",
+};
 
 const stats = [
   {label:"إجمالي المتدربين",value:"—",note:"سيظهر بعد ربط قاعدة البيانات",icon:Users,tone:"blue"},
@@ -45,7 +67,7 @@ export default function HomePage() {
       <nav className="side-nav">
         {sections.map(section=><div className="nav-section" key={section.title}>
           <p>{section.title}</p>
-          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>label==="الشخصيات الافتراضية"?router.push("/characters"):setActive(label)}>
+          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>{const target=routeByLabel[label];if(target)router.push(target);else setActive(label);}}>
             <Icon size={18}/><span>{label}</span>
           </button>)}
         </div>)}
@@ -69,13 +91,13 @@ export default function HomePage() {
       <div className="page-content">
         <div className="welcome-row">
           <div><div className="eyebrow">لوحة التحكم الرئيسية</div><h1>مرحباً بك في مساحة الإدارة</h1><p>إدارة التعليم والتدريب والاستشارات والمحاكاة السريرية من مكان واحد.</p></div>
-          <button className="primary-button" onClick={()=>setActive("سيناريوهات الحالات")}><Plus size={18}/> إعداد حالة تدريبية</button>
+          <button className="primary-button" onClick={()=>router.push("/cases")}><Plus size={18}/> إعداد حالة تدريبية</button>
         </div>
 
         <div className="notice-strip">
           <div className="notice-icon"><Brain size={19}/></div>
           <div><strong>إدارة الشخصيات والحالات الافتراضية</strong><span>الدكتور أو المشرف العلمي يكتب ملف الحالة وأهدافها وحدود معرفة الشخصية وطريقة استجابتها. الشخصية تتفاعل مع الحوار في سياقه، وليست تسجيلاً محفوظاً.</span></div>
-          <button onClick={()=>setActive("سيناريوهات الحالات")}>إعداد الحالات <ChevronLeft size={15}/></button>
+          <button onClick={()=>router.push("/cases")}>إعداد الحالات <ChevronLeft size={15}/></button>
         </div>
 
         <div className="stats-grid">{stats.map(stat=><article className="stat-card" key={stat.label}>
@@ -96,10 +118,10 @@ export default function HomePage() {
           <section className="panel quick-panel">
             <div className="panel-heading"><div><h2>اختصارات الإدارة</h2><p>أقسام الإدارة الأساسية</p></div></div>
             <div className="quick-grid">
-              <button onClick={()=>setActive("سيناريوهات الحالات")}><span className="quick-icon teal"><Brain size={19}/></span><strong>إعداد حالة تدريبية</strong><small>كتابة السيناريو السريري</small></button>
-              <button onClick={()=>setActive("الشخصيات الافتراضية")}><span className="quick-icon blue"><Users size={19}/></span><strong>إعداد شخصية افتراضية</strong><small>تعليمات الشخصية وصوتها</small></button>
-              <button onClick={()=>setActive("الدورات والبرامج")}><span className="quick-icon violet"><GraduationCap size={19}/></span><strong>إضافة دورة</strong><small>برنامج تدريبي جديد</small></button>
-              <button onClick={()=>setActive("التقارير والكفاءات")}><span className="quick-icon amber"><ChartNoAxesCombined size={19}/></span><strong>ملفات الكفاءات</strong><small>تقييم أداء المتدربين</small></button>
+              <button onClick={()=>router.push("/cases")}><span className="quick-icon teal"><Brain size={19}/></span><strong>إعداد حالة تدريبية</strong><small>كتابة السيناريو السريري</small></button>
+              <button onClick={()=>router.push("/characters")}><span className="quick-icon blue"><Users size={19}/></span><strong>إعداد شخصية افتراضية</strong><small>تعليمات الشخصية وصوتها</small></button>
+              <button onClick={()=>router.push("/academy")}><span className="quick-icon violet"><GraduationCap size={19}/></span><strong>إضافة دورة</strong><small>برنامج تدريبي جديد</small></button>
+              <button onClick={()=>router.push("/competencies")}><span className="quick-icon amber"><ChartNoAxesCombined size={19}/></span><strong>ملفات الكفاءات</strong><small>تقييم أداء المتدربين</small></button>
             </div>
           </section>
         </div>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, AudioLines, Bot, Check, CircleAlert, LoaderCircle, Mic, MicOff, Pause, Send, Settings2, ShieldCheck, Square, UserRound, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight, AudioLines, Bot, Check, CircleAlert, LoaderCircle, Mic, MicOff, Pause, Send, Settings2, ShieldCheck, Square, UserRound, Video, Volume2, VolumeX } from "lucide-react";
 import "./voice.css";
 
 type PersonaId = "father" | "mother" | "child" | "teen";
@@ -49,9 +49,27 @@ export default function VoiceAgentPage() {
   const activePersona = personas.find(item=>item.id===persona)!;
 
   useEffect(()=>{
-    const speechWindow=window as SpeechWindow;
-    setSupported(Boolean(speechWindow.SpeechRecognition||speechWindow.webkitSpeechRecognition));
-    return ()=>{recognition.current?.abort();aborter.current?.abort();window.speechSynthesis?.cancel();};
+    const frameId=window.requestAnimationFrame(()=>{
+      const speechWindow=window as SpeechWindow;
+      setSupported(Boolean(speechWindow.SpeechRecognition||speechWindow.webkitSpeechRecognition));
+
+      const params=new URLSearchParams(window.location.search);
+      const incomingPersona=params.get("persona");
+      const incomingScenario=params.get("scenario");
+      if(incomingPersona&&personas.some(item=>item.id===incomingPersona)){
+        setPersona(incomingPersona as PersonaId);
+      }
+      if(incomingScenario){
+        setScenario(incomingScenario.slice(0,5000));
+      }
+    });
+
+    return ()=>{
+      window.cancelAnimationFrame(frameId);
+      recognition.current?.abort();
+      aborter.current?.abort();
+      window.speechSynthesis?.cancel();
+    };
   },[]);
 
   useEffect(()=>{scrollRef.current?.scrollTo({top:scrollRef.current.scrollHeight,behavior:"smooth"});},[messages,interim]);
@@ -136,7 +154,7 @@ export default function VoiceAgentPage() {
   const reset=()=>{recognition.current?.abort();aborter.current?.abort();stopSpeaking();setMessages([]);setDraft("");setInterim("");setError("");setBusy(false);setListening(false);};
 
   return <main className="voice-workspace" dir="rtl">
-    <header className="voice-topbar"><Link href="/characters" className="voice-back"><ArrowRight size={17}/> العودة للشخصيات</Link><div className="voice-top-state"><span className="voice-green-dot"/> وكيل محادثة سريري</div><button className="voice-reset" onClick={reset}><Square size={13}/> إنهاء الجلسة</button></header>
+    <header className="voice-topbar"><Link href="/characters" className="voice-back"><ArrowRight size={17}/> العودة للشخصيات</Link><div className="voice-top-state"><span className="voice-green-dot"/> وكيل محادثة سريري</div><Link href="/supervision" className="voice-reset"><Video size={14}/> غرفة إشراف مشتركة</Link><button className="voice-reset" onClick={reset}><Square size={13}/> إنهاء الجلسة</button></header>
     <div className="voice-main">
       <div className="voice-title-row"><div><div className="voice-eyebrow"><AudioLines size={15}/> المحاكاة الصوتية الذكية</div><h1>محادثة حرة مع الشخصية الافتراضية</h1><p>تحدث بصوتك، واستمع إلى رد الشخصية، وتابع الحوار بصورة طبيعية.</p></div><div className="voice-secure"><ShieldCheck size={16}/> لا يتم حفظ التسجيل الصوتي في هذه الواجهة</div></div>
       <div className="voice-layout">
