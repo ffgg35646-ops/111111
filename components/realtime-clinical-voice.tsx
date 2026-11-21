@@ -49,7 +49,7 @@ export function RealtimeClinicalVoice({
 
   useEffect(() => { onStatusChange?.(status); }, [onStatusChange, status]);
 
-  const cleanup = useCallback(() => {
+  const cleanup = useCallback((notify = true) => {
     channelRef.current?.close();
     channelRef.current = null;
     peerRef.current?.getSenders().forEach((sender) => {
@@ -62,15 +62,17 @@ export function RealtimeClinicalVoice({
     if (audioRef.current) audioRef.current.srcObject = null;
     assistantTranscriptRef.current = "";
     onSpeakingChange?.(false);
-    setMuted(false);
-    onMutedChange?.(false);
+    if (notify) {
+      setMuted(false);
+      onMutedChange?.(false);
+    }
   }, [onMutedChange, onSpeakingChange]);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      cleanup();
+      cleanup(false);
     };
   }, [cleanup]);
 
@@ -225,6 +227,7 @@ export function RealtimeClinicalVoice({
     const nextMuted = !muted;
     microphoneRef.current?.getAudioTracks().forEach((track) => { track.enabled = !nextMuted; });
     setMuted(nextMuted);
+    onMutedChange?.(nextMuted);
     onEvent?.("realtime_microphone_toggled", nextMuted ? "كتم ميكروفون الصوت الحي." : "إعادة فتح ميكروفون الصوت الحي.");
   }, [muted, onEvent, onMutedChange]);
 
