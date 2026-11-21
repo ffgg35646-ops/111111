@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 20;
 
+const rateLimitWindowMs = 10 * 60 * 1000;
+const rateLimitMaximum = 4;
+const sessionRequests = new Map<string, { count: number; resetAt: number }>();
+
 const personas: Record<string, { name: string; description: string }> = {
   father: { name: "الأب الافتراضي", description: "أب بالغ يرافق أحد أفراد أسرته ويتحدث بلهجة عربية خليجية بيضاء طبيعية." },
   mother: { name: "الأم الافتراضية", description: "أم بالغة ترافق أحد أفراد أسرتها وتتحدث بلهجة عربية خليجية بيضاء طبيعية." },
@@ -22,6 +26,27 @@ export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) {
     return NextResponse.json({ error: "مصدر الطلب غير مسموح." }, { status: 403 });
+  }
+
+  const clientAddress = request.headers.get("x-real-ip")
+    || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || "unknown";
+  const now = Date.now();
+  const currentLimit = sessionRequests.get(clientAddress);
+  if (!currentLimit || currentLimit.resetAt <= now) {
+    sessionRequests.set(clientAddress, { count: 1, resetAt: now + rateLimitWindowMs });
+  } else if (currentLimit.count >= rateLimitMaximum) {
+    return NextResponse.json(
+      { error: "تم تجاوز عدد محاولات الاتصال الصوتي. انتظر قليلاً ثم حاول مرة أخرى." },
+      { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(Math.ceil((currentLimit.resetAt - now) / 1000)) } },
+    );
+  } else {
+    currentLimit.count += 1;
+  }
+  if (sessionRequests.size > 1000) {
+    for (const [address, entry] of sessionRequests) {
+      if (entry.resetAt <= now) sessionRequests.delete(address);
+    }
   }
 
   let body: unknown;
