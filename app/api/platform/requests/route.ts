@@ -63,6 +63,14 @@ export async function POST(request: NextRequest) {
     record.courseId = course.id;
     record.courseTitle = course.title;
     record.deliveryMode = course.mode;
+    if (kind === "classroom_registration") {
+      const preferredAt = cleanText(data.preferredAt, 50);
+      if (!Number.isFinite(Date.parse(preferredAt)) || Date.parse(preferredAt) < Date.now() + 5 * 60 * 1000) {
+        return NextResponse.json({ error: "حدد موعداً مستقبلياً للفصل بعد خمس دقائق على الأقل." }, { status: 400 });
+      }
+      record.preferredAt = new Date(preferredAt);
+      record.requestNote = cleanText(data.requestNote, 500);
+    }
   }
 
   if (kind === "consultation") {
