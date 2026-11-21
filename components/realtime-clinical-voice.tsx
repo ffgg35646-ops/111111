@@ -32,6 +32,9 @@ export function RealtimeClinicalVoice({
   onSpeakingChange,
   onEvent,
   onConnecting,
+  onStatusChange,
+  onMutedChange,
+  onControlsReady,
 }: RealtimeClinicalVoiceProps) {
   const [status, setStatus] = useState<"idle" | "connecting" | "live" | "error">("idle");
   const [muted, setMuted] = useState(false);
@@ -60,7 +63,8 @@ export function RealtimeClinicalVoice({
     assistantTranscriptRef.current = "";
     onSpeakingChange?.(false);
     setMuted(false);
-  }, [onSpeakingChange]);
+    onMutedChange?.(false);
+  }, [onMutedChange, onSpeakingChange]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -126,6 +130,7 @@ export function RealtimeClinicalVoice({
       peer.onconnectionstatechange = () => {
         if (!mountedRef.current) return;
         if (peer.connectionState === "failed" || peer.connectionState === "disconnected") {
+          cleanup();
           setStatus("error");
           setError("انقطع اتصال WebRTC. أنهِ الاتصال ثم أعد المحاولة.");
           onSpeakingChange?.(false);
