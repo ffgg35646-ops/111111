@@ -68,7 +68,7 @@ export default function SupervisionPage() {
       </div>
       <div className="supervision-launch-grid">
         <form className="supervision-create-card" onSubmit={createRoom}>
-          <div className="launch-card-head"><Video size={18}/><div><strong>بيانات الجلسة</strong><small>ستُنشأ غرفة خاصة بمشاركَين فقط</small></div></div>
+          <div className="launch-card-head"><Video size={18}/><div><strong>بيانات الجلسة</strong><small>مشاركان بشريان مع اتصال بيانات مستقل لمحرك VR</small></div></div>
           <label>اسم المشرف الأكاديمي<input required maxLength={80} value={supervisorName} onChange={event=>setSupervisorName(event.target.value)} placeholder="اسم المشرف"/></label>
           <label>اسم المتدرب<input required maxLength={80} value={traineeName} onChange={event=>setTraineeName(event.target.value)} placeholder="اسم المتدرب"/></label>
           <label>رمز ملف المتدرب<input required minLength={3} maxLength={40} pattern="[A-Za-z0-9_-]{3,40}" value={traineeCode} onChange={event=>setTraineeCode(event.target.value.toUpperCase())} placeholder="مثال: TRN-2048"/></label>
