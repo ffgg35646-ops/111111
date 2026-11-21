@@ -1,9 +1,6 @@
 name: Platform quality checks
 
 on:
-  push:
-    branches:
-      - feature/multiuser-supervision-competency-reports
   pull_request:
     branches:
       - main
