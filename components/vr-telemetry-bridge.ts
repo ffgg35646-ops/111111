@@ -1,5 +1,18 @@
 import type { Room } from "livekit-client";
 
+function humanRoomRecipients(room: Room) {
+  return Array.from(room.remoteParticipants.values()).flatMap((participant) => {
+    try {
+      const metadata = JSON.parse(participant.metadata || "") as { role?: string };
+      return metadata.role === "supervisor" || metadata.role === "trainee"
+        ? [participant.identity]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
 export type VrTelemetryEvent = {
   type: "posture_score" | "gaze_score" | "clinical_assessment_score" | "safety_compliance_score" | "communication_score" | "active_listening_score" | "empathy_score" | "interaction_distance_cm" | "procedure_step";
   label: string;
@@ -23,9 +36,14 @@ export async function publishVrTelemetry(room: Room, event: VrTelemetryEvent) {
     occurredAt: event.occurredAt ?? new Date().toISOString(),
   };
 
+  const destinationIdentities = humanRoomRecipients(room);
+  if (!destinationIdentities.length) {
+    throw new Error("No supervisor or trainee is currently connected to receive VR telemetry.");
+  }
+
   await room.localParticipant.publishData(
     new TextEncoder().encode(JSON.stringify(payload)),
-    { reliable: true, topic: "vr-telemetry" },
+    { reliable: true, topic: "vr-telemetry", destinationIdentities },
   );
 }
 
@@ -48,8 +66,13 @@ export async function publishVrSceneState(room: Room, state: VrSceneState) {
     position: state.position,
     updatedAt: state.updatedAt ?? new Date().toISOString(),
   };
+  const destinationIdentities = humanRoomRecipients(room);
+  if (!destinationIdentities.length) {
+    throw new Error("No supervisor or trainee is currently connected to receive VR scene updates.");
+  }
+
   await room.localParticipant.publishData(
     new TextEncoder().encode(JSON.stringify(payload)),
-    { reliable: true, topic: "vr-scene-state" },
+    { reliable: true, topic: "vr-scene-state", destinationIdentities },
   );
 }
