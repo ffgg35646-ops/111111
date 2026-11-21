@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Activity, ArrowLeft, BookOpen, Brain, CheckCircle2,
+  Activity, ArrowLeft, BookOpen, Brain, CheckCircle2, ClipboardCheck,
   ClipboardList, FileCheck2, GraduationCap, HeartHandshake, Lightbulb,
   Microscope, ShieldAlert, Sparkles, Stethoscope, Users, Workflow
 } from "lucide-react";
