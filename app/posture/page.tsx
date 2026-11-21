@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Camera, CameraOff, Eye, Gauge, Info, RotateCcw, ShieldCheck, UserRound, Video } from "lucide-react";
+import { ArrowRight, Camera, CameraOff, Eye, Gauge, Info, ShieldCheck, UserRound, Video } from "lucide-react";
 import { FaceLandmarker, FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import "./posture.css";
 
 type Metric = { label: string; value: string; detail: string; tone: "good" | "warn" | "neutral" };
 type VisionLandmark = { x: number; y: number; z?: number; visibility?: number };
-type VisionInstance = { close: () => void };
 type PoseResult = { landmarks: VisionLandmark[][] };
 type FaceResult = { faceLandmarks: VisionLandmark[][] };
 
@@ -75,7 +74,7 @@ export default function PostureAssessmentPage() {
       if (body && body.length > 24 && (body[11]?.visibility ?? 0) > 0.35 && (body[12]?.visibility ?? 0) > 0.35) {
         const shoulderMid = { x: (body[11].x + body[12].x) / 2, y: (body[11].y + body[12].y) / 2 };
         const hipMid = { x: (body[23].x + body[24].x) / 2, y: (body[23].y + body[24].y) / 2 };
-        const shoulderTilt = Math.abs(Math.atan2(body[12].y - body[11].y, body[12].x - body[11].x) * 180 / Math.PI);
+        const shoulderTilt = Math.atan2(Math.abs(body[12].y - body[11].y), Math.abs(body[12].x - body[11].x)) * 180 / Math.PI;
         const torsoLean = angleFromVertical(shoulderMid.x - hipMid.x, hipMid.y - shoulderMid.y);
         const asymmetry = Math.min(90, Math.abs(shoulderTilt));
         const combined = Math.max(torsoLean, asymmetry);
