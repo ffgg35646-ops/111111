@@ -26,7 +26,7 @@ No Unreal Engine executable or device runtime is available in this GitHub-only w
 1. Create a LiveKit supervision room in the platform and use the supervisor interface to copy the **VR device connection data**.
 2. The native VR pawn includes **ClinicalVRTelemetryComponent** as a default subobject. In a Blueprint derived from **ClinicalVRPawn**, select its Telemetry component to set the patient target and configure the connection.
 3. Call **ConfigureTelemetryEndpoint** from the pawn's BeginPlay/initialization Blueprint with:
-   - Platform HTTPS base URL, for example **https://your-platform.example**
+   - **platformUrl** from the copied device connection JSON (this is the web platform HTTPS address, not LiveKit's serverUrl)
    - The exact **roomName** from the copied device connection data
    - The short-lived **token** from the copied device connection data
 4. Assign **PatientTarget** to the patient actor in the level. The component samples the HMD camera direction and distance to that actor every five seconds.
@@ -39,7 +39,8 @@ The token is a temporary credential. Keep it in memory for the training session,
 
 - The native room and patient are primitive placeholders; there is no licensed realistic skeletal patient avatar, rig, facial animation, or phoneme-synchronised lip sync in this Unreal starter.
 - The native pawn has controller-based widget interaction. Hand-joint acquisition and pinch-event detection now use Unreal's OpenXR hand-tracking state API when the runtime returns valid joint positions. Pinch-to-world-UI interaction and controller-to-hand ray fallback are not yet wired, and must be tested on the chosen headset.
-- The web /simulation route now has a separate Realtime/WebRTC full-duplex voice client with server-issued ephemeral credentials. That browser client is not yet embedded into this native Unreal executable. Native audio needs a dedicated Unreal audio/WebRTC integration and device test.
+- The web /simulation route has a separate Realtime/WebRTC full-duplex voice client with server-issued ephemeral credentials. That browser client is not embedded into this native Unreal executable. Native audio needs a dedicated Unreal audio/WebRTC integration and device test.
+- Eye gaze support is optional and off by default. It requires a runtime/device that implements **XR_EXT_eye_gaze_interaction**, permission and informed consent. The HMD direction signal is not substituted for missing eye gaze.
 - There is no eye tracking in the web or native starter. Head direction is not eye gaze and must not be reported as eye contact.
 - The native source has not been compiled by Unreal Build Tool, packaged, signed, or installed on a headset. Do not advertise full compatibility with Meta Quest or other OpenXR devices until each target model and runtime passes the acceptance matrix in **docs/vr-device-integration.md**.
 - The supervisor competency scores remain human-entered rubric results. Device telemetry is supporting evidence only and does not diagnose, prescribe treatment, or automatically decide professional competence.
