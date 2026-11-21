@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
   FileText, GraduationCap, LayoutDashboard, Library, MessageCircle, Settings,
@@ -29,6 +30,7 @@ const modules = [
 ] as const;
 
 export default function HomePage() {
+  const router = useRouter();
   const [active,setActive] = useState("نظرة عامة");
   const [query,setQuery] = useState("");
   const [sidebarOpen,setSidebarOpen] = useState(true);
@@ -43,7 +45,7 @@ export default function HomePage() {
       <nav className="side-nav">
         {sections.map(section=><div className="nav-section" key={section.title}>
           <p>{section.title}</p>
-          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>setActive(label)}>
+          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>label==="الشخصيات الافتراضية"?router.push("/characters"):setActive(label)}>
             <Icon size={18}/><span>{label}</span>
           </button>)}
         </div>)}
