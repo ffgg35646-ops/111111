@@ -11,7 +11,17 @@
     }
   ],
   "Plugins": [
-    { "Name": "OpenXR", "Enabled": true },
-    { "Name": "OpenXRHandTracking", "Enabled": true }
+    {
+      "Name": "OpenXR",
+      "Enabled": true
+    },
+    {
+      "Name": "OpenXRHandTracking",
+      "Enabled": true
+    },
+    {
+      "Name": "OpenXREyeTracker",
+      "Enabled": true
+    }
   ]
 }
