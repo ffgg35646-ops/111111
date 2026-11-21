@@ -33,6 +33,25 @@ export default function PlatformRequestForm({
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState("");
   const [success,setSuccess] = useState("");
+  const [requestStatus,setRequestStatus] = useState("");
+  const [requestJoinUrl,setRequestJoinUrl] = useState("");
+  const [statusChecking,setStatusChecking] = useState(false);
+  const [statusError,setStatusError] = useState("");
+
+  const checkStatus = async () => {
+    if (!success || !email) return;
+    setStatusChecking(true);setStatusError("");
+    try {
+      const query=new URLSearchParams({requestId:success,email});
+      const response=await fetch(`/api/platform/requests?${query.toString()}`,{cache:"no-store"});
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||"تعذر التحقق من الطلب.");
+      setRequestStatus(result.status);
+      setRequestJoinUrl(typeof result.zoomMeeting?.joinUrl==="string"?result.zoomMeeting.joinUrl:"");
+    }catch(cause){
+      setStatusError(cause instanceof Error?cause.message:"تعذر التحقق من الطلب.");
+    }finally{setStatusChecking(false);}
+  };
 
   const submit = async (event:React.FormEvent<HTMLFormElement>)=>{
     event.preventDefault();
@@ -65,6 +84,8 @@ export default function PlatformRequestForm({
       const result=await response.json();
       if(!response.ok) throw new Error(result.error||"تعذر إرسال الطلب.");
       setSuccess(result.requestId);
+      setRequestStatus(result.status || "pending_review");
+      setRequestJoinUrl("");
       setValues({});
     } catch(cause) {
       setError(cause instanceof Error?cause.message:"تعذر إرسال الطلب.");
@@ -73,7 +94,17 @@ export default function PlatformRequestForm({
     }
   };
 
-  if(success) return <div className="request-success"><CheckCircle2 size={25}/><strong>تم استلام طلبك</strong><p>رقم المتابعة: <b>{success}</b></p><small>حالة الطلب: قيد المراجعة. سيتم التواصل عبر بيانات الاتصال المدخلة.</small><button onClick={()=>setSuccess("")}>إرسال طلب آخر</button></div>;
+  if(success) return <div className="request-success">
+    <CheckCircle2 size={25}/>
+    <strong>تم استلام طلبك</strong>
+    <p>رقم المتابعة: <b>{success}</b></p>
+    <small>الحالة الحالية: {requestStatus==="approved"?"تمت الموافقة":requestStatus==="rejected"?"تم رفض الطلب":requestStatus==="provisioning"?"جارٍ تجهيز اجتماع Zoom":"قيد المراجعة"}</small>
+    {requestJoinUrl&&<a className="request-join-link" href={requestJoinUrl} target="_blank" rel="noreferrer">دخول الفصل عبر Zoom</a>}
+    {requestStatus==="approved"&&!requestJoinUrl&&<small>تمت الموافقة على الطلب. سيتواصل معك الفريق لتأكيد التفاصيل.</small>}
+    {statusError&&<p className="request-error" role="alert">{statusError}</p>}
+    <button onClick={checkStatus} disabled={statusChecking}>{statusChecking?"جارٍ التحقق...":"تحديث حالة الطلب"}</button>
+    <button onClick={()=>{setSuccess("");setRequestStatus("");setRequestJoinUrl("");setStatusError("");}}>إرسال طلب آخر</button>
+  </div>;
 
   return <form className="platform-request-form" onSubmit={submit}>
     <div className="request-form-heading"><strong>{title}</strong>{description&&<p>{description}</p>}</div>
