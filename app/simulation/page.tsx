@@ -30,6 +30,16 @@ function SimulationWorkspace(){
 
   const activeCase=useMemo(()=>getCaseById(caseId),[caseId]);
   const activeStep=activeCase.steps[stepIndex];
+  const voicePersona=activeCase.ageGroup==="طفل"?"child":activeCase.ageGroup==="مراهق"?"teen":activeCase.track==="الخدمة الاجتماعية"?"mother":"father";
+  const voiceScenario=`العنوان: ${activeCase.title}
+نوع الحالة: ${activeCase.track}
+العمر/الفئة: ${activeCase.ageGroup}
+مكان المقابلة: ${activeCase.setting}
+ملخص الحالة: ${activeCase.briefing}
+أهداف التدريب: ${activeCase.learningGoals.join("، ")}
+تعليمات الشخصية: أجب من منظور الشخصية فقط وبما يتناسب مع المعلومات الواردة في الملخص. لا تكشف كل التفاصيل دفعة واحدة. لا تخترع معلومات طبية أو اجتماعية غير مذكورة. لا تقدم تشخيصاً أو علاجاً.
+`;
+  const voiceHref=`/voice?persona=${voicePersona}&scenario=${encodeURIComponent(voiceScenario)}`;
   const answeredCount=activeCase.steps.filter(step=>Boolean(answers[step.id])).length;
 
   const changeCase=(id:string)=>{
@@ -91,7 +101,7 @@ function SimulationWorkspace(){
         <div className="simulation-safety-note"><ShieldCheck size={15}/><p>{activeCase.safetyNote}</p></div>
       </aside>
     </div>
-    <div className="simulation-bottom-links"><Link href="/posture">تقييم لغة الجسد <ArrowRight size={14}/></Link><Link href="/supervision">إشراف أكاديمي مباشر <ArrowRight size={14}/></Link><Link href="/competencies">ملف الكفاءات المهنية <ArrowRight size={14}/></Link></div>
+    <div className="simulation-bottom-links"><Link href={voiceHref}>بدء مقابلة صوتية مع الحالة <ArrowRight size={14}/></Link><Link href="/posture">تقييم لغة الجسد <ArrowRight size={14}/></Link><Link href="/supervision">إشراف أكاديمي مباشر <ArrowRight size={14}/></Link><Link href="/competencies">ملف الكفاءات المهنية <ArrowRight size={14}/></Link></div>
     <div className="portal-callout simulation-disclaimer"><Info size={16}/> تقييم المحاكاة مخصص للتعلم ومراجعة القرارات. لا يعادل تقييماً سريرياً معتمداً أو تشخيصاً، ودرجاته لا تمثل مقياساً نفسياً مقنناً.</div>
   </PlatformLayout>;
 }
