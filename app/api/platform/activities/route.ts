@@ -86,8 +86,26 @@ export async function POST(request: NextRequest) {
 
   const earned = answers.reduce((sum, answer) => sum + answer.earned, 0);
   const maximum = item.steps.length * 20;
-  const vrHeadTrackingSamples = normaliseRoomEvents(data.roomEvents).filter((event) => event.type === "head_pose_sample").length;
   const normalisedRoomEvents = normaliseRoomEvents(data.roomEvents);
+  const headPoseMeasurements = normalisedRoomEvents.flatMap((event) => {
+    if (event.type !== "head_pose_sample") return [];
+    const angleMatch = event.label.match(/زاوية اتجاه الرأس نحو موضع الحالة:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*درجة/);
+    const distanceMatch = event.label.match(/المسافة التقريبية:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*سم/);
+    if (!angleMatch || !distanceMatch) return [];
+    const angle = Number(angleMatch[1]);
+    const distance = Number(distanceMatch[1]);
+    return Number.isFinite(angle) && Number.isFinite(distance) && angle >= 0 && angle <= 180 && distance >= 0 && distance <= 1000
+      ? [{ angle, distance }]
+      : [];
+  });
+  const vrHeadTrackingSamples = headPoseMeasurements.length;
+  const vrHeadMetrics = vrHeadTrackingSamples
+    ? {
+        averageHeadAngleDegrees: Math.round((headPoseMeasurements.reduce((sum, item) => sum + item.angle, 0) / vrHeadTrackingSamples) * 10) / 10,
+        averageDistanceCm: Math.round(headPoseMeasurements.reduce((sum, item) => sum + item.distance, 0) / vrHeadTrackingSamples),
+        orientedWithin30DegreesPercent: Math.round((headPoseMeasurements.filter((item) => item.angle <= 30).length / vrHeadTrackingSamples) * 100),
+      }
+    : null;
   const record = {
     activityId: randomUUID(),
     caseId: item.id,
@@ -97,6 +115,7 @@ export async function POST(request: NextRequest) {
     maximumScore: 100,
     roomEvents: normalisedRoomEvents,
     vrHeadTrackingSamples,
+    vrHeadMetrics,
     conversationTurns: normaliseConversationTurns(data.conversationTurns),
     avatarModelSource: data.avatarModelSource === "custom-glb"
       ? "custom-glb"
@@ -122,6 +141,7 @@ export async function POST(request: NextRequest) {
       score: record.score,
       roomEventCount: record.roomEvents.length,
       vrHeadTrackingSamples,
+      vrHeadMetrics,
       conversationTurnCount: record.conversationTurns.length,
       avatarModelSource: record.avatarModelSource,
       recordId: String(result.insertedId),
