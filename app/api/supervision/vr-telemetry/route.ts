@@ -4,6 +4,8 @@ import { verifyLiveKitVrDeviceToken } from "@/lib/livekit-auth";
 
 export const runtime = "nodejs";
 
+let telemetryIndexesReady: Promise<void> | null = null;
+
 const allowedTypes = new Set([
   "posture_score",
   "gaze_score",
@@ -95,8 +97,16 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const collection = db.collection("clinical_vr_device_telemetry");
-    await collection.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
-    await collection.createIndex({ roomName: 1, reportId: 1, receivedAt: 1 });
+    if (!telemetryIndexesReady) {
+      telemetryIndexesReady = Promise.all([
+        collection.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 }),
+        collection.createIndex({ roomName: 1, reportId: 1, receivedAt: 1 }),
+      ]).then(() => undefined).catch((error) => {
+        telemetryIndexesReady = null;
+        throw error;
+      });
+    }
+    await telemetryIndexesReady;
     await collection.insertMany(records, { ordered: false });
     return NextResponse.json({ success: true, accepted: records.length }, {
       status: 202,
