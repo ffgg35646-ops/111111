@@ -129,6 +129,36 @@ const initialCaseDraft = {
   nextSteps: "",
 };
 
+const differentialPractice = [
+  {
+    title:"حالة افتراضية: أعراض مزاجية وتأثر وظيفي",
+    prompt:"يذكر بالغ انخفاض المزاج واضطراب النوم وتراجع الأداء منذ فترة، مع معلومات غير مكتملة عن الصحة الجسدية والأدوية والضغوط. ما الخطوة المهنية الأدق؟",
+    options:[
+      {id:"mood-diagnose",label:"تأكيد اضطراب اكتئابي من الوصف المختصر.",correct:false,feedback:"الأعراض وحدها لا تكفي؛ يلزم استكمال المدة والشدة والأثر والبدائل الطبية والسياقية بواسطة مختص مخول."},
+      {id:"mood-assess",label:"استكمال التاريخ والأثر الوظيفي والسلامة والعوامل الطبية والدوائية، ثم إحالة التقييم التشخيصي للمختص المخول.",correct:true,feedback:"صحيح. يجمع هذا الخيار الأدلة ويستكشف البدائل ويحترم حدود الاختصاص."},
+      {id:"mood-ignore",label:"اعتبارها ضغوطاً عابرة دون استيضاح.",correct:false,feedback:"لا يجوز التقليل من الأعراض أو تجاهل أثرها ومؤشرات السلامة."}
+    ]
+  },
+  {
+    title:"حالة افتراضية: اختلافات نمائية ومهارات تكيفية",
+    prompt:"توجد ملاحظات عن تأخر بعض المهارات وصعوبة في الاستقلال اليومي، لكن الأداء يختلف بين المنزل والمدرسة. ما المعلومات اللازمة قبل أي استنتاج؟",
+    options:[
+      {id:"adaptive-score",label:"الاعتماد على استبيان واحد وتحديد مستوى الإعاقة مباشرة.",correct:false,feedback:"لا تكفي أداة واحدة ولا درجة منفردة لإثبات تشخيص أو تحديد مستوى الدعم."},
+      {id:"adaptive-multi",label:"جمع التاريخ النمائي ومصادر متعددة وأمثلة عن الأداء التكيفي والسياق، مع تقييم فكري وتكيفي لدى فريق مؤهل عند الحاجة.",correct:true,feedback:"صحيح. يتطلب التقييم دمج الأداء التكيفي والوظائف الفكرية والتاريخ والسياق بواسطة مختصين مؤهلين."},
+      {id:"adaptive-age",label:"مقارنة العمر الزمني بالعمر الدراسي فقط.",correct:false,feedback:"هذه المقارنة لا تمثل الأداء التكيفي أو القدرات في الحياة اليومية."}
+    ]
+  },
+  {
+    title:"حالة افتراضية: نتيجة تحرٍّ إيجابية",
+    prompt:"أظهرت أداة تحرٍّ نمائية مؤشرات تستحق المتابعة، بينما لا توجد مقابلة شاملة أو ملاحظة متعددة السياقات. كيف تفسر النتيجة؟",
+    options:[
+      {id:"screen-positive",label:"اعتبار نتيجة التحري تشخيصاً نهائياً.",correct:false,feedback:"التحري يحدد الحاجة إلى استكمال التقييم ولا يثبت التشخيص."},
+      {id:"screen-negative",label:"إلغاء النتيجة لأن التحري ليس تشخيصاً.",correct:false,feedback:"كونها غير تشخيصية لا يعني تجاهلها؛ ينبغي تفسيرها وفق دليل الأداة والسياق."},
+      {id:"screen-follow",label:"شرح حدود التحري، واستكمال التاريخ والملاحظة والإحالة المناسبة دون تأخير غير مبرر.",correct:true,feedback:"صحيح. تُستخدم النتيجة كإشارة لمسار تقييم أوسع لا كحكم نهائي."}
+    ]
+  }
+] as const;
+
 const reasoningChoices = [
   { id: "single", label: "تأكيد اضطراب محدد اعتماداً على هذه المؤشرات وحدها.", correct: false },
   { id: "screen", label: "استخدام نتيجة أداة تحرٍّ باعتبارها تشخيصاً نهائياً.", correct: false },
@@ -154,6 +184,7 @@ export default function SpecialistTrainingHub() {
   const [caseSummary, setCaseSummary] = useState(false);
   const [selectedToolId, setSelectedToolId] = useState<string>(scaleTools[0].id);
   const [reasoningAnswer, setReasoningAnswer] = useState<string>("");
+  const [differentialAnswers, setDifferentialAnswers] = useState<Record<number,string>>({});
   const activeTrack = tracks.find((track) => track.id === activeTrackId) ?? tracks[0];
   const activeTool = scaleTools.find((tool) => tool.id === selectedToolId) ?? scaleTools[0];
   const TrackIcon = activeTrack.icon;
@@ -304,6 +335,20 @@ export default function SpecialistTrainingHub() {
             </div>
             <div className="specialist-diagnostic-flow">
               {["السؤال وسبب الإحالة", "مصادر الأدلة والتاريخ", "الفرضيات والبدائل", "المعلومات أو المقاييس الناقصة", "مراجعة مختص مخول", "خطة دعم ومتابعة"].map((item, index) => <div key={item}><b>{String(index + 1).padStart(2, "0")}</b><span>{item}</span></div>)}
+            </div>
+            <div className="specialist-section-heading"><div><span>تمارين إضافية · تحليل الأدلة والبدائل</span><h3>تدريبات على التفكير التفريقي</h3><p>اختر الإجراء المهني الأكثر دقة في كل موقف، ثم راجع سبب الاختيار.</p></div><ClipboardList size={22}/></div>
+            <div className="specialist-differential-grid">
+              {differentialPractice.map((scenario,index)=>{
+                const selected=scenario.options.find(option=>option.id===differentialAnswers[index]);
+                return <article className="specialist-reasoning-case" key={scenario.title}>
+                  <span className="specialist-mini-label">تمرين {String(index+1).padStart(2,"0")}</span>
+                  <h4>{scenario.title}</h4><p>{scenario.prompt}</p>
+                  <div className="specialist-answer-list">
+                    {scenario.options.map(option=><button type="button" key={option.id} className={differentialAnswers[index]===option.id?"selected":""} onClick={()=>setDifferentialAnswers(current=>({...current,[index]:option.id}))}><span>{differentialAnswers[index]===option.id?"●":"○"}</span>{option.label}</button>)}
+                  </div>
+                  {selected&&<div className={selected.correct?"specialist-feedback good":"specialist-feedback"}><p><strong>{selected.correct?"تحليل مناسب":"راجع حدود الاستنتاج"}</strong>{selected.feedback}</p></div>}
+                </article>;
+              })}
             </div>
             <div className="specialist-callout"><InfoIcon /><p>التصنيف المرجعي للتدريب يكون بالرجوع إلى المراجع المهنية المعتمدة مثل متطلبات ICD-11، وبما يتوافق مع نظام بلد الممارسة وصلاحيات المهنة. الأداة لا تصدر تشخيصاً رسمياً ولا تحل محل التقييم السريري المتخصص.</p></div>
             <div className="specialist-link-row"><a href="https://www.who.int/publications-detail-redirect/9789240077263" target="_blank" rel="noreferrer">مرجع منظمة الصحة العالمية ICD-11 CDDR <ArrowLeft size={14} /></a><a href="https://www.nice.org.uk/guidance/cg128/chapter/Recommendations" target="_blank" rel="noreferrer">إرشادات NICE لتقييم التوحد لدى الأطفال <ArrowLeft size={14} /></a></div>
