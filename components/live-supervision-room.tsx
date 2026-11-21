@@ -246,6 +246,7 @@ function RoomTools({ serverUrl, roomName, supervisorName, traineeName, traineeCo
   const copyVrDeviceToken = async () => {
     try {
       const deviceConnection = {
+        platformUrl: window.location.origin,
         serverUrl,
         roomName,
         token: vrDeviceToken,
