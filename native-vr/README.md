@@ -30,7 +30,7 @@ No Unreal Engine executable or device runtime is available in this GitHub-only w
    - The exact **roomName** from the copied device connection data
    - The short-lived **token** from the copied device connection data
 4. The game mode automatically spawns the room and telemetry resolves its **PatientGazeTarget** anchor; no manual patient actor assignment is needed in the default scene.
-The native telemetry component now calls Unreal's **GetHandTrackingState** for the left and right hands every five seconds, reads **ThumbTip** and **IndexTip** in world space, and sends their distance through **PublishHandTrackingSample**. This depends on the OpenXR hand-tracking extension and the selected runtime returning valid hand joints. The Blueprint-callable method remains available for custom input integrations.
+5. The native telemetry component calls Unreal's **GetHandTrackingState** for the left and right hands every five seconds, reads **ThumbTip** and **IndexTip** in world space, and sends their distance through **PublishHandTrackingSample**. This depends on the OpenXR hand-tracking extension and the selected runtime returning valid hand joints.
 6. The component posts to **/api/supervision/vr-telemetry**. The server verifies the signed LiveKit device token and checks that the requested room matches the token. The supervisor's next competency report for that room includes the pending device events.
 
 The token is a temporary credential. Keep it in memory for the training session, never commit it, and clear it when the session ends. The API retains unreported telemetry for at most 30 days and reports only the events associated with the validated room.
