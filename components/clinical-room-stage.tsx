@@ -486,6 +486,78 @@ function HeadsetAssessmentTelemetry({ onRoomEvent }: { onRoomEvent?: (type: stri
   return null;
 }
 
+function HandTrackingTelemetry({ onRoomEvent }: { onRoomEvent?: (type: string, label: string) => void }) {
+  const lastSampleAt = useRef(0);
+  const pinchStates = useRef<Record<string, boolean>>({});
+
+  useFrame(({ gl, clock }) => {
+    if (!gl.xr.isPresenting || clock.elapsedTime - lastSampleAt.current < 5) return;
+
+    const xr = gl.xr as unknown as {
+      getSession: () => {
+        inputSources: ArrayLike<{
+          handedness: string;
+          hand?: { get: (jointName: string) => unknown };
+        }>;
+      } | null;
+      getFrame: () => {
+        getJointPose: (
+          joint: unknown,
+          referenceSpace: unknown,
+        ) => { transform: { position: { x: number; y: number; z: number } } } | null;
+      } | null;
+      getReferenceSpace: () => unknown;
+    };
+    const session = xr.getSession();
+    const frame = xr.getFrame();
+    const referenceSpace = xr.getReferenceSpace();
+    if (!session || !frame || !referenceSpace) return;
+
+    lastSampleAt.current = clock.elapsedTime;
+    const observedHands: string[] = [];
+
+    for (const inputSource of Array.from(session.inputSources)) {
+      if (!inputSource.hand) continue;
+      const handedness = inputSource.handedness === "left" ? "left" : inputSource.handedness === "right" ? "right" : "unknown";
+      const thumbSpace = inputSource.hand.get("thumb-tip");
+      const indexSpace = inputSource.hand.get("index-finger-tip");
+      if (!thumbSpace || !indexSpace) continue;
+
+      const thumbPose = frame.getJointPose(thumbSpace, referenceSpace);
+      const indexPose = frame.getJointPose(indexSpace, referenceSpace);
+      if (!thumbPose || !indexPose) continue;
+
+      const thumb = thumbPose.transform.position;
+      const index = indexPose.transform.position;
+      const pinchDistanceCm = Math.round(Math.hypot(
+        thumb.x - index.x,
+        thumb.y - index.y,
+        thumb.z - index.z,
+      ) * 1000) / 10;
+      const isPinching = pinchDistanceCm <= 3.5;
+      const previousPinching = pinchStates.current[handedness] ?? false;
+      pinchStates.current[handedness] = isPinching;
+      observedHands.push(handedness + ":" + (isPinching ? "pinch" : "open"));
+
+      if (isPinching && !previousPinching) {
+        onRoomEvent?.(
+          "hand_pinch_interaction",
+          "تم رصد إشارة قرص بين الإبهام والسبابة في اليد " + (handedness === "left" ? "اليسرى" : handedness === "right" ? "اليمنى" : "غير المحددة") + "؛ مسافة الأصابع التقريبية " + pinchDistanceCm + " سم",
+        );
+      }
+    }
+
+    if (observedHands.length) {
+      onRoomEvent?.(
+        "hand_tracking_sample",
+        "عينات تتبع اليدين عبر WebXR: " + observedHands.join("، "),
+      );
+    }
+  });
+
+  return null;
+}
+
 function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
   const selectPatient = () => {
     props.onSelect("الشخصية الافتراضية");
@@ -498,7 +570,7 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
 
   return (
     <group>
-      <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} />
+      <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} />\n      <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
         <planeGeometry args={[9, 8.5]} />
         <meshStandardMaterial color="#e7edef" roughness={0.92} />
