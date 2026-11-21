@@ -73,6 +73,7 @@ function SimulationWorkspace() {
   const [vrHeadTrackingSamples, setVrHeadTrackingSamples] = useState(0);
   const [vrHeadMetrics, setVrHeadMetrics] = useState<{ averageHeadAngleDegrees: number | null; averageDistanceCm: number | null; orientedWithin30DegreesPercent: number | null } | null>(null);
   const [vrHandMetrics, setVrHandMetrics] = useState<{ samples: number; pinchInteractions: number; handsObserved: string[] } | null>(null);
+  const [spatialTelemetryConsent, setSpatialTelemetryConsent] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
@@ -374,6 +375,7 @@ function SimulationWorkspace() {
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
     setVrHandMetrics(null);
+    setSpatialTelemetryConsent(false);
     setError("");
     setVoiceError("");
     setAgentBusy(false);
@@ -446,6 +448,7 @@ function SimulationWorkspace() {
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
     setVrHandMetrics(null);
+    setSpatialTelemetryConsent(false);
     setError("");
     setRoomEvents((current) => [
       ...current,
@@ -466,6 +469,29 @@ function SimulationWorkspace() {
           </select>
         </label>
         <div><span className="simulation-live-indicator" /> {immersiveMode ? "النظارة داخل جلسة VR غامرة" : "معاينة ثلاثية الأبعاد · لا يوجد مريض حقيقي"}</div>
+      </div>
+
+      <div className="simulation-vr-consent">
+        <label>
+          <input
+            type="checkbox"
+            checked={spatialTelemetryConsent}
+            onChange={(event) => {
+              const allowed = event.target.checked;
+              setSpatialTelemetryConsent(allowed);
+              if (!allowed) {
+                setRoomEvents((current) => current.filter((item) => !["head_pose_sample", "hand_tracking_sample", "hand_pinch_interaction"].includes(item.type)));
+                setVrHeadTrackingSamples(0);
+                setVrHeadMetrics(null);
+                setVrHandMetrics(null);
+              }
+              recordRoomEvent("spatial_telemetry_consent", allowed
+                ? "وافق المتدرب على تسجيل مؤشرات وضع الرأس واليدين لغرض المراجعة التدريبية."
+                : "ألغى المتدرب الموافقة على تسجيل مؤشرات وضع الرأس واليدين؛ أزيلت العينات غير المحفوظة.");
+            }}
+          />
+          <span><b>الموافقة على مؤشرات الحركة المكانية (اختياري)</b><small>عند التفعيل تُسجّل عينات تقريبية لاتجاه الرأس وإيماءات اليدين وتُعرض كأدلة وصفية في تقرير التدريب، ولا تُستخدم لتشخيص أو تقييم التواصل البصري. القاعة تعمل دون تفعيل هذا الخيار.</small></span>
+        </label>
       </div>
 
       <div className="simulation-layout">
@@ -492,6 +518,7 @@ function SimulationWorkspace() {
               onSelect={setSelectedTarget}
               onRoomEvent={recordRoomEvent}
               onImmersiveChange={setImmersiveMode}
+              spatialTelemetryEnabled={spatialTelemetryConsent}
               realtimeStatus={realtimeStatus}
               realtimeMuted={realtimeMuted}
               onStartRealtimeVoice={() => realtimeControlsRef.current?.start()}
