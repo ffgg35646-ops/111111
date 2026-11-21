@@ -24,6 +24,16 @@ type RoomTelemetry = {
   occurredAt: string;
 };
 type CoachMessage = { id: string; text: string; sender: string; role: Role; sentAt: string };
+type SceneSnapshot = { sceneId: string; scenarioTitle: string; activeTask: string; position?: {x:number;y:number;z:number}; updatedAt: string };
+
+function signedRole(metadata?: string): Role | null {
+  try {
+    const parsed = JSON.parse(metadata || "") as { role?: string };
+    return parsed.role === "supervisor" || parsed.role === "trainee" ? parsed.role : null;
+  } catch {
+    return null;
+  }
+}
 type Props = {
   token: string;
   serverUrl: string;
@@ -50,6 +60,10 @@ type RubricKey = (typeof rubric)[number]["key"];
 
 function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, inviteUrl }: Props) {
   const room = useRoomContext();
+  const [signedRoomRole, setSignedRoomRole] = useState<Role | null>(null);
+  const isSupervisor = signedRoomRole === "supervisor";
+  const isTrainee = signedRoomRole === "trainee";
+  const [sceneSnapshot, setSceneSnapshot] = useState<SceneSnapshot | null>(null);
   const [coachDraft, setCoachDraft] = useState("");
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const [telemetry, setTelemetry] = useState<RoomTelemetry[]>([]);
@@ -68,6 +82,14 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    const syncSignedRole = () => setSignedRoomRole(signedRole(room.localParticipant.metadata));
+    const onMetadataChanged = (participant: Participant) => {
+      if (participant.identity === room.localParticipant.identity) syncSignedRole();
+    };
+    room.on(RoomEvent.Connected, syncSignedRole);
+    room.on(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
+    if (room.localParticipant.metadata) syncSignedRole();
+
     const onData = (
       payload: Uint8Array,
       participant?: Participant,
@@ -81,9 +103,25 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
             id: typeof event.id === "string" ? event.id : crypto.randomUUID(),
             text: event.text as string,
             sender: typeof event.sender === "string" ? event.sender : participant?.identity ?? "مشارك",
-            role: event.role === "supervisor" ? "supervisor" : "trainee",
+            role: signedRole(participant?.metadata) ?? "trainee",
+            sender: signedRole(participant?.metadata) === "supervisor" ? "المشرف الأكاديمي" : "المتدرب",
             sentAt: typeof event.sentAt === "string" ? event.sentAt : new Date().toISOString(),
           }, ...current].slice(0, 60));
+        }
+
+        if (topic === "vr-scene-state" && event.type === "scene_state") {
+          const position = event.position && typeof event.position === "object"
+            ? event.position as {x?:unknown;y?:unknown;z?:unknown}
+            : undefined;
+          setSceneSnapshot({
+            sceneId: typeof event.sceneId === "string" ? event.sceneId.slice(0,80) : "clinical-room",
+            scenarioTitle: typeof event.scenarioTitle === "string" ? event.scenarioTitle.slice(0,160) : "المشهد السريري المشترك",
+            activeTask: typeof event.activeTask === "string" ? event.activeTask.slice(0,160) : "لا توجد خطوة نشطة",
+            position: position && typeof position.x === "number" && typeof position.y === "number" && typeof position.z === "number"
+              ? {x:position.x,y:position.y,z:position.z}
+              : undefined,
+            updatedAt: typeof event.updatedAt === "string" ? event.updatedAt : new Date().toISOString(),
+          });
         }
 
         if (topic === "vr-telemetry" && typeof event.type === "string") {
@@ -108,6 +146,8 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
 
     room.on(RoomEvent.DataReceived, onData);
     return () => {
+      room.off(RoomEvent.Connected, syncSignedRole);
+      room.off(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
       room.off(RoomEvent.DataReceived, onData);
     };
   }, [room]);
@@ -118,7 +158,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
 
   const sendCoachNote = async () => {
     const text = coachDraft.trim();
-    if (!text || role !== "supervisor") return;
+    if (!text || !isSupervisor) return;
     try {
       await room.localParticipant.publishData(
         new TextEncoder().encode(JSON.stringify({
@@ -149,7 +189,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
   };
 
   const saveReport = async () => {
-    if (role !== "supervisor") return;
+    if (!isSupervisor) return;
     setSaving(true);
     setError("");
     try {
@@ -194,7 +234,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
           <div><strong>{role === "supervisor" ? supervisorName || "المشرف الأكاديمي" : "أنت: المتدرب"}</strong><small>{role === "supervisor" ? `متابعة أداء: ${traineeName || "المتدرب"}` : "جلسة تحت إشراف أكاديمي مباشر"}</small></div>
         </section>
 
-        {role === "supervisor" && <button className="invite-copy-button" onClick={copyInvite}><Copy size={15}/>{copied ? "تم نسخ رابط المتدرب" : "نسخ رابط دعوة المتدرب"}</button>}
+        {isSupervisor && <button className="invite-copy-button" onClick={copyInvite}><Copy size={15}/>{copied ? "تم نسخ رابط المتدرب" : "نسخ رابط دعوة المتدرب"}</button>}
 
         <section className="supervision-card">
           <div className="supervision-card-title"><MessageSquareText size={17}/><div><strong>التوجيه الحي</strong><small>تصل ملاحظات المشرف للطرفين فوراً</small></div></div>
@@ -202,7 +242,18 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
             {coachMessages.length === 0 && <p className="coach-empty">لا توجد توجيهات بعد. يمكن للمشرف إرسال ملاحظة أثناء الجلسة.</p>}
             {coachMessages.map((message) => <article className={message.role === "supervisor" ? "coach-message coach-from-supervisor" : "coach-message"} key={message.id}><small>{message.role === "supervisor" ? "توجيه المشرف" : "رد المتدرب"}</small><p>{message.text}</p><time>{new Date(message.sentAt).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})}</time></article>)}
           </div>
-          {role === "supervisor" ? <div className="coach-compose"><textarea value={coachDraft} onChange={(event)=>setCoachDraft(event.target.value)} rows={3} maxLength={600} placeholder="اكتب توجيهاً قصيراً للمتدرب أثناء المحاكاة..."/><button onClick={sendCoachNote} disabled={!coachDraft.trim()}><Send size={14}/> إرسال التوجيه</button></div> : <p className="trainee-coach-hint">ستظهر توجيهات المشرف هنا أثناء الجلسة.</p>}
+          {isSupervisor ? <div className="coach-compose"><textarea value={coachDraft} onChange={(event)=>setCoachDraft(event.target.value)} rows={3} maxLength={600} placeholder="اكتب توجيهاً قصيراً للمتدرب أثناء المحاكاة..."/><button onClick={sendCoachNote} disabled={!coachDraft.trim()}><Send size={14}/> إرسال التوجيه</button></div> : <p className="trainee-coach-hint">ستظهر توجيهات المشرف هنا أثناء الجلسة.</p>}
+        </section>
+
+        <section className="supervision-card scene-card">
+          <div className="supervision-card-title"><Activity size={17}/><div><strong>المشهد الافتراضي المشترك</strong><small>تحديث موضع المتدرب والخطوة الحالية</small></div></div>
+          {sceneSnapshot ? <div className="scene-state-data">
+            <strong>{sceneSnapshot.scenarioTitle}</strong>
+            <span>المشهد: {sceneSnapshot.sceneId}</span>
+            <span>الخطوة النشطة: {sceneSnapshot.activeTask}</span>
+            {sceneSnapshot.position && <span>الموضع: X {sceneSnapshot.position.x.toFixed(2)} · Y {sceneSnapshot.position.y.toFixed(2)} · Z {sceneSnapshot.position.z.toFixed(2)}</span>}
+            <small>آخر تحديث: {new Date(sceneSnapshot.updatedAt).toLocaleTimeString("ar-EG")}</small>
+          </div> : <p className="coach-empty">بانتظار حالة المشهد من محرك VR. يمكن عرض المشهد المرئي عبر مشاركة شاشة النظارة أو تطبيق المحاكاة.</p>}
         </section>
 
         <section className="supervision-card telemetry-card">
@@ -210,7 +261,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
           {telemetry.length === 0 ? <p className="coach-empty">بانتظار بيانات من تطبيق VR. يمكن لمحرك Unreal / OpenXR إرسال أحداث القياس إلى قناة vr-telemetry.</p> : <div className="telemetry-list">{telemetry.slice(0,8).map((event,index)=><div key={`${event.occurredAt}-${index}`}><strong>{event.label}</strong><b>{String(event.value ?? "—")} {event.unit}</b><small>{event.source} · {new Date(event.occurredAt).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</small></div>)}</div>}
         </section>
 
-        {role === "supervisor" && <section className="supervision-card report-card">
+        {isSupervisor && <section className="supervision-card report-card">
           <div className="supervision-card-title"><ClipboardCheck size={17}/><div><strong>تقييم الكفاءات المهنية</strong><small>درجة كل كفاءة من 1 إلى 5</small></div></div>
           <div className="rubric-list">{rubric.map((item)=><label key={item.key}><span>{item.label}</span><select value={scores[item.key]} onChange={(event)=>setScores((current)=>({...current,[item.key]:Number(event.target.value)}))}>{[1,2,3,4,5].map((score)=><option value={score} key={score}>{score} / 5</option>)}</select></label>)}</div>
           <div className="report-average"><span>المتوسط الإجمالي</span><strong>{averageScore} / 5</strong></div>
@@ -219,7 +270,7 @@ function RoomTools({ role, supervisorName, traineeName, traineeCode, scenarioTit
           {savedReport && <p className="report-saved">تم حفظ التقرير بنجاح · {savedReport.slice(0,8)}</p>}
         </section>}
 
-        {role === "trainee" && <section className="supervision-card trainee-guidance"><div className="supervision-card-title"><ShieldCheck size={17}/><div><strong>إرشادات الجلسة</strong><small>للمتدرب</small></div></div><p>تابع توجيهات المشرف أثناء المحاكاة. يتم إرسال ملاحظاته مباشرة داخل الغرفة، ولا يتم تسجيل الصوت أو الفيديو تلقائياً من هذه الواجهة.</p></section>}
+        {isTrainee && <section className="supervision-card trainee-guidance"><div className="supervision-card-title"><ShieldCheck size={17}/><div><strong>إرشادات الجلسة</strong><small>للمتدرب</small></div></div><p>تابع توجيهات المشرف أثناء المحاكاة. يتم إرسال ملاحظاته مباشرة داخل الغرفة، ولا يتم تسجيل الصوت أو الفيديو تلقائياً من هذه الواجهة.</p></section>}
       </aside>
       {error && <div className="supervision-error" role="alert">{error}</div>}
     </div>
