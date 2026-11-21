@@ -89,8 +89,20 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "تمت معالجة هذا الطلب مسبقاً." }, { status: 409 });
     }
 
+    const requiresZoomMeeting = action === "approve" &&
+      (record.kind === "room_rental" || record.kind === "classroom_registration");
+    if (requiresZoomMeeting) {
+      const claim = await requests.updateOne(
+        { _id: record._id, status: "pending_review" },
+        { $set: { status: "provisioning", provisioningStartedAt: new Date(), reviewedBy: "platform-admin" } },
+      );
+      if (claim.modifiedCount !== 1) {
+        return NextResponse.json({ error: "يجري التعامل مع هذا الطلب بالفعل." }, { status: 409 });
+      }
+    }
+
     let zoomMeeting: Awaited<ReturnType<typeof createZoomMeeting>> | undefined;
-    if (action === "approve" && (record.kind === "room_rental" || record.kind === "classroom_registration")) {
+    if (requiresZoomMeeting) {
       const startTime = record.preferredAt instanceof Date
         ? record.preferredAt
         : new Date(clean(data.startTime, 50) || "");
@@ -109,6 +121,10 @@ export async function PATCH(request: NextRequest) {
       try {
         zoomMeeting = await createZoomMeeting({ topic, startTime, durationMinutes });
       } catch (error) {
+        await requests.updateOne(
+          { _id: record._id, status: "provisioning" },
+          { $set: { status: "pending_review", provisioningErrorAt: new Date() }, $unset: { provisioningStartedAt: "" } },
+        );
         console.error("Unable to create Zoom meeting while approving request", error);
         return NextResponse.json({ error: "لم تتم الموافقة لأن إنشاء اجتماع Zoom لم ينجح. تحقق من حساب Zoom والمضيف والنطاقات." }, { status: 502 });
       }
@@ -123,10 +139,16 @@ export async function PATCH(request: NextRequest) {
     };
     if (zoomMeeting) update.zoomMeeting = zoomMeeting;
 
-    await requests.updateOne(
-      { _id: record._id, status: "pending_review" },
-      { $set: update },
-    );
+    const finalFilter = requiresZoomMeeting
+      ? { _id: record._id, status: "provisioning" }
+      : { _id: record._id, status: "pending_review" };
+    const finalUpdate = zoomMeeting
+      ? { $set: update, $unset: { provisioningStartedAt: "", provisioningErrorAt: "" } }
+      : { $set: update };
+    const saved = await requests.updateOne(finalFilter, finalUpdate);
+    if (saved.modifiedCount !== 1) {
+      return NextResponse.json({ error: "تم إنشاء الاجتماع لكن تعذر إكمال تحديث سجل الطلب؛ راجع سجل اجتماعات Zoom." }, { status: 409 });
+    }
 
     return NextResponse.json({
       success: true,
