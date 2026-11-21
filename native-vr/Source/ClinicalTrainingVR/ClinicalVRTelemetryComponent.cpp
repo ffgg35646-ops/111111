@@ -1,0 +1,150 @@
+#include "ClinicalVRTelemetryComponent.h"
+
+#include "Camera/PlayerCameraManager.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
+#include "HttpModule.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
+#include "JsonObject.h"
+#include "JsonSerializer.h"
+#include "JsonWriter.h"
+#include "TimerManager.h"
+
+UClinicalVRTelemetryComponent::UClinicalVRTelemetryComponent()
+{
+    PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UClinicalVRTelemetryComponent::ConfigureTelemetryEndpoint(
+    const FString& InPlatformBaseUrl,
+    const FString& InRoomName,
+    const FString& InDeviceToken)
+{
+    PlatformBaseUrl = InPlatformBaseUrl.TrimEnd();
+    while (PlatformBaseUrl.EndsWith(TEXT("/")))
+    {
+        PlatformBaseUrl.LeftChopInline(1);
+    }
+    RoomName = InRoomName.TrimStartAndEnd();
+    DeviceToken = InDeviceToken.TrimStartAndEnd();
+}
+
+void UClinicalVRTelemetryComponent::BeginPlay()
+{
+    Super::BeginPlay();
+    if (HeadPoseSampleIntervalSeconds > 0.5f)
+    {
+        GetWorld()->GetTimerManager().SetTimer(
+            HeadPoseTimer,
+            this,
+            &UClinicalVRTelemetryComponent::PublishHeadPoseSample,
+            HeadPoseSampleIntervalSeconds,
+            true,
+            HeadPoseSampleIntervalSeconds);
+    }
+}
+
+void UClinicalVRTelemetryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(HeadPoseTimer);
+    }
+    DeviceToken.Reset();
+    Super::EndPlay(EndPlayReason);
+}
+
+void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
+{
+    if (!PatientTarget || !GetWorld()) return;
+
+    APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+    if (!PlayerController || !PlayerController->PlayerCameraManager) return;
+
+    const FVector HeadLocation = PlayerController->PlayerCameraManager->GetCameraLocation();
+    const FVector Forward = PlayerController->PlayerCameraManager->GetCameraRotation().Vector().GetSafeNormal();
+    const FVector ToPatient = (PatientTarget->GetActorLocation() - HeadLocation).GetSafeNormal();
+    const float HeadAngle = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Forward, ToPatient), -1.0f, 1.0f)));
+    const float DistanceCm = FVector::Distance(HeadLocation, PatientTarget->GetActorLocation());
+
+    PublishNumericEvidence(TEXT("head_pose_sample"), TEXT("Unreal OpenXR head pose sample"), 1.0f, TEXT("sample"));
+    PublishNumericEvidence(TEXT("head_direction_angle_degrees"), TEXT("Head direction angle to simulated patient"), HeadAngle, TEXT("degrees"));
+    PublishNumericEvidence(TEXT("interaction_distance_cm"), TEXT("Approximate distance to simulated patient"), DistanceCm, TEXT("cm"));
+}
+
+void UClinicalVRTelemetryComponent::PublishHandTrackingSample(const FString& Handedness, float ThumbIndexDistanceCm)
+{
+    const FString Side = Handedness == TEXT("left") ? TEXT("left") : Handedness == TEXT("right") ? TEXT("right") : TEXT("unknown");
+    const float Distance = FMath::Clamp(ThumbIndexDistanceCm, 0.0f, 50.0f);
+    const bool bPinching = Distance <= 3.5f;
+
+    TSharedPtr<FJsonObject> Event = MakeShared<FJsonObject>();
+    Event->SetStringField(TEXT("type"), TEXT("hand_tracking_sample"));
+    Event->SetStringField(TEXT("label"), Side + (bPinching ? TEXT(":pinch") : TEXT(":open")));
+    Event->SetNumberField(TEXT("value"), Distance);
+    Event->SetStringField(TEXT("unit"), TEXT("cm"));
+    TArray<TSharedPtr<FJsonObject>> Events;
+    Events.Add(Event);
+    SendEvents(Events);
+
+    if (bPinching)
+    {
+        PublishHandPinchInteraction(Side, Distance);
+    }
+}
+
+void UClinicalVRTelemetryComponent::PublishHandPinchInteraction(const FString& Handedness, float ThumbIndexDistanceCm)
+{
+    TSharedPtr<FJsonObject> Event = MakeShared<FJsonObject>();
+    Event->SetStringField(TEXT("type"), TEXT("hand_pinch_interaction"));
+    Event->SetStringField(TEXT("label"), Handedness + TEXT(" pinch gesture"));
+    Event->SetNumberField(TEXT("value"), FMath::Clamp(ThumbIndexDistanceCm, 0.0f, 50.0f));
+    Event->SetStringField(TEXT("unit"), TEXT("cm"));
+    TArray<TSharedPtr<FJsonObject>> Events;
+    Events.Add(Event);
+    SendEvents(Events);
+}
+
+void UClinicalVRTelemetryComponent::PublishNumericEvidence(
+    const FString& Type,
+    const FString& Label,
+    float Value,
+    const FString& Unit)
+{
+    TSharedPtr<FJsonObject> Event = MakeShared<FJsonObject>();
+    Event->SetStringField(TEXT("type"), Type.Left(60));
+    Event->SetStringField(TEXT("label"), Label.Left(120));
+    Event->SetNumberField(TEXT("value"), Value);
+    Event->SetStringField(TEXT("unit"), Unit.Left(32));
+    TArray<TSharedPtr<FJsonObject>> Events;
+    Events.Add(Event);
+    SendEvents(Events);
+}
+
+void UClinicalVRTelemetryComponent::SendEvents(const TArray<TSharedPtr<FJsonObject>>& Events)
+{
+    if (PlatformBaseUrl.IsEmpty() || RoomName.IsEmpty() || DeviceToken.IsEmpty() || Events.IsEmpty()) return;
+
+    TArray<TSharedPtr<FJsonValue>> EventValues;
+    for (const TSharedPtr<FJsonObject>& Event : Events)
+    {
+        EventValues.Add(MakeShared<FJsonValueObject>(Event));
+    }
+
+    TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
+    Payload->SetStringField(TEXT("roomName"), RoomName);
+    Payload->SetArrayField(TEXT("telemetry"), EventValues);
+
+    FString Body;
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Body);
+    FJsonSerializer::Serialize(Payload.ToSharedRef(), Writer);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(PlatformBaseUrl + TEXT("/api/supervision/vr-telemetry"));
+    Request->SetVerb(TEXT("POST"));
+    Request->SetHeader(TEXT("Authorization"), TEXT("Bearer ") + DeviceToken);
+    Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    Request->SetContentAsString(Body);
+    Request->ProcessRequest();
+}
