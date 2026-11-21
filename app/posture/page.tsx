@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Camera, CameraOff, Eye, Gauge, Info, ShieldCheck, UserRound, Video } from "lucide-react";
 import { FaceLandmarker, FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
-import { Room } from "livekit-client";
+import { Room, RoomEvent } from "livekit-client";
 import { publishVrTelemetry } from "@/components/vr-telemetry-bridge";
 import "./posture.css";
 
@@ -53,6 +53,7 @@ export default function PostureAssessmentPage() {
   const connectVrDevice = async () => {
     setError("");
     setConnectingVrRoom(true);
+    let candidateRoom: Room | null = null;
     try {
       const config = JSON.parse(deviceConnectionText) as Partial<VrDeviceConnection>;
       if (
@@ -69,6 +70,14 @@ export default function PostureAssessmentPage() {
       }
       if (vrRoomRef.current) await vrRoomRef.current.disconnect();
       const room = new Room();
+      candidateRoom = room;
+      room.on(RoomEvent.Disconnected, () => {
+        if (vrRoomRef.current === room) {
+          vrRoomRef.current = null;
+          setVrConnected(false);
+          setVrConnectionStatus("انقطع الاتصال بغرفة الإشراف. أعد الربط عند الحاجة.");
+        }
+      });
       await room.connect(config.serverUrl, config.token);
       if (room.name !== config.roomName) {
         await room.disconnect();
@@ -76,9 +85,13 @@ export default function PostureAssessmentPage() {
       }
       vrRoomRef.current = room;
       setVrConnected(true);
+      setDeviceConnectionText("");
       setVrConnectionStatus(`متصل بالغرفة ${config.roomName.slice(-8)} — إرسال بيانات فقط`);
       lastTelemetryAt.current = 0;
     } catch (cause) {
+      if (candidateRoom && candidateRoom !== vrRoomRef.current) {
+        await candidateRoom.disconnect().catch(() => undefined);
+      }
       setVrConnectionStatus("تعذر الاتصال بغرفة الإشراف");
       setError(cause instanceof Error ? cause.message : "تعذر ربط مستشعرات الوضعية بغرفة الإشراف.");
     } finally {
@@ -90,6 +103,7 @@ export default function PostureAssessmentPage() {
     const room = vrRoomRef.current;
     vrRoomRef.current = null;
     if (room) await room.disconnect();
+    setDeviceConnectionText("");
     setVrConnected(false);
     setVrConnectionStatus("غير مرتبط بغرفة إشراف");
   };
