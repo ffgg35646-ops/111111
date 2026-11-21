@@ -49,7 +49,7 @@ export default function AcademyPage() {
         <div><strong>نواتج التعلم</strong><ul>{chosen.outcomes.map(x=><li key={x}>{x}</li>)}</ul></div>
         <div><strong>الخطة التعليمية</strong><ol>{chosen.lessons.map(x=><li key={x}>{x}</li>)}</ol></div>
       </div>
-      <PlatformRequestForm key={chosen.id} kind={chosen.mode==="recorded"?"course_enrollment":"classroom_registration"} title="طلب الالتحاق بالدورة" description="أدخل بيانات التواصل ليُراجع فريق التدريب طلبك." initialData={{courseId:chosen.id}} fields={[]}/>
+      <PlatformRequestForm key={chosen.id} kind={chosen.mode==="recorded"?"course_enrollment":"classroom_registration"} title="طلب الالتحاق بالدورة" description="أدخل بيانات التواصل ليُراجع فريق التدريب طلبك." initialData={{courseId:chosen.id}} fields={chosen.mode==="recorded"?[]:[{name:"preferredAt",label:"الموعد المفضل للفصل المباشر",type:"datetime-local",required:true}]}/>
     </section>}
     <div className="portal-section-title"><div><h2>مختبر التطبيق العملي</h2><p>طبّق مهارات المقابلة وصياغة الحالة داخل غرفة افتراضية</p></div></div>
     <div className="portal-grid">
