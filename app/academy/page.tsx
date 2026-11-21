@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Brain, ClipboardList, Clock3, GraduationCap, PlayCircle, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -13,6 +13,10 @@ export default function AcademyPage() {
   const [track,setTrack]=useState("all");
   const [mode,setMode]=useState("all");
   const [selectedCourse,setSelectedCourse]=useState<string|null>(null);
+  useEffect(()=>{
+    const requestedTrack=new URLSearchParams(window.location.search).get("track");
+    if(requestedTrack&&learningTracks.some(item=>item.id===requestedTrack))setTrack(requestedTrack);
+  },[]);
   const filtered=useMemo(()=>courses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[track,mode]);
   const chosen=courses.find(course=>course.id===selectedCourse);
 
