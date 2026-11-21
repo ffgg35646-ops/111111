@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpLeft, BookOpen, Brain, CalendarDays, FileBadge, GraduationCap, HeartHandshake, Library, Video } from "lucide-react";
+import { ArrowUpLeft, BookOpen, Brain, FileBadge, GraduationCap, HeartHandshake, Library, Video } from "lucide-react";
 
 const navigation = [
   { href: "/academy", label: "الأكاديمية", icon: GraduationCap },
