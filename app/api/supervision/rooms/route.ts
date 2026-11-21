@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
   try {
     const roomName = `clinical-${randomUUID()}`;
     const url = new URL(livekitUrl);
+    if (url.protocol !== "wss:" && url.protocol !== "ws:") {
+      return NextResponse.json({ error: "LIVEKIT_URL يجب أن يبدأ بـ wss:// أو ws://." }, { status: 400 });
+    }
+    const clientUrl = url.toString().replace(/\/$/, "");
     url.protocol = url.protocol === "wss:" ? "https:" : "http:";
     const livekit = new LiveKitAPI({
       host: url.toString().replace(/\/$/, ""),
@@ -93,14 +97,14 @@ export async function POST(request: NextRequest) {
     const sessionCookie = await issueSupervisorSession(supervisorId);
     const response = NextResponse.json({
       roomName,
-      serverUrl: livekitUrl,
+      serverUrl: clientUrl,
       supervisorToken,
       traineeInviteToken,
       traineeCode,
       traineeName,
       scenarioTitle,
       supervisorName,
-      supervisorProfileId: supervisorId,
+
     });
     response.cookies.set(sessionCookie.name, sessionCookie.value, supervisorCookieOptions(process.env.NODE_ENV === "production"));
     response.headers.set("Cache-Control", "no-store");
