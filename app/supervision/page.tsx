@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import "./supervision.css";
 import { ArrowRight, DoorOpen, ShieldCheck, Users, Video } from "lucide-react";
-import "./supervision.css";
 
 export default function SupervisionPage() {
   const router = useRouter();
@@ -38,6 +37,7 @@ export default function SupervisionPage() {
       }).toString();
 
       sessionStorage.setItem("clinical-room-token",result.supervisorToken);
+      sessionStorage.setItem("clinical-vr-device-token",result.vrDeviceToken);
       sessionStorage.setItem("clinical-room-role","supervisor");
       sessionStorage.setItem("clinical-livekit-url",result.serverUrl);
       sessionStorage.setItem("clinical-room-name",result.roomName);
