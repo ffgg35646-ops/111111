@@ -19,9 +19,7 @@ export async function getClinicalDatabase() {
       serverSelectionTimeoutMS: 8000,
     });
     clientPromise = client.connect();
-    if (process.env.NODE_ENV !== "production") {
-      global.clinicalMongoClientPromise = clientPromise;
-    }
+    global.clinicalMongoClientPromise = clientPromise;
   }
 
   const client = await clientPromise;
