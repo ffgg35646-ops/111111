@@ -63,7 +63,7 @@ const rubric = [
 
 type RubricKey = (typeof rubric)[number]["key"];
 
-function RoomTools({ role, serverUrl, roomName, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, vrDeviceToken, inviteUrl }: Props) {
+function RoomTools({ serverUrl, roomName, supervisorName, traineeName, traineeCode, scenarioTitle, liveKitToken, vrDeviceToken, inviteUrl }: Props) {
   const room = useRoomContext();
   const [signedRoomRole, setSignedRoomRole] = useState<Role | null>(null);
   const [humanParticipantCount, setHumanParticipantCount] = useState(1);
@@ -196,8 +196,8 @@ function RoomTools({ role, serverUrl, roomName, supervisorName, traineeName, tra
     try {
       const destinationIdentities = Array.from(room.remoteParticipants.values())
         .filter((participant) => {
-          const participantRole = participantRole(participant.metadata);
-          return participantRole === "supervisor" || participantRole === "trainee";
+          const peerRole = participantRole(participant.metadata);
+          return peerRole === "supervisor" || peerRole === "trainee";
         })
         .map((participant) => participant.identity);
 
