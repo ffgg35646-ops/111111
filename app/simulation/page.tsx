@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, ClipboardCheck, Info, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
@@ -13,7 +13,10 @@ const ClinicalRoomStage=dynamic(()=>import("@/components/clinical-room-stage"),{
 
 function SimulationWorkspace(){
   const params=useSearchParams();
-  const [caseId,setCaseId]=useState(trainingCases[0].id);
+  const [caseId,setCaseId]=useState(()=>{
+    const query=params.get("case");
+    return query&&trainingCases.some(item=>item.id===query)?query:trainingCases[0].id;
+  });
   const [stepIndex,setStepIndex]=useState(0);
   const [answers,setAnswers]=useState<Record<string,string>>({});
   const [feedback,setFeedback]=useState("");
@@ -22,11 +25,6 @@ function SimulationWorkspace(){
   const [savedScore,setSavedScore]=useState<number|null>(null);
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState("");
-
-  useEffect(()=>{
-    const query=params.get("case");
-    if(query&&trainingCases.some(item=>item.id===query))setCaseId(query);
-  },[params]);
 
   const activeCase=useMemo(()=>getCaseById(caseId),[caseId]);
   const activeStep=activeCase.steps[stepIndex];
