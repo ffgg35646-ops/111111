@@ -119,6 +119,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "بيانات التقرير غير صالحة." }, { status: 400 });
   }
 
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "بيانات التقرير غير صالحة." }, { status: 400 });
+  }
+
   const data = body as Record<string, unknown>;
   const liveKitToken = cleanText(data.liveKitToken, 12000);
   const traineeCode = cleanText(data.traineeCode, 40).toUpperCase();
