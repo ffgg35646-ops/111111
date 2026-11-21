@@ -24,8 +24,8 @@ No Unreal Engine executable or device runtime is available in this GitHub-only w
 ## Connect the native telemetry component
 
 1. Create a LiveKit supervision room in the platform and use the supervisor interface to copy the **VR device connection data**.
-2. In the Unreal level, add **ClinicalVRTelemetryComponent** to the VR pawn (or another actor that owns the local learner session).
-3. Call **ConfigureTelemetryEndpoint** with:
+2. The native VR pawn includes **ClinicalVRTelemetryComponent** as a default subobject. In a Blueprint derived from **ClinicalVRPawn**, select its Telemetry component to set the patient target and configure the connection.
+3. Call **ConfigureTelemetryEndpoint** from the pawn's BeginPlay/initialization Blueprint with:
    - Platform HTTPS base URL, for example **https://your-platform.example**
    - The exact **roomName** from the copied device connection data
    - The short-lived **token** from the copied device connection data
