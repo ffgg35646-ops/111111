@@ -192,7 +192,8 @@ function SimulationWorkspace() {
     const nextMessages = [...conversationRef.current, { role: "user" as const, content: text }].slice(-20);
     conversationRef.current = nextMessages;
     setConversation(nextMessages);
-    conversationRef.current = [...nextMessages, { role: "assistant", content: "" }].slice(-20);
+    const assistantPlaceholder: ConversationTurn = { role: "assistant", content: "" };
+    conversationRef.current = [...nextMessages, assistantPlaceholder].slice(-20);
     setConversation(conversationRef.current);
     recordRoomEvent("conversation_turn_started", "أرسل المتدرب سؤالاً صوتياً أو نصياً إلى الشخصية الافتراضية.");
 

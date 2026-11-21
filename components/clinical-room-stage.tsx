@@ -4,8 +4,6 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import { createXRStore, IfInSessionMode, XR } from "@react-three/xr";
-import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
-import * as THREE from "three";
 import { CanvasTexture, SRGBColorSpace } from "three";
 import "./clinical-room-stage.css";
 
@@ -271,17 +269,8 @@ function RealisticPatient({
   onSelect: () => void;
 }) {
   const gltf = useGLTF(modelUrl);
-  const model = useMemo(() => cloneSkeleton(gltf.scene), [gltf.scene]);
+  const model = gltf.scene;
   const { actions, names, ref } = useAnimations(gltf.animations);
-
-  useEffect(() => {
-    const bounds = new THREE.Box3().setFromObject(model);
-    const size = bounds.getSize(new THREE.Vector3());
-    const targetHeight = 1.78;
-    const scale = size.y > 0 ? targetHeight / size.y : 1;
-    model.scale.setScalar(scale);
-    model.position.y = -bounds.min.y * scale;
-  }, [model]);
 
   useEffect(() => {
     const patterns = speaking || motion === "talk"
@@ -302,7 +291,11 @@ function RealisticPatient({
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
     model.traverse((object) => {
-      const mesh = object as THREE.Mesh;
+      const mesh = object as unknown as {
+        isMesh?: boolean;
+        morphTargetDictionary?: Record<string, number>;
+        morphTargetInfluences?: number[];
+      };
       const dictionary = mesh.morphTargetDictionary;
       const influences = mesh.morphTargetInfluences;
       if (!mesh.isMesh || !dictionary || !influences) return;
@@ -310,7 +303,8 @@ function RealisticPatient({
       Object.entries(dictionary).forEach(([name, index]) => {
         if (!/^(jawopen|mouthopen|mouth-open)$/i.test(name)) return;
         const target = speaking ? 0.14 + Math.max(0, Math.sin(time * 9.5)) * 0.34 : 0;
-        influences[index] = THREE.MathUtils.damp(influences[index] ?? 0, target, 11, delta);
+        const current = influences[index] ?? 0;
+        influences[index] = current + (target - current) * Math.min(1, delta * 11);
       });
     });
   });

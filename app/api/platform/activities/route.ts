@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         : "browser-simulation",
     completedAt: new Date(),
     learningOnly: true,
-    version: 2,
+    version: 3,
   };
 
   try {
