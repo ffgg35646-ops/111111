@@ -434,6 +434,7 @@ function SimulationWorkspace() {
     setSavedScore(null);
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
+    setVrHandMetrics(null);
     setError("");
     setRoomEvents((current) => [
       ...current,
