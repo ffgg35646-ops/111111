@@ -5,6 +5,34 @@ import { getCaseById } from "@/lib/platform-catalog";
 
 export const runtime = "nodejs";
 
+const allowedRoomEventTypes = new Set([
+  "room_entered",
+  "patient_selected",
+  "case_file_opened",
+  "assessment_choice_selected",
+  "step_changed",
+  "assessment_completed",
+  "assessment_restarted",
+]);
+
+function normaliseRoomEvents(input: unknown) {
+  if (!Array.isArray(input)) return [];
+  return input.slice(-120).flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    const type = typeof row.type === "string" ? row.type.slice(0, 60) : "";
+    const label = typeof row.label === "string" ? row.label.trim().slice(0, 160) : "";
+    if (!allowedRoomEventTypes.has(type) || !label) return [];
+    const timestamp = typeof row.occurredAt === "string" ? Date.parse(row.occurredAt) : Number.NaN;
+    return [{
+      type,
+      label,
+      occurredAt: Number.isFinite(timestamp) ? new Date(timestamp) : new Date(),
+      source: "webxr-room-interaction",
+    }];
+  });
+}
+
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -44,9 +72,11 @@ export async function POST(request: NextRequest) {
     answers,
     score: Math.round((earned / maximum) * 100),
     maximumScore: 100,
+    roomEvents: normaliseRoomEvents(data.roomEvents),
+    experienceMode: data.experienceMode === "webxr-clinical-room" ? "webxr-clinical-room" : "browser-simulation",
     completedAt: new Date(),
     learningOnly: true,
-    version: 1,
+    version: 2,
   };
 
   try {
@@ -56,6 +86,7 @@ export async function POST(request: NextRequest) {
       success: true,
       activityId: record.activityId,
       score: record.score,
+      roomEventCount: record.roomEvents.length,
       recordId: String(result.insertedId),
     }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
