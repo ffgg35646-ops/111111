@@ -41,6 +41,7 @@ protected:
     void SendEvents(const TArray<TSharedPtr<FJsonObject>>& Events);
 
 private:
+    TMap<FString, bool> HandPinchingState;
     FString PlatformBaseUrl;
     FString RoomName;
     FString DeviceToken;
