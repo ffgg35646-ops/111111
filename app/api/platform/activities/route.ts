@@ -17,6 +17,7 @@ const allowedRoomEventTypes = new Set([
   "conversation_reply_received",
   "microphone_started",
   "avatar_model_loaded",
+  "head_pose_sample",
 ]);
 
 function normaliseRoomEvents(input: unknown) {
@@ -85,6 +86,8 @@ export async function POST(request: NextRequest) {
 
   const earned = answers.reduce((sum, answer) => sum + answer.earned, 0);
   const maximum = item.steps.length * 20;
+  const vrHeadTrackingSamples = normaliseRoomEvents(data.roomEvents).filter((event) => event.type === "head_pose_sample").length;
+  const normalisedRoomEvents = normaliseRoomEvents(data.roomEvents);
   const record = {
     activityId: randomUUID(),
     caseId: item.id,
@@ -92,7 +95,8 @@ export async function POST(request: NextRequest) {
     answers,
     score: Math.round((earned / maximum) * 100),
     maximumScore: 100,
-    roomEvents: normaliseRoomEvents(data.roomEvents),
+    roomEvents: normalisedRoomEvents,
+    vrHeadTrackingSamples,
     conversationTurns: normaliseConversationTurns(data.conversationTurns),
     avatarModelSource: data.avatarModelSource === "custom-glb"
       ? "custom-glb"
@@ -117,6 +121,7 @@ export async function POST(request: NextRequest) {
       activityId: record.activityId,
       score: record.score,
       roomEventCount: record.roomEvents.length,
+      vrHeadTrackingSamples,
       conversationTurnCount: record.conversationTurns.length,
       avatarModelSource: record.avatarModelSource,
       recordId: String(result.insertedId),

@@ -27,3 +27,5 @@
 .clinical-room-actions span{font-size:8px;color:#6d858d;background:rgba(255,255,255,.92);padding:8px 9px;border-radius:7px}
 .clinical-room-actions{flex-wrap:wrap}
 @media(max-width:600px){.simulation-voice-heading{align-items:flex-start;flex-direction:column}.simulation-voice-input{flex-direction:column}.simulation-voice-input button{align-self:stretch}.simulation-avatar-toolbar{align-items:flex-start;flex-direction:column}}
+
+.simulation-vr-evidence{width:100%;display:grid;gap:5px;margin:8px 0 12px;padding:10px 12px;border:1px solid #dcebe7;border-radius:8px;background:#f4faf8;text-align:right}.simulation-vr-evidence b{font-size:9px;color:#32796f}.simulation-vr-evidence span{font-size:10px;color:#526d70}.simulation-vr-evidence small{font-size:8px;line-height:1.7;color:#81918f}

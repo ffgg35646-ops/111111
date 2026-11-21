@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import { createXRStore, IfInSessionMode, XR } from "@react-three/xr";
-import { CanvasTexture, SRGBColorSpace } from "three";
+import { CanvasTexture, SRGBColorSpace, Vector3 } from "three";
 import "./clinical-room-stage.css";
 
 const xrStore = createXRStore({ foveation: 1, handTracking: true });
@@ -456,6 +456,36 @@ function VoiceBoard({
   );
 }
 
+
+function HeadsetAssessmentTelemetry({ onRoomEvent }: { onRoomEvent?: (type: string, label: string) => void }) {
+  const lastSampleAt = useRef(0);
+  const scratch = useMemo(() => ({
+    head: new Vector3(),
+    direction: new Vector3(),
+    target: new Vector3(),
+  }), []);
+
+  useFrame(({ camera, gl, clock }) => {
+    if (!gl.xr.isPresenting || clock.elapsedTime - lastSampleAt.current < 5) return;
+    lastSampleAt.current = clock.elapsedTime;
+
+    camera.getWorldPosition(scratch.head);
+    camera.getWorldDirection(scratch.direction);
+    scratch.target.set(0, 1.62, -2.35).sub(scratch.head).normalize();
+
+    const headDirectionAngle = Number((scratch.direction.angleTo(scratch.target) * 180 / Math.PI).toFixed(1));
+    const interactionDistanceCm = Number((scratch.head.distanceTo(new Vector3(0, 1.62, -2.35)) * 100).toFixed(0));
+    if (!Number.isFinite(headDirectionAngle) || !Number.isFinite(interactionDistanceCm)) return;
+
+    onRoomEvent?.(
+      "head_pose_sample",
+      "زاوية اتجاه الرأس نحو موضع الحالة: " + headDirectionAngle + " درجة؛ المسافة التقريبية: " + interactionDistanceCm + " سم",
+    );
+  });
+
+  return null;
+}
+
 function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
   const selectPatient = () => {
     props.onSelect("الشخصية الافتراضية");
@@ -468,6 +498,7 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
 
   return (
     <group>
+      <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
         <planeGeometry args={[9, 8.5]} />
         <meshStandardMaterial color="#e7edef" roughness={0.92} />

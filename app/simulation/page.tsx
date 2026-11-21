@@ -69,6 +69,7 @@ function SimulationWorkspace() {
   const [selectedTarget, setSelectedTarget] = useState("الشخصية الافتراضية");
   const [completed, setCompleted] = useState(false);
   const [savedScore, setSavedScore] = useState<number | null>(null);
+  const [vrHeadTrackingSamples, setVrHeadTrackingSamples] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
@@ -356,6 +357,7 @@ function SimulationWorkspace() {
     setFeedback("");
     setCompleted(false);
     setSavedScore(null);
+    setVrHeadTrackingSamples(0);
     setError("");
     setVoiceError("");
     setAgentBusy(false);
@@ -408,6 +410,7 @@ function SimulationWorkspace() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "تعذر حفظ نتيجة التدريب.");
       setSavedScore(result.score);
+      setVrHeadTrackingSamples(Number(result.vrHeadTrackingSamples) || 0);
       setCompleted(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر حفظ نتيجة التدريب.");
@@ -422,6 +425,7 @@ function SimulationWorkspace() {
     setFeedback("");
     setCompleted(false);
     setSavedScore(null);
+    setVrHeadTrackingSamples(0);
     setError("");
     setRoomEvents((current) => [
       ...current,
@@ -592,6 +596,7 @@ function SimulationWorkspace() {
               <span>اكتملت المحاكاة</span>
               <strong>{savedScore}<small> / 100</small></strong>
               <p>{savedScore !== null && savedScore >= 80 ? "أداء تدريبي متقدم. راجع الملاحظات لتعزيز المهارات." : savedScore !== null && savedScore >= 60 ? "أداء جيد مع فرص لتحسين بعض خطوات الممارسة." : "راجع التغذية الراجعة وأعد المحاكاة لتعزيز المهارات."}</p>
+              {immersiveMode && <div className="simulation-vr-evidence"><b>بيانات النظارة المسجلة</b><span>{vrHeadTrackingSamples} عينة لاتجاه الرأس والمسافة من موضع الحالة</span><small>هذه قياسات وضعية مكانية تقريبية وليست تتبعاً للعين أو حكماً على جودة التواصل البصري.</small></div>}
               <div className="simulation-result-breakdown">
                 {activeCase.steps.map((step) => {
                   const choice = step.choices.find((item) => item.id === answers[step.id]);
