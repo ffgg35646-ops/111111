@@ -79,6 +79,7 @@ export default function CourseLearningPage() {
   const [recordingError,setRecordingError] = useState(false);
   const [reflection,setReflection] = useState("");
   const [savedReflection,setSavedReflection] = useState(false);
+  const [progressHydrated,setProgressHydrated] = useState(false);
   const quiz = useMemo(()=>course?quizByTrack[course.trackId]??quizByTrack["mental-health"]:[],[course]);
   const score = quiz.reduce((sum,item,index)=>sum+(answers[index]===item.correct?1:0),0);
   const guides = course ? guideByTrack[course.trackId] ?? guideByTrack["mental-health"] : [];
@@ -91,12 +92,13 @@ export default function CourseLearningPage() {
       setCompleted(Array.isArray(saved.completed)?saved.completed.filter(n=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[]);
       setReflection(typeof saved.reflection==="string"?saved.reflection:"");
     }catch{setCompleted([]);}
+    finally{setProgressHydrated(true);}
   },[course]);
 
   useEffect(()=>{
-    if(!course)return;
+    if(!course||!progressHydrated)return;
     localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed,reflection,updatedAt:new Date().toISOString()}));
-  },[course,completed,reflection]);
+  },[course,completed,reflection,progressHydrated]);
 
   if(!course) return <PlatformLayout title="الدورة غير موجودة" description="لم نعثر على هذه الدورة في الكتالوج."><div className="portal-card"><Link href="/academy">العودة إلى الأكاديمية</Link></div></PlatformLayout>;
 
