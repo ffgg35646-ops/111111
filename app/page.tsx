@@ -97,7 +97,7 @@ export default function HomePage() {
         <div className="notice-strip">
           <div className="notice-icon"><Brain size={19}/></div>
           <div><strong>إدارة الشخصيات والحالات الافتراضية</strong><span>الدكتور أو المشرف العلمي يكتب ملف الحالة وأهدافها وحدود معرفة الشخصية وطريقة استجابتها. الشخصية تتفاعل مع الحوار في سياقه، وليست تسجيلاً محفوظاً.</span></div>
-          <button onClick={()=>setActive("سيناريوهات الحالات")}>إعداد الحالات <ChevronLeft size={15}/></button>
+          <button onClick={()=>router.push("/cases")}>إعداد الحالات <ChevronLeft size={15}/></button>
         </div>
 
         <div className="stats-grid">{stats.map(stat=><article className="stat-card" key={stat.label}>
@@ -118,7 +118,7 @@ export default function HomePage() {
           <section className="panel quick-panel">
             <div className="panel-heading"><div><h2>اختصارات الإدارة</h2><p>أقسام الإدارة الأساسية</p></div></div>
             <div className="quick-grid">
-              <button onClick={()=>setActive("سيناريوهات الحالات")}><span className="quick-icon teal"><Brain size={19}/></span><strong>إعداد حالة تدريبية</strong><small>كتابة السيناريو السريري</small></button>
+              <button onClick={()=>router.push("/cases")}><span className="quick-icon teal"><Brain size={19}/></span><strong>إعداد حالة تدريبية</strong><small>كتابة السيناريو السريري</small></button>
               <button onClick={()=>router.push("/characters")}><span className="quick-icon blue"><Users size={19}/></span><strong>إعداد شخصية افتراضية</strong><small>تعليمات الشخصية وصوتها</small></button>
               <button onClick={()=>router.push("/academy")}><span className="quick-icon violet"><GraduationCap size={19}/></span><strong>إضافة دورة</strong><small>برنامج تدريبي جديد</small></button>
               <button onClick={()=>router.push("/competencies")}><span className="quick-icon amber"><ChartNoAxesCombined size={19}/></span><strong>ملفات الكفاءات</strong><small>تقييم أداء المتدربين</small></button>
