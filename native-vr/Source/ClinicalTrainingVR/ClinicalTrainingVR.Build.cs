@@ -14,7 +14,10 @@ public class ClinicalTrainingVR : ModuleRules
             "HeadMountedDisplay",
             "UMG",
             "Slate",
-            "SlateCore"
+            "SlateCore",
+            "HTTP",
+            "Json",
+            "JsonUtilities"
         });
     }
 }
