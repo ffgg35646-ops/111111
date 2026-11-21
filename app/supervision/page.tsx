@@ -12,6 +12,7 @@ export default function SupervisionPage() {
   const [traineeName,setTraineeName] = useState("");
   const [traineeCode,setTraineeCode] = useState("");
   const [scenarioTitle,setScenarioTitle] = useState("");
+  const [accessCode,setAccessCode] = useState("");
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState("");
 
@@ -21,21 +22,15 @@ export default function SupervisionPage() {
     setError("");
     try {
       const response = await fetch("/api/supervision/rooms", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        credentials:"same-origin",
-        body:JSON.stringify({supervisorName,traineeName,traineeCode,scenarioTitle}),
+        method:"POST", headers:{"Content-Type":"application/json"}, credentials:"same-origin",
+        body:JSON.stringify({supervisorName,traineeName,traineeCode,scenarioTitle,accessCode}),
       });
       const result = await response.json();
       if(!response.ok) throw new Error(result.error || "تعذر إنشاء الغرفة.");
       const inviteUrl = new URL("/supervision/room",window.location.origin);
       inviteUrl.hash = new URLSearchParams({
-        room:result.roomName,
-        token:result.traineeInviteToken,
-        serverUrl:result.serverUrl,
-        role:"trainee",
+        room:result.roomName, token:result.traineeInviteToken, serverUrl:result.serverUrl, role:"trainee",
       }).toString();
-
       sessionStorage.setItem("clinical-room-token",result.supervisorToken);
       sessionStorage.setItem("clinical-vr-device-token",result.vrDeviceToken);
       sessionStorage.setItem("clinical-room-role","supervisor");
@@ -49,9 +44,7 @@ export default function SupervisionPage() {
       router.push(`/supervision/room?room=${encodeURIComponent(result.roomName)}`);
     } catch(cause) {
       setError(cause instanceof Error ? cause.message : "تعذر إنشاء الغرفة.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return <main className="supervision-launch" dir="rtl">
@@ -70,12 +63,13 @@ export default function SupervisionPage() {
         <form className="supervision-create-card" onSubmit={createRoom}>
           <div className="launch-card-head"><Video size={18}/><div><strong>بيانات الجلسة</strong><small>مشاركان بشريان مع اتصال بيانات مستقل لمحرك VR</small></div></div>
           <label>اسم المشرف الأكاديمي<input required maxLength={80} value={supervisorName} onChange={event=>setSupervisorName(event.target.value)} placeholder="اسم المشرف"/></label>
+          <label>رمز دخول المشرف<input required minLength={32} maxLength={256} type="password" autoComplete="current-password" value={accessCode} onChange={event=>setAccessCode(event.target.value)} placeholder="رمز الدخول المخصص للمشرف"/></label>
           <label>اسم المتدرب<input required maxLength={80} value={traineeName} onChange={event=>setTraineeName(event.target.value)} placeholder="اسم المتدرب"/></label>
           <label>رمز ملف المتدرب<input required minLength={3} maxLength={40} pattern="[A-Za-z0-9_-]{3,40}" value={traineeCode} onChange={event=>setTraineeCode(event.target.value.toUpperCase())} placeholder="مثال: TRN-2048"/></label>
-          <label>عنوان السيناريو<input required maxLength={160} value={scenarioTitle} onChange={event=>setScenarioTitle(event.target.value)} placeholder="مثال: أخذ التاريخ المرضي والتواصل مع الأسرة"/></label>
+          <label>عنوان السيناريو<input required maxLength={160} value={scenarioTitle} onChange={event=>setScenarioTitle(event.target.value)} placeholder="مثال: أخذ التاريخ النمائي والتواصل مع الأسرة"/></label>
           {error&&<p className="supervision-launch-error" role="alert">{error}</p>}
           <button className="create-supervision-button" type="submit" disabled={loading}>{loading?"جارٍ إنشاء الغرفة...":<><DoorOpen size={17}/> إنشاء الغرفة وبدء الجلسة</>}</button>
-          <small className="launch-note">رابط المتدرب يُنشأ تلقائياً وينتهي بعد ساعتين. أرسله للشخص المقصود فقط.</small>
+          <small className="launch-note">رمز المشرف لا يُحفظ في المتصفح أو قاعدة البيانات. رابط المتدرب ينتهي بعد ساعتين؛ أرسله للشخص المقصود فقط.</small>
         </form>
         <aside className="supervision-setup-card">
           <h2>ماذا يحدث داخل الغرفة؟</h2>
