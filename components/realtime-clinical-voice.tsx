@@ -14,6 +14,7 @@ type RealtimeClinicalVoiceProps = {
   onEvent?: (type: string, label: string) => void;
   onConnecting?: () => void;
   onStatusChange?: (status: "idle" | "connecting" | "live" | "error") => void;
+  onMutedChange?: (muted: boolean) => void;
   onControlsReady?: (controls: { start: () => void; stop: () => void; toggleMute: () => void } | null) => void;
 };
 
@@ -220,7 +221,7 @@ export function RealtimeClinicalVoice({
     microphoneRef.current?.getAudioTracks().forEach((track) => { track.enabled = !nextMuted; });
     setMuted(nextMuted);
     onEvent?.("realtime_microphone_toggled", nextMuted ? "كتم ميكروفون الصوت الحي." : "إعادة فتح ميكروفون الصوت الحي.");
-  }, [muted, onEvent]);
+  }, [muted, onEvent, onMutedChange]);
 
   useEffect(() => {
     onControlsReady?.({
