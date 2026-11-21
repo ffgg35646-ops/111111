@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Brain, ClipboardList, Clock3, GraduationCap, PlayCircle, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -9,8 +10,12 @@ import { courses, learningTracks } from "@/lib/platform-catalog";
 
 const modeLabels={recorded:"مسجلة",live:"مباشرة",hybrid:"مباشرة ومسجلة"};
 
-export default function AcademyPage() {
-  const [track,setTrack]=useState("all");
+function AcademyWorkspace() {
+  const params = useSearchParams();
+  const [track,setTrack]=useState(() => {
+    const requestedTrack = params.get("track");
+    return requestedTrack && learningTracks.some(item => item.id === requestedTrack) ? requestedTrack : "all";
+  });
   const [mode,setMode]=useState("all");
   const [selectedCourse,setSelectedCourse]=useState<string|null>(null);
   const filtered=useMemo(()=>courses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[track,mode]);
@@ -49,7 +54,7 @@ export default function AcademyPage() {
         <div><strong>نواتج التعلم</strong><ul>{chosen.outcomes.map(x=><li key={x}>{x}</li>)}</ul></div>
         <div><strong>الخطة التعليمية</strong><ol>{chosen.lessons.map(x=><li key={x}>{x}</li>)}</ol></div>
       </div>
-      <PlatformRequestForm key={chosen.id} kind={chosen.mode==="recorded"?"course_enrollment":"classroom_registration"} title="طلب الالتحاق بالدورة" description="أدخل بيانات التواصل ليُراجع فريق التدريب طلبك." initialData={{courseId:chosen.id}} fields={chosen.mode==="recorded"?[]:[{name:"preferredAt",label:"الموعد المفضل للفصل المباشر",type:"datetime-local",required:true}]}/>
+      <PlatformRequestForm key={chosen.id} kind={chosen.mode==="recorded"?"course_enrollment":"classroom_registration"} title="طلب الالتحاق بالدورة" description="أدخل بيانات التواصل ليُراجع فريق التدريب طلبك." initialData={{courseId:chosen.id}} fields={[]}/>
     </section>}
     <div className="portal-section-title"><div><h2>مختبر التطبيق العملي</h2><p>طبّق مهارات المقابلة وصياغة الحالة داخل غرفة افتراضية</p></div></div>
     <div className="portal-grid">
@@ -58,4 +63,8 @@ export default function AcademyPage() {
       <article className="portal-card"><Video size={20} color="#188579"/><h3>التدريب المباشر عبر Zoom</h3><p>طلبات الالتحاق بالفصول ومتابعة إعداد جلسات Zoom.</p><Link className="portal-link-button" href="/classrooms">فتح الفصول</Link></article>
     </div>
   </PlatformLayout>;
+}
+
+export default function AcademyPage() {
+  return <Suspense fallback={<div className="portal-callout">تحميل الأكاديمية...</div>}><AcademyWorkspace /></Suspense>;
 }

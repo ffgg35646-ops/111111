@@ -1,109 +1,623 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, ClipboardCheck, Info, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ClipboardCheck,
+  Info,
+  Mic,
+  MicOff,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import { getCaseById, trainingCases } from "@/lib/platform-catalog";
 import "./simulation.css";
 
-const ClinicalRoomStage=dynamic(()=>import("@/components/clinical-room-stage"),{ssr:false,loading:()=><div className="simulation-stage-loading">جارٍ تجهيز الغرفة الافتراضية...</div>});
+const ClinicalRoomStage = dynamic(() => import("@/components/clinical-room-stage"), {
+  ssr: false,
+  loading: () => <div className="simulation-stage-loading">جارٍ تجهيز القاعة والشخصية الافتراضية...</div>,
+});
 
-function SimulationWorkspace(){
-  const params=useSearchParams();
-  const [caseId,setCaseId]=useState(()=>{
-    const query=params.get("case");
-    return query&&trainingCases.some(item=>item.id===query)?query:trainingCases[0].id;
+const AVATAR_MODEL_URLS = {
+  father: "https://memoriesrohit.github.io/avatar-studio/models/daniel_formal.glb",
+  mother: "https://memoriesrohit.github.io/avatar-studio/models/aisha_formal.glb",
+} as const;
+
+type PersonaId = "father" | "mother" | "child" | "teen";
+type ConversationTurn = { role: "user" | "assistant"; content: string };
+type RoomEvent = { type: string; label: string; occurredAt: string };
+type RecognitionAlternative = { transcript: string };
+type RecognitionResult = { isFinal: boolean; 0: RecognitionAlternative };
+type RecognitionEvent = Event & { resultIndex: number; results: ArrayLike<RecognitionResult> };
+type RecognitionErrorEvent = Event & { error: string };
+type RecognitionInstance = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: RecognitionEvent) => void) | null;
+  onerror: ((event: RecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+};
+type SpeechWindow = Window & {
+  SpeechRecognition?: new () => RecognitionInstance;
+  webkitSpeechRecognition?: new () => RecognitionInstance;
+};
+
+function SimulationWorkspace() {
+  const params = useSearchParams();
+  const [caseId, setCaseId] = useState(() => {
+    const requested = params.get("case");
+    return requested && trainingCases.some((item) => item.id === requested)
+      ? requested
+      : trainingCases[0].id;
   });
-  const [stepIndex,setStepIndex]=useState(0);
-  const [answers,setAnswers]=useState<Record<string,string>>({});
-  const [feedback,setFeedback]=useState("");
-  const [selectedTarget,setSelectedTarget]=useState("الشخصية الافتراضية");
-  const [completed,setCompleted]=useState(false);
-  const [savedScore,setSavedScore]=useState<number|null>(null);
-  const [saving,setSaving]=useState(false);
-  const [error,setError]=useState("");
+  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState("");
+  const [selectedTarget, setSelectedTarget] = useState("الشخصية الافتراضية");
+  const [completed, setCompleted] = useState(false);
+  const [savedScore, setSavedScore] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
+  const [conversation, setConversation] = useState<ConversationTurn[]>([]);
+  const [voiceInput, setVoiceInput] = useState("");
+  const [listening, setListening] = useState(false);
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [avatarSpeaking, setAvatarSpeaking] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [voiceError, setVoiceError] = useState("");
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
+  const [uploadedAvatarName, setUploadedAvatarName] = useState("");
+  const [immersiveMode, setImmersiveMode] = useState(false);
 
-  const activeCase=useMemo(()=>getCaseById(caseId),[caseId]);
-  const activeStep=activeCase.steps[stepIndex];
-  const voicePersona=activeCase.ageGroup==="طفل"?"child":activeCase.ageGroup==="مراهق"?"teen":activeCase.track==="الخدمة الاجتماعية"?"mother":"father";
-  const voiceScenario=`العنوان: ${activeCase.title}
-نوع الحالة: ${activeCase.track}
-العمر/الفئة: ${activeCase.ageGroup}
-مكان المقابلة: ${activeCase.setting}
-ملخص الحالة: ${activeCase.briefing}
-أهداف التدريب: ${activeCase.learningGoals.join("، ")}
-تعليمات الشخصية: أجب من منظور الشخصية فقط وبما يتناسب مع المعلومات الواردة في الملخص. لا تكشف كل التفاصيل دفعة واحدة. لا تخترع معلومات طبية أو اجتماعية غير مذكورة. لا تقدم تشخيصاً أو علاجاً.
-`;
-  const voiceHref=`/voice?persona=${voicePersona}&scenario=${encodeURIComponent(voiceScenario)}`;
-  const answeredCount=activeCase.steps.filter(step=>Boolean(answers[step.id])).length;
+  const recognitionRef = useRef<RecognitionInstance | null>(null);
+  const shouldSendSpeechRef = useRef(false);
+  const speechBufferRef = useRef("");
+  const conversationRef = useRef<ConversationTurn[]>([]);
+  const busyRef = useRef(false);
+  const aborterRef = useRef<AbortController | null>(null);
+  const uploadedAvatarObjectUrlRef = useRef<string | null>(null);
 
-  const changeCase=(id:string)=>{
-    setCaseId(id);setStepIndex(0);setAnswers({});setFeedback("");setCompleted(false);setSavedScore(null);setError("");
-    window.history.replaceState(null,"",`/simulation?case=${id}`);
+  const activeCase = useMemo(() => getCaseById(caseId), [caseId]);
+  const activeStep = activeCase.steps[stepIndex];
+  const voicePersona: PersonaId = activeCase.ageGroup === "طفل"
+    ? "child"
+    : activeCase.ageGroup === "مراهق"
+      ? "teen"
+      : activeCase.track === "الخدمة الاجتماعية"
+        ? "mother"
+        : "father";
+
+  const voiceScenario = useMemo(() => [
+    "العنوان: " + activeCase.title,
+    "نوع الحالة: " + activeCase.track,
+    "العمر/الفئة: " + activeCase.ageGroup,
+    "مكان المقابلة: " + activeCase.setting,
+    "ملخص الحالة: " + activeCase.briefing,
+    "أهداف التدريب: " + activeCase.learningGoals.join("، "),
+    "تعليمات الشخصية: أجب من منظور الشخصية فقط وبما يتناسب مع المعلومات الواردة في ملف الحالة. لا تكشف كل التفاصيل دفعة واحدة. لا تخترع معلومات طبية أو اجتماعية غير مذكورة. لا تقدم تشخيصاً أو علاجاً.",
+  ].join("\n"), [activeCase]);
+
+  const defaultAvatarModelUrl = voicePersona === "father"
+    ? AVATAR_MODEL_URLS.father
+    : voicePersona === "mother"
+      ? AVATAR_MODEL_URLS.mother
+      : null;
+  const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
+  const avatarModelLabel = uploadedAvatarName
+    || (voicePersona === "father" ? "شخصية رجل واقعية مرخصة" : voicePersona === "mother" ? "شخصية امرأة واقعية مرخصة" : "يتطلب موديل مناسباً للعمر");
+  const answeredCount = activeCase.steps.filter((step) => Boolean(answers[step.id])).length;
+  const latestUserText = [...conversation].reverse().find((turn) => turn.role === "user")?.content ?? "";
+  const latestAssistantText = [...conversation].reverse().find((turn) => turn.role === "assistant")?.content ?? "";
+  const voiceStatus = listening
+    ? "الميكروفون يستمع إليك الآن"
+    : agentBusy
+      ? "الشخصية تفهم كلامك وتجهز الرد"
+      : avatarSpeaking
+        ? "الشخصية تتحدث إليك الآن"
+        : "الشخصية جاهزة للمقابلة";
+
+  useEffect(() => () => {
+    recognitionRef.current?.abort();
+    aborterRef.current?.abort();
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    if (uploadedAvatarObjectUrlRef.current) {
+      URL.revokeObjectURL(uploadedAvatarObjectUrlRef.current);
+      uploadedAvatarObjectUrlRef.current = null;
+    }
+  }, []);
+
+  const recordRoomEvent = (type: string, label: string) => {
+    setRoomEvents((current) => [
+      ...current,
+      { type, label: label.slice(0, 160), occurredAt: new Date().toISOString() },
+    ].slice(-120));
   };
-  const choose=(choiceId:string)=>{
-    const choice=activeStep.choices.find(item=>item.id===choiceId);
-    setAnswers(current=>({...current,[activeStep.id]:choiceId}));
-    setFeedback(choice?.feedback??"");
+
+  const stopAvatarSpeech = () => {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    setAvatarSpeaking(false);
   };
-  const finish=async()=>{
-    if(answeredCount!==activeCase.steps.length)return;
-    setSaving(true);setError("");
-    try{
-      const response=await fetch("/api/platform/activities",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({caseId:activeCase.id,answers:activeCase.steps.map(step=>({stepId:step.id,choiceId:answers[step.id]}))}),
+
+  const speakResponse = (text: string) => {
+    if (!audioEnabled) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setVoiceError("الصوت المنطوق غير مدعوم في هذا المتصفح. يمكنك متابعة رد الشخصية نصياً.");
+      return;
+    }
+
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ar-SA";
+    utterance.rate = 0.94;
+    utterance.pitch = 1;
+    const voices = synth.getVoices();
+    const arabicVoice = voices.find((voice) => voice.lang.toLowerCase().startsWith("ar-sa"))
+      ?? voices.find((voice) => voice.lang.toLowerCase().startsWith("ar"));
+    if (arabicVoice) utterance.voice = arabicVoice;
+    utterance.onstart = () => setAvatarSpeaking(true);
+    utterance.onend = () => setAvatarSpeaking(false);
+    utterance.onerror = () => setAvatarSpeaking(false);
+    synth.speak(utterance);
+  };
+
+  const sendMessage = async (rawText: string) => {
+    const text = rawText.trim().slice(0, 1800);
+    if (!text || busyRef.current) return;
+
+    shouldSendSpeechRef.current = false;
+    busyRef.current = true;
+    setAgentBusy(true);
+    setVoiceError("");
+    setVoiceInput("");
+    speechBufferRef.current = "";
+    stopAvatarSpeech();
+
+    const nextMessages = [...conversationRef.current, { role: "user" as const, content: text }].slice(-20);
+    conversationRef.current = nextMessages;
+    setConversation(nextMessages);
+    const assistantPlaceholder: ConversationTurn = { role: "assistant", content: "" };
+    conversationRef.current = [...nextMessages, assistantPlaceholder].slice(-20);
+    setConversation(conversationRef.current);
+    recordRoomEvent("conversation_turn_started", "أرسل المتدرب سؤالاً صوتياً أو نصياً إلى الشخصية الافتراضية.");
+
+    const controller = new AbortController();
+    aborterRef.current = controller;
+    try {
+      const response = await fetch("/api/clinical-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaId: voicePersona,
+          scenario: voiceScenario,
+          messages: nextMessages.map(({ role, content }) => ({ role, content })),
+        }),
+        signal: controller.signal,
       });
-      const result=await response.json();
-      if(!response.ok)throw new Error(result.error||"تعذر حفظ نتيجة التدريب.");
-      setSavedScore(result.score);setCompleted(true);
-    }catch(cause){setError(cause instanceof Error?cause.message:"تعذر حفظ نتيجة التدريب.");}
-    finally{setSaving(false);}
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "تعذر الاتصال بالشخصية الافتراضية.");
+      }
+      if (!response.body) throw new Error("لم يصل رد من خدمة المحادثة.");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let answer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        answer += decoder.decode(value, { stream: true });
+        const updated = [...nextMessages, { role: "assistant" as const, content: answer }].slice(-20);
+        conversationRef.current = updated;
+        setConversation(updated);
+      }
+      answer += decoder.decode();
+      if (!answer.trim()) throw new Error("وصل رد فارغ من الشخصية الافتراضية.");
+
+      const finalMessages = [...nextMessages, { role: "assistant" as const, content: answer }].slice(-20);
+      conversationRef.current = finalMessages;
+      setConversation(finalMessages);
+      recordRoomEvent("conversation_reply_received", "أجابت الشخصية الافتراضية على سؤال المتدرب.");
+      speakResponse(answer);
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === "AbortError") return;
+      const message = cause instanceof Error ? cause.message : "حدث خطأ غير متوقع أثناء المحادثة.";
+      setVoiceError(message);
+      conversationRef.current = nextMessages;
+      setConversation(nextMessages);
+    } finally {
+      busyRef.current = false;
+      setAgentBusy(false);
+      aborterRef.current = null;
+    }
   };
-  const restart=()=>{setStepIndex(0);setAnswers({});setFeedback("");setCompleted(false);setSavedScore(null);setError("");};
 
-  return <PlatformLayout title="قاعة المحاكاة ودراسة الحالة" eyebrow="VIRTUAL CASE SIMULATION" description="ادخل بيئة مقابلة ثلاثية الأبعاد، تفاعل مع الحالة الافتراضية، واتخذ قرارات مهنية متدرجة ثم راجع تقييم أدائك.">
-    <div className="simulation-toolbar">
-      <label>اختر الحالة<select value={caseId} onChange={event=>changeCase(event.target.value)}>{trainingCases.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-      <div><span className="simulation-live-indicator"/> جلسة تدريبية افتراضية · لا يوجد مريض حقيقي</div>
-    </div>
-    <div className="simulation-layout">
-      <section className="simulation-room-panel">
-        <div className="simulation-panel-head"><div><strong>غرفة المقابلة السريرية</strong><small>يمكنك تدوير المشهد وتقريبه والنقر على الشخصية أو ملف الحالة</small></div><span className="room-ready-chip"><i/> الغرفة جاهزة</span></div>
-        <div className="simulation-stage-wrap"><ClinicalRoomStage onSelect={setSelectedTarget}/></div>
-        <div className="simulation-scene-footer"><span>العنصر المحدد: <b>{selectedTarget}</b></span><span>اسحب المشهد للتحريك · عجلة الماوس للتقريب</span></div>
-        <div className="simulation-case-brief"><div><span className="portal-chip">{activeCase.track}</span><h2>{activeCase.title}</h2><p>{activeCase.briefing}</p></div><div className="case-brief-meta"><span>{activeCase.ageGroup}</span><span>{activeCase.setting}</span></div></div>
-      </section>
+  const startListening = () => {
+    if (busyRef.current || listening) return;
+    stopAvatarSpeech();
+    const speechWindow = window as SpeechWindow;
+    const Constructor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!Constructor) {
+      setVoiceError("التعرف على الكلام غير متاح في هذا المتصفح. استخدم حقل الكتابة أسفل القاعة، أو افتح التجربة في متصفح يدعم SpeechRecognition.");
+      return;
+    }
 
-      <aside className="simulation-assessment-panel">
-        {!completed?<>
-          <div className="simulation-panel-head"><div><strong>مسار التقييم المهني</strong><small>المرحلة {stepIndex+1} من {activeCase.steps.length}</small></div><b>{Math.round(answeredCount/activeCase.steps.length*100)}%</b></div>
-          <div className="simulation-progress"><i style={{width:`${answeredCount/activeCase.steps.length*100}%`}}/></div>
-          <div className="simulation-step-list">{activeCase.steps.map((step,index)=><button key={step.id} className={index===stepIndex?"active":answers[step.id]?"done":""} onClick={()=>{setStepIndex(index);setFeedback(step.choices.find(choice=>choice.id===answers[step.id])?.feedback??"");}}><span>{answers[step.id]?<CheckCircle2 size={15}/>:String(index+1).padStart(2,"0")}</span>{step.title}</button>)}</div>
-          <div className="simulation-current-task"><span>{activeStep.focus}</span><h3>{activeStep.title}</h3><p>{activeStep.prompt}</p></div>
-          <div className="simulation-choice-list">{activeStep.choices.map(choice=><button key={choice.id} className={answers[activeStep.id]===choice.id?"chosen":""} onClick={()=>choose(choice.id)}><i/>{choice.label}</button>)}</div>
-          {feedback&&<div className="simulation-feedback"><Sparkles size={15}/><p>{feedback}</p></div>}
-          {error&&<p className="simulation-error" role="alert">{error}</p>}
-          <div className="simulation-step-actions">
-            <button className="simulation-prev" onClick={()=>{setStepIndex(Math.max(0,stepIndex-1));setFeedback("");}} disabled={stepIndex===0}>السابق</button>
-            {stepIndex<activeCase.steps.length-1?<button className="simulation-next" onClick={()=>{setStepIndex(stepIndex+1);setFeedback("");}}>المرحلة التالية <ArrowRight size={14}/></button>:<button className="simulation-next" onClick={finish} disabled={saving||answeredCount!==activeCase.steps.length}>{saving?"جارٍ حساب وحفظ التقييم...":<><ClipboardCheck size={15}/> إنهاء وتقييم الجلسة</>}</button>}
+    const instance = new Constructor();
+    recognitionRef.current = instance;
+    speechBufferRef.current = "";
+    shouldSendSpeechRef.current = true;
+    setVoiceInput("");
+    setVoiceError("");
+    instance.lang = "ar-SA";
+    instance.continuous = false;
+    instance.interimResults = true;
+
+    instance.onresult = (event) => {
+      let finalText = "";
+      let interimText = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        if (result.isFinal) finalText += result[0].transcript + " ";
+        else interimText += result[0].transcript;
+      }
+      if (finalText) speechBufferRef.current = (speechBufferRef.current + " " + finalText).trim();
+      setVoiceInput((speechBufferRef.current + (interimText ? " " + interimText : "")).trim());
+    };
+
+    instance.onerror = (event) => {
+      shouldSendSpeechRef.current = false;
+      setListening(false);
+      setVoiceError(event.error === "not-allowed"
+        ? "لم يتم السماح باستخدام الميكروفون. فعّل إذن الميكروفون من المتصفح."
+        : "تعذر التقاط الصوت: " + event.error);
+    };
+
+    instance.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+      const recognisedText = speechBufferRef.current.trim();
+      if (shouldSendSpeechRef.current && recognisedText) {
+        shouldSendSpeechRef.current = false;
+        void sendMessage(recognisedText);
+      } else if (shouldSendSpeechRef.current && !recognisedText) {
+        shouldSendSpeechRef.current = false;
+        setVoiceError("لم ألتقط كلاماً واضحاً. حاول مرة أخرى أو اكتب رسالتك.");
+      }
+    };
+
+    try {
+      instance.start();
+      setListening(true);
+      recordRoomEvent("microphone_started", "بدأ المتدرب التحدث إلى الشخصية الافتراضية.");
+    } catch {
+      shouldSendSpeechRef.current = false;
+      setListening(false);
+      setVoiceError("تعذر تشغيل الميكروفون. تحقق من أذونات الموقع والجهاز.");
+    }
+  };
+
+  const stopListening = () => {
+    shouldSendSpeechRef.current = true;
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
+
+  const handleAvatarUpload = (file?: File) => {
+    if (!file) return;
+    if (!/\.glb$/i.test(file.name)) {
+      setVoiceError("ارفع ملف GLB فقط حتى يحتوي ملف الشخصية على الخامات والحركة في ملف واحد.");
+      return;
+    }
+    if (file.size > 80 * 1024 * 1024) {
+      setVoiceError("حجم ملف الشخصية أكبر من 80 ميجابايت. استخدم نسخة محسّنة للنظارة.");
+      return;
+    }
+    if (uploadedAvatarObjectUrlRef.current) URL.revokeObjectURL(uploadedAvatarObjectUrlRef.current);
+    const objectUrl = URL.createObjectURL(file);
+    uploadedAvatarObjectUrlRef.current = objectUrl;
+    setUploadedAvatarUrl(objectUrl);
+    setUploadedAvatarName(file.name);
+    setVoiceError("");
+    recordRoomEvent("avatar_model_loaded", "تم تحميل موديل بشري مخصص داخل القاعة.");
+  };
+
+  const removeCustomAvatar = () => {
+    if (uploadedAvatarObjectUrlRef.current) URL.revokeObjectURL(uploadedAvatarObjectUrlRef.current);
+    uploadedAvatarObjectUrlRef.current = null;
+    setUploadedAvatarUrl(null);
+    setUploadedAvatarName("");
+  };
+
+  const changeCase = (id: string) => {
+    recognitionRef.current?.abort();
+    shouldSendSpeechRef.current = false;
+    aborterRef.current?.abort();
+    stopAvatarSpeech();
+    busyRef.current = false;
+    conversationRef.current = [];
+    setCaseId(id);
+    setStepIndex(0);
+    setAnswers({});
+    setFeedback("");
+    setCompleted(false);
+    setSavedScore(null);
+    setError("");
+    setVoiceError("");
+    setAgentBusy(false);
+    setListening(false);
+    setConversation([]);
+    setVoiceInput("");
+    setRoomEvents([{ type: "room_entered", label: "بدء حالة تدريبية جديدة", occurredAt: new Date().toISOString() }]);
+    window.history.replaceState(null, "", "/simulation?case=" + id);
+  };
+
+  const choose = (choiceId: string) => {
+    const choice = activeStep.choices.find((item) => item.id === choiceId);
+    setAnswers((current) => ({ ...current, [activeStep.id]: choiceId }));
+    setFeedback(choice?.feedback ?? "");
+    recordRoomEvent("assessment_choice_selected", activeStep.title + ": " + (choice?.label ?? choiceId));
+  };
+
+  const moveToStep = (index: number) => {
+    const nextIndex = Math.max(0, Math.min(activeCase.steps.length - 1, index));
+    setStepIndex(nextIndex);
+    setFeedback(activeCase.steps[nextIndex].choices.find((choice) => choice.id === answers[activeCase.steps[nextIndex].id])?.feedback ?? "");
+    recordRoomEvent("step_changed", "الانتقال إلى المرحلة: " + activeCase.steps[nextIndex].title);
+  };
+
+  const finish = async () => {
+    if (answeredCount !== activeCase.steps.length || saving || listening || agentBusy) return;
+    setSaving(true);
+    setError("");
+    const completionEvent: RoomEvent = {
+      type: "assessment_completed",
+      label: "إنهاء التقييم داخل القاعة الافتراضية",
+      occurredAt: new Date().toISOString(),
+    };
+    const finalRoomEvents = [...roomEvents, completionEvent].slice(-120);
+    setRoomEvents(finalRoomEvents);
+
+    try {
+      const response = await fetch("/api/platform/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId: activeCase.id,
+          answers: activeCase.steps.map((step) => ({ stepId: step.id, choiceId: answers[step.id] })),
+          roomEvents: finalRoomEvents,
+          conversationTurns: conversationRef.current,
+          experienceMode: immersiveMode ? "webxr-immersive-vr" : "browser-3d-room",
+          avatarModelSource: uploadedAvatarUrl ? "custom-glb" : defaultAvatarModelUrl ? "library-avatar" : "age-appropriate-model-required",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "تعذر حفظ نتيجة التدريب.");
+      setSavedScore(result.score);
+      setCompleted(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر حفظ نتيجة التدريب.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const restart = () => {
+    setStepIndex(0);
+    setAnswers({});
+    setFeedback("");
+    setCompleted(false);
+    setSavedScore(null);
+    setError("");
+    setRoomEvents((current) => [
+      ...current,
+      { type: "assessment_restarted", label: "إعادة المحاكاة", occurredAt: new Date().toISOString() },
+    ].slice(-120));
+  };
+
+  return (
+    <PlatformLayout
+      title="قاعة المحاكاة والمقابلة السريرية"
+      eyebrow="IMMERSIVE VR LIVE PATIENT"
+      description="واجه شخصية بشرية ثلاثية الأبعاد وجهاً لوجه، تحدث معها بالصوت، ثم أكمل خطوات التقييم واحفظ نتيجة التدريب."
+    >
+      <div className="simulation-toolbar">
+        <label>اختر الحالة
+          <select value={caseId} onChange={(event) => changeCase(event.target.value)}>
+            {trainingCases.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+          </select>
+        </label>
+        <div><span className="simulation-live-indicator" /> {immersiveMode ? "النظارة داخل جلسة VR غامرة" : "معاينة ثلاثية الأبعاد · لا يوجد مريض حقيقي"}</div>
+      </div>
+
+      <div className="simulation-layout">
+        <section className="simulation-room-panel">
+          <div className="simulation-panel-head">
+            <div>
+              <strong>غرفة المقابلة السريرية</strong>
+              <small>اجلس أمام الشخصية، افتح الميكروفون من لوحة المقابلة داخل المشهد، واتبع الحوار بصوتها وحركة وجهها</small>
+            </div>
+            <span className="room-ready-chip"><i /> الغرفة جاهزة</span>
           </div>
-        </>:<div className="simulation-result">
-          <CheckCircle2 size={36}/><span>اكتملت المحاكاة</span><strong>{savedScore}<small> / 100</small></strong><p>{savedScore!==null&&savedScore>=80?"أداء تدريبي متقدم. راجع الملاحظات لتعزيز المهارات.":savedScore!==null&&savedScore>=60?"أداء جيد مع فرص لتحسين بعض خطوات الممارسة.":"راجع التغذية الراجعة وأعد المحاكاة لتعزيز المهارات."}</p>
-          <div className="simulation-result-breakdown">{activeCase.steps.map(step=>{const choice=step.choices.find(item=>item.id===answers[step.id]);return <div key={step.id}><span>{step.title}</span><b>{choice?.score??0}/20</b><small>{choice?.feedback}</small></div>;})}</div>
-          <button className="simulation-next" onClick={restart}><RotateCcw size={15}/> إعادة المحاكاة</button>
-        </div>}
-        <div className="simulation-safety-note"><ShieldCheck size={15}/><p>{activeCase.safetyNote}</p></div>
-      </aside>
-    </div>
-    <div className="simulation-bottom-links"><Link href={voiceHref}>بدء مقابلة صوتية مع الحالة <ArrowRight size={14}/></Link><Link href="/posture">تقييم لغة الجسد <ArrowRight size={14}/></Link><Link href="/supervision">إشراف أكاديمي مباشر <ArrowRight size={14}/></Link><Link href="/competencies">ملف الكفاءات المهنية <ArrowRight size={14}/></Link></div>
-    <div className="portal-callout simulation-disclaimer"><Info size={16}/> تقييم المحاكاة مخصص للتعلم ومراجعة القرارات. لا يعادل تقييماً سريرياً معتمداً أو تشخيصاً، ودرجاته لا تمثل مقياساً نفسياً مقنناً.</div>
-  </PlatformLayout>;
+
+          <div className="simulation-avatar-toolbar">
+            <div><b>الشخصية:</b> {avatarModelLabel}</div>
+            <label className="simulation-avatar-upload">
+              <Upload size={14} /> تحميل شخصية GLB مخصصة
+              <input type="file" accept=".glb,model/gltf-binary" onChange={(event) => handleAvatarUpload(event.target.files?.[0])} />
+            </label>
+            {uploadedAvatarUrl && <button type="button" className="simulation-remove-avatar" onClick={removeCustomAvatar}>العودة للشخصية الافتراضية</button>}
+          </div>
+
+          <div className="simulation-stage-wrap">
+            <ClinicalRoomStage
+              onSelect={setSelectedTarget}
+              onRoomEvent={recordRoomEvent}
+              onImmersiveChange={setImmersiveMode}
+              scenarioTitle={activeCase.title}
+              avatarModelUrl={avatarModelUrl}
+              avatarSpeaking={avatarSpeaking}
+              avatarMotion={avatarSpeaking ? "talk" : listening || agentBusy ? "listen" : "idle"}
+              voiceStatus={voiceStatus}
+              latestUserText={latestUserText}
+              latestAssistantText={latestAssistantText}
+              listening={listening}
+              busy={agentBusy}
+              onStartListening={startListening}
+              onStopListening={stopListening}
+              onStopSpeaking={stopAvatarSpeech}
+              step={{
+                title: activeStep.title,
+                focus: activeStep.focus,
+                prompt: activeStep.prompt,
+                choices: activeStep.choices.map((choice) => ({
+                  id: choice.id,
+                  label: choice.label,
+                  score: choice.score,
+                  feedback: choice.feedback,
+                })),
+              }}
+              stepIndex={stepIndex}
+              stepCount={activeCase.steps.length}
+              selectedChoiceId={answers[activeStep.id] ?? null}
+              completed={completed}
+              score={savedScore}
+              saving={saving}
+              canFinish={answeredCount === activeCase.steps.length}
+              onChoose={choose}
+              onPrevious={() => moveToStep(stepIndex - 1)}
+              onNext={() => moveToStep(stepIndex + 1)}
+              onFinish={finish}
+              onRestart={restart}
+            />
+          </div>
+
+          <div className="simulation-scene-footer">
+            <span>العنصر المحدد: <b>{selectedTarget}</b></span>
+            <span>في النظارة: وجّه المؤشر إلى لوحة المقابلة واضغط لبدء الكلام</span>
+          </div>
+
+          <div className="simulation-voice-console">
+            <div className="simulation-voice-heading">
+              <div><strong>الحوار مع الشخصية</strong><small>{voiceStatus}</small></div>
+              <div className="simulation-voice-actions">
+                <button type="button" className={listening ? "recording" : ""} onClick={listening ? stopListening : startListening} disabled={agentBusy}>
+                  {listening ? <MicOff size={15} /> : <Mic size={15} />}{listening ? "إنهاء الكلام" : "تحدث"}
+                </button>
+                <button type="button" onClick={() => setAudioEnabled((value) => !value)}>
+                  {audioEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}{audioEnabled ? "صوت الشخصية مفعل" : "تفعيل الصوت"}
+                </button>
+              </div>
+            </div>
+            <div className="simulation-voice-transcript">
+              {latestUserText && <p><b>أنت:</b> {latestUserText}</p>}
+              {latestAssistantText && <p><b>الشخصية:</b> {latestAssistantText}</p>}
+              {!latestUserText && !latestAssistantText && <p>ابدأ بسؤال مفتوح. ستسمع رد الشخصية وترى حركة فمها أثناء التحدث.</p>}
+            </div>
+            <div className="simulation-voice-input">
+              <textarea value={voiceInput} onChange={(event) => setVoiceInput(event.target.value)} rows={2} placeholder="اكتب رسالتك إذا لم يتوفر التعرف الصوتي..." />
+              <button type="button" onClick={() => void sendMessage(voiceInput)} disabled={!voiceInput.trim() || agentBusy}><Sparkles size={14} /> إرسال للشخصية</button>
+            </div>
+            {voiceError && <p className="simulation-error" role="alert">{voiceError}</p>}
+            <small className="simulation-voice-privacy">تُرسل نصوص المحادثة إلى وكيل الذكاء الاصطناعي وتُحفظ مع نتيجة التدريب للمراجعة التعليمية. لا يُحفظ الصوت الخام. لا تستخدم بيانات مرضى حقيقية.</small>
+          </div>
+
+          <div className="simulation-case-brief">
+            <div>
+              <span className="portal-chip">{activeCase.track}</span>
+              <h2>{activeCase.title}</h2>
+              <p>{activeCase.briefing}</p>
+            </div>
+            <div className="case-brief-meta"><span>{activeCase.ageGroup}</span><span>{activeCase.setting}</span></div>
+          </div>
+        </section>
+
+        <aside className="simulation-assessment-panel">
+          {!completed ? (
+            <>
+              <div className="simulation-panel-head">
+                <div><strong>مسار التقييم المهني</strong><small>المرحلة {stepIndex + 1} من {activeCase.steps.length}</small></div>
+                <b>{Math.round(answeredCount / activeCase.steps.length * 100)}%</b>
+              </div>
+              <div className="simulation-progress"><i style={{ width: (answeredCount / activeCase.steps.length * 100) + "%" }} /></div>
+              <div className="simulation-step-list">
+                {activeCase.steps.map((step, index) => (
+                  <button key={step.id} className={index === stepIndex ? "active" : answers[step.id] ? "done" : ""} onClick={() => moveToStep(index)}>
+                    <span>{answers[step.id] ? <CheckCircle2 size={15} /> : String(index + 1).padStart(2, "0")}</span>{step.title}
+                  </button>
+                ))}
+              </div>
+              <div className="simulation-current-task">
+                <span>{activeStep.focus}</span>
+                <h3>{activeStep.title}</h3>
+                <p>{activeStep.prompt}</p>
+              </div>
+              <div className="simulation-choice-list">
+                {activeStep.choices.map((choice) => (
+                  <button key={choice.id} className={answers[activeStep.id] === choice.id ? "chosen" : ""} onClick={() => choose(choice.id)}>
+                    <i />{choice.label}
+                  </button>
+                ))}
+              </div>
+              {feedback && <div className="simulation-feedback"><Sparkles size={15} /><p>{feedback}</p></div>}
+              {error && <p className="simulation-error" role="alert">{error}</p>}
+              <div className="simulation-step-actions">
+                <button className="simulation-prev" onClick={() => moveToStep(stepIndex - 1)} disabled={stepIndex === 0}>السابق</button>
+                {stepIndex < activeCase.steps.length - 1 ? (
+                  <button className="simulation-next" onClick={() => moveToStep(stepIndex + 1)}>المرحلة التالية <ArrowRight size={14} /></button>
+                ) : (
+                  <button className="simulation-next" onClick={finish} disabled={saving || listening || agentBusy || answeredCount !== activeCase.steps.length}>
+                    {saving ? "جارٍ حساب وحفظ التقييم..." : <><ClipboardCheck size={15} /> إنهاء وحفظ الجلسة</>}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="simulation-result">
+              <CheckCircle2 size={36} />
+              <span>اكتملت المحاكاة</span>
+              <strong>{savedScore}<small> / 100</small></strong>
+              <p>{savedScore !== null && savedScore >= 80 ? "أداء تدريبي متقدم. راجع الملاحظات لتعزيز المهارات." : savedScore !== null && savedScore >= 60 ? "أداء جيد مع فرص لتحسين بعض خطوات الممارسة." : "راجع التغذية الراجعة وأعد المحاكاة لتعزيز المهارات."}</p>
+              <div className="simulation-result-breakdown">
+                {activeCase.steps.map((step) => {
+                  const choice = step.choices.find((item) => item.id === answers[step.id]);
+                  return <div key={step.id}><span>{step.title}</span><b>{choice?.score ?? 0}/20</b><small>{choice?.feedback}</small></div>;
+                })}
+              </div>
+              <p className="simulation-result-dialogue">تم حفظ {conversation.length} رسالة نصية من الحوار ضمن سجل النشاط للمراجعة، دون حفظ تسجيل صوتي.</p>
+              <button className="simulation-next" onClick={restart}><RotateCcw size={15} /> إعادة المحاكاة</button>
+            </div>
+          )}
+          <div className="simulation-safety-note"><ShieldCheck size={15} /><p>{activeCase.safetyNote}</p></div>
+        </aside>
+      </div>
+
+      <div className="simulation-bottom-links">
+        <Link href="/posture">تقييم لغة الجسد <ArrowRight size={14} /></Link>
+        <Link href="/supervision">إشراف أكاديمي مباشر <ArrowRight size={14} /></Link>
+        <Link href="/competencies">ملف الكفاءات المهنية <ArrowRight size={14} /></Link>
+      </div>
+      <div className="portal-callout simulation-disclaimer">
+        <Info size={16} /> الحوار الصوتي يستخدم التعرف على الكلام والصوت المنطوق المتاحين في المتصفح، وقد تختلف جودتهما حسب النظارة والمتصفح واللغة المثبتة. تقييم الدرجة يعتمد على Rubric الحالة؛ ويُحفظ نص الحوار كدليل للمراجعة ولا يصدر حكماً مهنياً آلياً نهائياً.
+      </div>
+    </PlatformLayout>
+  );
 }
 
-export default function SimulationPage(){
-  return <Suspense fallback={<div className="simulation-stage-loading">تحميل القاعة...</div>}><SimulationWorkspace/></Suspense>;
+export default function SimulationPage() {
+  return <Suspense fallback={<div className="simulation-stage-loading">تحميل القاعة...</div>}><SimulationWorkspace /></Suspense>;
 }

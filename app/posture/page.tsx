@@ -29,10 +29,10 @@ export default function PostureAssessmentPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
+  const analyzeRef = useRef<() => void>(() => {});
   const poseRef = useRef<PoseLandmarker | null>(null);
   const faceRef = useRef<FaceLandmarker | null>(null);
   const lastVideoTime = useRef(-1);
-  const analyzeRef = useRef<() => void>(() => {});
   const lastTelemetryAt = useRef(0);
   const vrRoomRef = useRef<Room | null>(null);
   const [running, setRunning] = useState(false);

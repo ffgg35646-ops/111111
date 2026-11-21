@@ -20,8 +20,10 @@ export default function SupervisionRoomPage() {
   const [error,setError] = useState("");
 
   useEffect(()=>{
-    let frameId = 0;
-    frameId = window.requestAnimationFrame(() => {
+    let scheduledFrame = 0;
+    const deferState = (callback: () => void) => {
+      scheduledFrame = window.requestAnimationFrame(callback);
+    };
     try {
       const hash = new URLSearchParams(window.location.hash.replace(/^#/,""));
       const params = new URLSearchParams(window.location.search);
@@ -43,11 +45,11 @@ export default function SupervisionRoomPage() {
       const roomName = params.get("room") || sessionStorage.getItem("clinical-room-name");
       const role = sessionStorage.getItem("clinical-room-role");
       if(!token || !serverUrl || !roomName || (role!=="supervisor" && role!=="trainee")){
-        setError("رابط الغرفة غير صالح أو انتهت صلاحيته. اطلب رابط دعوة جديداً من المشرف الأكاديمي.");
+        deferState(() => setError("رابط الغرفة غير صالح أو انتهت صلاحيته. اطلب رابط دعوة جديداً من المشرف الأكاديمي."));
         return;
       }
 
-      setConfig({
+      deferState(() => setConfig({
         token,
         vrDeviceToken:sessionStorage.getItem("clinical-vr-device-token") || "",
         serverUrl, roomName, role,
@@ -56,12 +58,11 @@ export default function SupervisionRoomPage() {
         traineeCode:sessionStorage.getItem("clinical-trainee-code") || "",
         scenarioTitle:sessionStorage.getItem("clinical-scenario-title") || "جلسة إشراف سريري",
         inviteUrl:sessionStorage.getItem("clinical-trainee-invite") || "",
-      });
+      }));
     } catch {
-      setError("تعذر قراءة بيانات الغرفة من المتصفح.");
+      deferState(() => setError("تعذر قراءة بيانات الغرفة من المتصفح."));
     }
-    });
-    return () => window.cancelAnimationFrame(frameId);
+    return () => window.cancelAnimationFrame(scheduledFrame);
   },[]);
 
   return <main className="room-page" dir="rtl">
