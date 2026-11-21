@@ -38,7 +38,7 @@ The token is a temporary credential. Keep it in memory for the training session,
 ## Current limits — do not treat these as complete features
 
 - The native room and patient are primitive placeholders; there is no licensed realistic skeletal patient avatar, rig, facial animation, or phoneme-synchronised lip sync in this Unreal starter.
-- The native pawn has controller-based widget interaction. Hand-joint acquisition and pinch-event detection now use Unreal's OpenXR hand-tracking state API when the runtime returns valid joint positions. Pinch-to-world-UI interaction and controller-to-hand ray fallback are not yet wired, and must be tested on the chosen headset.
+- The native pawn supports both controller pointers and hand pointers. When OpenXR supplies valid hand joints, a world-space pointer follows the index fingertip; thumb-to-index pinch presses the UMG widget, and releasing the pinch releases it. If hand tracking is unavailable, the pointer deactivates and controller triggers remain available. The behavior still requires runtime testing on the target headset.
 - The web /simulation route has a separate Realtime/WebRTC full-duplex voice client with server-issued ephemeral credentials. That browser client is not embedded into this native Unreal executable. Native audio needs a dedicated Unreal audio/WebRTC integration and device test.
 - Eye gaze support is optional and off by default. It requires a runtime/device that implements **XR_EXT_eye_gaze_interaction**, permission and informed consent. The HMD direction signal is not substituted for missing eye gaze.
 - There is no eye tracking in the web or native starter. Head direction is not eye gaze and must not be reported as eye contact.
