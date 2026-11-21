@@ -91,17 +91,8 @@ export async function PATCH(request: NextRequest) {
 
     const requiresZoomMeeting = action === "approve" &&
       (record.kind === "room_rental" || record.kind === "classroom_registration");
-    if (requiresZoomMeeting) {
-      const claim = await requests.updateOne(
-        { _id: record._id, status: "pending_review" },
-        { $set: { status: "provisioning", provisioningStartedAt: new Date(), reviewedBy: "platform-admin" } },
-      );
-      if (claim.modifiedCount !== 1) {
-        return NextResponse.json({ error: "يجري التعامل مع هذا الطلب بالفعل." }, { status: 409 });
-      }
-    }
-
     let zoomMeeting: Awaited<ReturnType<typeof createZoomMeeting>> | undefined;
+
     if (requiresZoomMeeting) {
       const startTime = record.preferredAt instanceof Date
         ? record.preferredAt
@@ -113,10 +104,21 @@ export async function PATCH(request: NextRequest) {
       if (!Number.isFinite(startTime.getTime()) || startTime.getTime() < Date.now() + 5 * 60 * 1000) {
         return NextResponse.json({ error: "موعد الطلب انتهى أو لم يعد مستقبلياً. حدّث الموعد ثم حاول مجدداً." }, { status: 400 });
       }
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 480) {
+        return NextResponse.json({ error: "مدة اجتماع Zoom يجب أن تكون بين 15 و480 دقيقة." }, { status: 400 });
+      }
 
       const topic = record.kind === "room_rental"
         ? `قاعة افتراضية: ${clean(record.roomPurpose, 100) || "جلسة تدريبية"}`
         : `فصل تدريبي: ${clean(record.courseTitle, 120)}`;
+
+      const claim = await requests.updateOne(
+        { _id: record._id, status: "pending_review" },
+        { $set: { status: "provisioning", provisioningStartedAt: new Date(), reviewedBy: "platform-admin" } },
+      );
+      if (claim.modifiedCount !== 1) {
+        return NextResponse.json({ error: "يجري التعامل مع هذا الطلب بالفعل." }, { status: 409 });
+      }
 
       try {
         zoomMeeting = await createZoomMeeting({ topic, startTime, durationMinutes });
