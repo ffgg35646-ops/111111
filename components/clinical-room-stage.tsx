@@ -27,6 +27,7 @@ type ClinicalRoomStageProps = {
   onSelect: (target: string) => void;
   onRoomEvent?: (type: string, label: string) => void;
   onImmersiveChange?: (active: boolean) => void;
+  spatialTelemetryEnabled: boolean;
   realtimeStatus: "idle" | "connecting" | "live" | "error";
   realtimeMuted: boolean;
   onStartRealtimeVoice: () => void;
@@ -476,7 +477,7 @@ function VoiceBoard({
 }
 
 
-function HeadsetAssessmentTelemetry({ onRoomEvent }: { onRoomEvent?: (type: string, label: string) => void }) {
+function HeadsetAssessmentTelemetry({ onRoomEvent, enabled }: { onRoomEvent?: (type: string, label: string) => void; enabled: boolean }) {
   const lastSampleAt = useRef(0);
   const scratch = useMemo(() => ({
     head: new Vector3(),
@@ -485,7 +486,7 @@ function HeadsetAssessmentTelemetry({ onRoomEvent }: { onRoomEvent?: (type: stri
   }), []);
 
   useFrame(({ camera, gl, clock }) => {
-    if (!gl.xr.isPresenting || clock.elapsedTime - lastSampleAt.current < 5) return;
+    if (!enabled || !gl.xr.isPresenting || clock.elapsedTime - lastSampleAt.current < 5) return;
     lastSampleAt.current = clock.elapsedTime;
 
     camera.getWorldPosition(scratch.head);
@@ -505,12 +506,12 @@ function HeadsetAssessmentTelemetry({ onRoomEvent }: { onRoomEvent?: (type: stri
   return null;
 }
 
-function HandTrackingTelemetry({ onRoomEvent }: { onRoomEvent?: (type: string, label: string) => void }) {
+function HandTrackingTelemetry({ onRoomEvent, enabled }: { onRoomEvent?: (type: string, label: string) => void; enabled: boolean }) {
   const lastSampleAt = useRef(0);
   const pinchStates = useRef<Record<string, boolean>>({});
 
   useFrame(({ gl, clock }) => {
-    if (!gl.xr.isPresenting || clock.elapsedTime - lastSampleAt.current < 5) return;
+    if (!enabled || !gl.xr.isPresenting || clock.elapsedTime - lastSampleAt.current < 5) return;
 
     const xr = gl.xr as unknown as {
       getSession: () => {
@@ -589,8 +590,8 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
 
   return (
     <group>
-      <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} />
-      <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} />
+      <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
+      <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
         <planeGeometry args={[9, 8.5]} />
         <meshStandardMaterial color="#e7edef" roughness={0.92} />
