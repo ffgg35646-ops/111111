@@ -2,6 +2,9 @@
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
+#include "ClinicalVRRoomEnvironment.h"
+#include "Components/SceneComponent.h"
 #include "EyeTrackerFunctionLibrary.h"
 #include "EyeTrackerTypes.h"
 #include "GameFramework/PlayerController.h"
@@ -72,16 +75,26 @@ void UClinicalVRTelemetryComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 
 void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
 {
-    if (!PatientTarget || !GetWorld()) return;
+    if (!GetWorld()) return;
+    if (!PatientTargetComponent)
+    {
+        for (TActorIterator<AClinicalVRRoomEnvironment> It(GetWorld()); It; ++It)
+        {
+            PatientTargetComponent = It->GetPatientGazeTarget();
+            break;
+        }
+    }
+    if (!PatientTargetComponent) return;
 
     APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
     if (!PlayerController || !PlayerController->PlayerCameraManager) return;
 
     const FVector HeadLocation = PlayerController->PlayerCameraManager->GetCameraLocation();
     const FVector Forward = PlayerController->PlayerCameraManager->GetCameraRotation().Vector().GetSafeNormal();
-    const FVector ToPatient = (PatientTarget->GetActorLocation() - HeadLocation).GetSafeNormal();
+    const FVector PatientLocation = PatientTargetComponent->GetComponentLocation();
+    const FVector ToPatient = (PatientLocation - HeadLocation).GetSafeNormal();
     const float HeadAngle = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Forward, ToPatient), -1.0f, 1.0f)));
-    const float DistanceCm = FVector::Distance(HeadLocation, PatientTarget->GetActorLocation());
+    const float DistanceCm = FVector::Distance(HeadLocation, PatientLocation);
 
     TArray<TSharedPtr<FJsonObject>> Events;
     auto AddNumericEvent = [&Events](const FString& Type, const FString& Label, float Value, const FString& Unit)
@@ -122,13 +135,13 @@ void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
 
     // Eye tracking is opt-in and only emits coarse, non-identifying evidence.
     // No raw eye images, pupil measurements, or detailed gaze traces are stored.
-    if (bEnableEyeGazeTelemetry && PatientTarget && UEyeTrackerFunctionLibrary::IsEyeTrackerConnected())
+    if (bEnableEyeGazeTelemetry && bEyeGazeConsentProvided && PatientTargetComponent && UEyeTrackerFunctionLibrary::IsEyeTrackerConnected())
     {
         FEyeTrackerGazeData GazeData;
         if (UEyeTrackerFunctionLibrary::GetGazeData(GazeData) && GazeData.ConfidenceValue >= 0.35f)
         {
             const FVector GazeDirection = GazeData.GazeDirection.GetSafeNormal();
-            const FVector ToPatientFromGaze = (PatientTarget->GetActorLocation() - GazeData.GazeOrigin).GetSafeNormal();
+            const FVector ToPatientFromGaze = (PatientTargetComponent->GetComponentLocation() - GazeData.GazeOrigin).GetSafeNormal();
             const float GazeAngle = FMath::RadiansToDegrees(FMath::Acos(
                 FMath::Clamp(FVector::DotProduct(GazeDirection, ToPatientFromGaze), -1.0f, 1.0f)));
 
@@ -184,6 +197,20 @@ void UClinicalVRTelemetryComponent::PublishHandPinchInteraction(const FString& H
     TArray<TSharedPtr<FJsonObject>> Events;
     Events.Add(Event);
     SendEvents(Events);
+}
+
+void UClinicalVRTelemetryComponent::SetEyeGazeConsent(bool bConsentGiven)
+{
+    bEyeGazeConsentProvided = bEnableEyeGazeTelemetry && bConsentGiven;
+    if (bEyeGazeConsentProvided && GetWorld())
+    {
+        if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+            UEyeTrackerFunctionLibrary::SetEyeTrackedPlayer(PlayerController);
+    }
+    else
+    {
+        UEyeTrackerFunctionLibrary::SetEyeTrackedPlayer(nullptr);
+    }
 }
 
 void UClinicalVRTelemetryComponent::PublishNumericEvidence(
