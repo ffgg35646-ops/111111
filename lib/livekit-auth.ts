@@ -24,3 +24,35 @@ export async function verifyLiveKitSupervisorToken(token: string) {
 
   return { roomName: video.room, identity: payload.sub ?? "supervisor" };
 }
+
+
+export async function verifyLiveKitVrDeviceToken(token: string) {
+  const apiKey = process.env.LIVEKIT_API_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET;
+  if (!apiKey || !apiSecret) throw new Error("LiveKit credentials are not configured.");
+
+  const { payload } = await jwtVerify(token, new TextEncoder().encode(apiSecret), {
+    algorithms: ["HS256"],
+    issuer: apiKey,
+  });
+
+  const video = payload.video as Record<string, unknown> | undefined;
+  const metadata = typeof payload.metadata === "string"
+    ? JSON.parse(payload.metadata) as Record<string, unknown>
+    : {};
+
+  if (
+    !video ||
+    typeof video.room !== "string" ||
+    metadata.role !== "vr-device" ||
+    video.roomJoin !== true ||
+    video.canPublishData !== true ||
+    video.canPublish === true ||
+    video.canSubscribe === true ||
+    video.roomAdmin === true
+  ) {
+    return null;
+  }
+
+  return { roomName: video.room, identity: payload.sub ?? "vr-device" };
+}
