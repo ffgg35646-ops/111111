@@ -14,7 +14,7 @@ function humanRoomRecipients(room: Room) {
 }
 
 export type VrTelemetryEvent = {
-  type: "posture_score" | "gaze_score" | "clinical_assessment_score" | "safety_compliance_score" | "communication_score" | "active_listening_score" | "empathy_score" | "interaction_distance_cm" | "procedure_step";
+  type: "posture_score" | "gaze_score" | "clinical_assessment_score" | "safety_compliance_score" | "communication_score" | "active_listening_score" | "empathy_score" | "interaction_distance_cm" | "procedure_step" | "head_pose_sample" | "head_direction_angle_degrees" | "hand_tracking_sample" | "hand_pinch_interaction";
   label: string;
   value: number | string | boolean;
   unit?: string;
