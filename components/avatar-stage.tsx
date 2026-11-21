@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
+import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
 function LoadedModel({ url, expression, motion }: { url: string; expression: string; motion: string }) {
@@ -56,7 +56,6 @@ export default function AvatarStage({modelUrl,expression,motion}:{modelUrl:strin
     <directionalLight position={[3,5,4]} intensity={2.2} castShadow/>
     <directionalLight position={[-3,2,-2]} intensity={0.8}/>
     <Grid position={[0,-1.01,0]} args={[10,10]} cellSize={0.5} cellThickness={0.5} sectionSize={2} sectionThickness={1} fadeDistance={12} infiniteGrid/>
-    <Environment preset="studio"/>
     {modelUrl&&<Suspense fallback={null}><LoadedModel url={modelUrl} expression={expression} motion={motion}/></Suspense>}
     <OrbitControls makeDefault target={[0,0,0]} minDistance={1.3} maxDistance={7} maxPolarAngle={Math.PI/1.85}/>
   </Canvas>;
