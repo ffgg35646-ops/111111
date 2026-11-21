@@ -23,7 +23,7 @@ type Report = {
   scores:CompetencyScores;
   feedbackNotes:string;
   telemetry:{type:string;label:string;value:number|string|boolean|null;unit?:string;source?:string;occurredAt:string}[];
-  vrEvidence:{type:string;competency:string;label:string;averageScore:number;samples:number;scale:string}[];
+  vrEvidence:{type:string;competency?:string;label:string;averageScore?:number;samples:number;scale?:string;evidenceOnly?:boolean;note?:string;averageValue?:number;unit?:string}[];
   createdAt:string;
 };
 
@@ -105,7 +105,7 @@ export default function CompetenciesPage() {
             <div className="competency-report-top"><div><strong>{report.scenarioTitle}</strong><small>{new Date(report.createdAt).toLocaleString("ar-EG")}</small></div><span>{Number(report.overallScore).toFixed(2)} / 5</span></div>
             <div className="competency-report-scores">{competencies.map(item=><div key={item.key}><small>{item.label}</small><b>{report.scores[item.key]}/5</b></div>)}</div>
             {report.feedbackNotes&&<p className="competency-feedback">{report.feedbackNotes}</p>}
-            {report.vrEvidence?.length>0&&<div className="competency-vr-evidence"><strong>أدلة VR المجمعة تلقائياً</strong>{report.vrEvidence.map(item=><span key={item.type}>{item.label}: {item.averageScore}/5 · {item.samples} قياس</span>)}</div>}
+            {report.vrEvidence?.length>0&&<div className="competency-vr-evidence"><strong>أدلة VR المجمعة تلقائياً</strong>{report.vrEvidence.map(item=><span key={item.type}>{item.label}: {item.evidenceOnly ? (item.averageValue !== undefined ? item.averageValue + " " + (item.unit||"") : item.samples + " حدث") : Number(item.averageScore).toFixed(2) + "/5 · " + item.samples + " قياس"}{item.note ? " — " + item.note : ""}</span>)}</div>}
             {report.telemetry?.length>0&&<div className="competency-telemetry"><strong>مخرجات VR ({report.telemetry.length})</strong>{report.telemetry.slice(0,5).map((event,index)=><span key={index}>{event.label}: {String(event.value ?? "—")} {event.unit||""}</span>)}</div>}
             <small className="competency-report-id">رقم التقرير: {report.reportId}</small>
           </article>)}</div>
