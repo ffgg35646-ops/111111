@@ -701,7 +701,6 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
         latestAssistantText={props.latestAssistantText}
         listening={props.listening}
         busy={props.busy}
-        avatarSpeaking={props.avatarSpeaking}
         realtimeStatus={props.realtimeStatus}
         realtimeMuted={props.realtimeMuted}
         onStartRealtimeVoice={props.onStartRealtimeVoice}
