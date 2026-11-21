@@ -26,6 +26,7 @@ export type ClinicalRoomStep = {
 type ClinicalRoomStageProps = {
   onSelect: (target: string) => void;
   onRoomEvent?: (type: string, label: string) => void;
+  onImmersiveChange?: (active: boolean) => void;
   scenarioTitle: string;
   step: ClinicalRoomStep;
   stepIndex: number;
@@ -448,9 +449,12 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
     try {
       const session = await xrStore.enterVR();
       if (!session) {
+        props.onImmersiveChange?.(false);
         setXrMessage("لم يتم العثور على جلسة WebXR. افتح المنصة من متصفح النظارة المتوافق عبر HTTPS.");
         return;
       }
+      props.onImmersiveChange?.(true);
+      session.addEventListener("end", () => props.onImmersiveChange?.(false), { once: true });
       setXrMessage("تم تشغيل وضع الواقع الافتراضي. استخدم المؤشر أو وحدات التحكم لاختيار الإجابات داخل القاعة.");
     } catch (error) {
       setXrMessage(error instanceof Error ? error.message : "تعذر تشغيل وضع VR في هذا المتصفح.");

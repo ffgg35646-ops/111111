@@ -59,8 +59,13 @@ export async function POST(request: NextRequest) {
     return step && choice ? [{ stepId, choiceId, earned: choice.score, max: 20 }] : [];
   }) : [];
 
-  if (answers.length !== item.steps.length) {
-    return NextResponse.json({ error: "لم تكتمل جميع خطوات الحالة التدريبية." }, { status: 400 });
+  const answeredStepIds = new Set(answers.map((answer) => answer.stepId));
+  if (
+    answers.length !== item.steps.length ||
+    answeredStepIds.size !== item.steps.length ||
+    item.steps.some((step) => !answeredStepIds.has(step.id))
+  ) {
+    return NextResponse.json({ error: "لم تكتمل جميع خطوات الحالة التدريبية بصورة صحيحة." }, { status: 400 });
   }
 
   const earned = answers.reduce((sum, answer) => sum + answer.earned, 0);
@@ -73,7 +78,11 @@ export async function POST(request: NextRequest) {
     score: Math.round((earned / maximum) * 100),
     maximumScore: 100,
     roomEvents: normaliseRoomEvents(data.roomEvents),
-    experienceMode: data.experienceMode === "webxr-clinical-room" ? "webxr-clinical-room" : "browser-simulation",
+    experienceMode: data.experienceMode === "webxr-immersive-vr"
+      ? "webxr-immersive-vr"
+      : data.experienceMode === "browser-3d-room"
+        ? "browser-3d-room"
+        : "browser-simulation",
     completedAt: new Date(),
     learningOnly: true,
     version: 2,

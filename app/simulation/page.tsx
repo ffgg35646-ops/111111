@@ -27,7 +27,10 @@ function SimulationWorkspace() {
   const [savedScore, setSavedScore] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
+  const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([
+    { type: "room_entered", label: "بدء دخول القاعة الافتراضية", occurredAt: new Date().toISOString() },
+  ]);
+  const [immersiveMode, setImmersiveMode] = useState(false);
 
   useEffect(() => {
     const query = params.get("case");
@@ -100,7 +103,7 @@ function SimulationWorkspace() {
           caseId: activeCase.id,
           answers: activeCase.steps.map((step) => ({ stepId: step.id, choiceId: answers[step.id] })),
           roomEvents: finalRoomEvents,
-          experienceMode: "webxr-clinical-room",
+          experienceMode: immersiveMode ? "webxr-immersive-vr" : "browser-3d-room",
         }),
       });
       const result = await response.json();
@@ -139,7 +142,7 @@ function SimulationWorkspace() {
             {trainingCases.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
           </select>
         </label>
-        <div><span className="simulation-live-indicator" /> جلسة تدريبية افتراضية · لا يوجد مريض حقيقي</div>
+        <div><span className="simulation-live-indicator" /> {immersiveMode ? "النظارة داخل جلسة VR غامرة" : "معاينة ثلاثية الأبعاد · لا يوجد مريض حقيقي"}</div>
       </div>
 
       <div className="simulation-layout">
@@ -155,6 +158,7 @@ function SimulationWorkspace() {
             <ClinicalRoomStage
               onSelect={setSelectedTarget}
               onRoomEvent={recordRoomEvent}
+              onImmersiveChange={setImmersiveMode}
               scenarioTitle={activeCase.title}
               step={{
                 title: activeStep.title,
