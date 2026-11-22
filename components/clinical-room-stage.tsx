@@ -216,6 +216,23 @@ function RealisticDoctor({
 }) {
   const gltf = useGLTF(modelUrl);
   const model = gltf.scene;
+  const faceSource = useTexture("/clinic/doctor-face.jpg");
+  const facePhotoTexture = useMemo(() => {
+    const image = faceSource.image as HTMLImageElement | undefined;
+    if (!image?.width || !image?.height) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    // Crop the face from the supplied close-up reference, excluding the corridor background.
+    context.drawImage(image, 620, 82, 132, 166, 0, 0, 512, 512);
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+    return texture;
+  }, [faceSource]);
   const { actions, names, ref } = useAnimations(gltf.animations);
   const blinkRef = useRef({ next: 2.6, started: -1 });
 
@@ -264,6 +281,39 @@ function RealisticDoctor({
       base: new THREE.Euler(bone.rotation.x, bone.rotation.y, bone.rotation.z),
     }));
   }, [model]);
+
+  useEffect(() => {
+    if (!facePhotoTexture) return;
+    const head = model.getObjectByName("Head");
+    if (!head) return;
+
+    // A curved facial shell uses the original close-up photo on the live 3D head.
+    const geometry = new THREE.SphereGeometry(1.008, 64, 48, Math.PI / 2, Math.PI, 0, Math.PI);
+    const uv = geometry.attributes.uv;
+    for (let index = 0; index < uv.count; index += 1) {
+      uv.setX(index, (uv.getX(index) - 0.25) * 2);
+    }
+    uv.needsUpdate = true;
+    const material = new THREE.MeshStandardMaterial({
+      map: facePhotoTexture,
+      roughness: 0.82,
+      metalness: 0,
+      side: THREE.DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    });
+    const faceShell = new THREE.Mesh(geometry, material);
+    faceShell.name = "DoctorPhotoFaceShell";
+    faceShell.renderOrder = 2;
+    head.add(faceShell);
+
+    return () => {
+      head.remove(faceShell);
+      geometry.dispose();
+      material.dispose();
+    };
+  }, [model, facePhotoTexture]);
 
   useEffect(() => {
     const patterns = speaking || motion === "talk"
@@ -681,6 +731,311 @@ function PhotoRoomHotspot({
   );
 }
 
+
+function Clinic3DRoom({
+  onSelectTarget,
+}: {
+  onSelectTarget: (target: string, eventLabel: string) => void;
+}) {
+  const activate = (target: string, label: string) => (event: { stopPropagation: () => void }) => {
+    event.stopPropagation();
+    onSelectTarget(target, label);
+  };
+  const pointer = {
+    onPointerOver: () => { document.body.style.cursor = "pointer"; },
+    onPointerOut: () => { document.body.style.cursor = "auto"; },
+  };
+
+  return (
+    <group>
+      {/* Architectural shell */}
+      <mesh position={[0, -0.09, -1.45]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[14, 13]} />
+        <meshStandardMaterial color="#c9c3b7" roughness={0.76} />
+      </mesh>
+      <mesh position={[0, 3.02, -6.15]} receiveShadow>
+        <boxGeometry args={[14, 6.2, 0.22]} />
+        <meshStandardMaterial color="#e9e4d9" roughness={0.9} />
+      </mesh>
+      <mesh position={[-6.95, 3.02, -0.1]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <boxGeometry args={[12.1, 6.2, 0.22]} />
+        <meshStandardMaterial color="#e4dfd4" roughness={0.9} />
+      </mesh>
+      <mesh position={[6.95, 3.02, -0.1]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <boxGeometry args={[12.1, 6.2, 0.22]} />
+        <meshStandardMaterial color="#e4dfd4" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 6.12, -1.45]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[14, 12.5]} />
+        <meshStandardMaterial color="#f2f0e9" roughness={0.95} />
+      </mesh>
+
+      {/* Floor inlay and skirting */}
+      <mesh position={[0, -0.075, -1.45]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[13.7, 12.7]} />
+        <meshStandardMaterial color="#d8d2c7" roughness={0.58} />
+      </mesh>
+      <mesh position={[0, 0.08, -6.01]}>
+        <boxGeometry args={[13.8, 0.18, 0.08]} />
+        <meshStandardMaterial color="#aa9d89" roughness={0.72} />
+      </mesh>
+      <mesh position={[-6.81, 0.08, -0.05]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[11.9, 0.18, 0.08]} />
+        <meshStandardMaterial color="#aa9d89" roughness={0.72} />
+      </mesh>
+
+      {/* Rear window with real 3D mullions */}
+      <group position={[0, 3.05, -5.99]}>
+        <mesh>
+          <boxGeometry args={[4.45, 2.38, 0.11]} />
+          <meshPhysicalMaterial color="#9ebfca" roughness={0.16} metalness={0.08} transmission={0.22} transparent opacity={0.72} />
+        </mesh>
+        {[ -2.18, 0, 2.18 ].map((x) => (
+          <mesh key={x} position={[x, 0, 0.075]}>
+            <boxGeometry args={[0.075, 2.48, 0.12]} />
+            <meshStandardMaterial color="#f4f1e9" metalness={0.28} roughness={0.34} />
+          </mesh>
+        ))}
+        {[-1.17, 0, 1.17].map((y) => (
+          <mesh key={y} position={[0, y, 0.075]}>
+            <boxGeometry args={[4.5, 0.07, 0.12]} />
+            <meshStandardMaterial color="#f4f1e9" metalness={0.25} roughness={0.36} />
+          </mesh>
+        ))}
+        <mesh position={[0, -1.29, 0.08]}>
+          <boxGeometry args={[4.75, 0.16, 0.22]} />
+          <meshStandardMaterial color="#b5a48e" roughness={0.6} />
+        </mesh>
+      </group>
+
+      {/* Consultation-room sign and wall clock */}
+      <group position={[0, 4.85, -5.99]}>
+        <mesh>
+          <boxGeometry args={[2.25, 0.66, 0.08]} />
+          <meshStandardMaterial color="#f7f6ef" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 0.25, 0.05]}>
+          <boxGeometry args={[2.25, 0.08, 0.035]} />
+          <meshStandardMaterial color="#4b9c88" />
+        </mesh>
+        <CanvasLabel text="عيادة الاستشارات النفسية" position={[0, -0.03, 0.06]} size={[2.05, 0.22]} fontSize={26} color="#32564d" />
+        <CanvasLabel text="CONSULTATION ROOM" position={[0, -0.22, 0.06]} size={[1.9, 0.14]} fontSize={15} color="#687a72" />
+      </group>
+      <group position={[4.8, 4.25, -5.98]}>
+        <mesh>
+          <cylinderGeometry args={[0.34, 0.34, 0.075, 48]} />
+          <meshStandardMaterial color="#f9f7ed" roughness={0.55} />
+        </mesh>
+        <mesh position={[0, 0, 0.045]}>
+          <circleGeometry args={[0.29, 48]} />
+          <meshBasicMaterial color="#f8f6ef" />
+        </mesh>
+        <mesh position={[0, 0.11, 0.058]}>
+          <boxGeometry args={[0.018, 0.19, 0.012]} />
+          <meshBasicMaterial color="#4a514e" />
+        </mesh>
+        <mesh position={[0.08, 0, 0.06]}>
+          <boxGeometry args={[0.15, 0.018, 0.012]} />
+          <meshBasicMaterial color="#4a514e" />
+        </mesh>
+      </group>
+
+      {/* Consultation desk, drawers, monitor and keyboard */}
+      <group position={[2.95, 0, -3.65]}>
+        <mesh position={[0, 0.93, 0]} castShadow receiveShadow
+          onClick={activate("مكتب الطبيب", "تفاعل المتدرب مع سطح مكتب الطبيب وأدوات المقابلة.")} {...pointer}>
+          <boxGeometry args={[2.65, 0.16, 1.18]} />
+          <meshStandardMaterial color="#76543b" roughness={0.38} metalness={0.04} />
+        </mesh>
+        <mesh position={[0, 0.83, 0]}>
+          <boxGeometry args={[2.42, 0.045, 1.02]} />
+          <meshStandardMaterial color="#b58a62" roughness={0.48} />
+        </mesh>
+        {[-1.04, 1.04].map((x) => (
+          <mesh key={x} position={[x, 0.43, 0]} castShadow>
+            <boxGeometry args={[0.43, 0.82, 0.92]} />
+            <meshStandardMaterial color="#d9d4c8" roughness={0.72} />
+          </mesh>
+        ))}
+        {[-1.04, 1.04].map((x) => (
+          <mesh key={x} position={[x, 0.55, 0.48]}>
+            <boxGeometry args={[0.16, 0.025, 0.025]} />
+            <meshStandardMaterial color="#8c806e" metalness={0.55} roughness={0.35} />
+          </mesh>
+        ))}
+        <mesh position={[0, 1.42, -0.34]} castShadow
+          onClick={activate("الشاشة التعليمية", "تم فتح نقطة التفاعل الخاصة بشاشة الطبيب التعليمية.")} {...pointer}>
+          <boxGeometry args={[0.92, 0.58, 0.075]} />
+          <meshStandardMaterial color="#252c30" roughness={0.28} metalness={0.35} />
+        </mesh>
+        <mesh position={[0, 1.42, -0.297]}>
+          <planeGeometry args={[0.81, 0.47]} />
+          <meshBasicMaterial color="#9bbdbb" />
+        </mesh>
+        <mesh position={[0, 1.12, -0.33]}>
+          <boxGeometry args={[0.13, 0.12, 0.11]} />
+          <meshStandardMaterial color="#52595b" metalness={0.4} roughness={0.35} />
+        </mesh>
+        <mesh position={[-0.05, 1.04, 0.21]} rotation={[-0.08, 0, 0]}>
+          <boxGeometry args={[0.62, 0.025, 0.29]} />
+          <meshStandardMaterial color="#343b3e" roughness={0.58} />
+        </mesh>
+        <mesh position={[0.82, 1.035, 0.15]}>
+          <cylinderGeometry args={[0.07, 0.07, 0.018, 24]} />
+          <meshStandardMaterial color="#e8e5dc" roughness={0.5} />
+        </mesh>
+        <mesh position={[0.82, 1.13, 0.15]}>
+          <cylinderGeometry args={[0.014, 0.014, 0.18, 12]} />
+          <meshStandardMaterial color="#4c5955" metalness={0.35} roughness={0.4} />
+        </mesh>
+      </group>
+
+      {/* Doctor's ergonomic chair */}
+      <group position={[2.95, 0, -4.85]}>
+        <mesh position={[0, 0.74, 0]} castShadow>
+          <boxGeometry args={[0.76, 0.16, 0.68]} />
+          <meshStandardMaterial color="#526b70" roughness={0.62} />
+        </mesh>
+        <mesh position={[0, 1.27, -0.25]} castShadow>
+          <boxGeometry args={[0.76, 0.94, 0.15]} />
+          <meshStandardMaterial color="#526b70" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.35, 0]}>
+          <cylinderGeometry args={[0.065, 0.08, 0.64, 20]} />
+          <meshStandardMaterial color="#737b7b" metalness={0.55} roughness={0.34} />
+        </mesh>
+        <mesh position={[0, 0.06, 0]}>
+          <cylinderGeometry args={[0.34, 0.34, 0.06, 24]} />
+          <meshStandardMaterial color="#555e60" metalness={0.58} roughness={0.35} />
+        </mesh>
+        {[0, 1, 2, 3, 4].map((index) => (
+          <mesh key={index} position={[Math.cos(index * Math.PI * 2 / 5) * 0.28, 0.035, Math.sin(index * Math.PI * 2 / 5) * 0.28]}>
+            <sphereGeometry args={[0.075, 16, 12]} />
+            <meshStandardMaterial color="#353b3d" roughness={0.55} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Visitor sofa and table */}
+      <group position={[-3.15, 0, -2.6]}>
+        <mesh position={[0, 0.44, 0]} castShadow
+          onClick={activate("منطقة جلوس المراجع", "اختار المتدرب مقاعد الجلوس المخصصة للمراجع داخل العيادة.")} {...pointer}>
+          <boxGeometry args={[2.35, 0.42, 0.86]} />
+          <meshStandardMaterial color="#8b9188" roughness={0.88} />
+        </mesh>
+        <mesh position={[0, 1.02, -0.31]} castShadow>
+          <boxGeometry args={[2.35, 0.94, 0.24]} />
+          <meshStandardMaterial color="#777f78" roughness={0.9} />
+        </mesh>
+        {[-1.18, 1.18].map((x) => (
+          <mesh key={x} position={[x, 0.76, 0.02]} castShadow>
+            <boxGeometry args={[0.16, 0.82, 0.94]} />
+            <meshStandardMaterial color="#65756d" roughness={0.86} />
+          </mesh>
+        ))}
+        {[-0.72, 0, 0.72].map((x) => (
+          <mesh key={x} position={[x, 0.73, 0.06]} rotation={[0, 0, (x === 0 ? 0 : x * 0.025)]}>
+            <boxGeometry args={[0.55, 0.3, 0.72]} />
+            <meshStandardMaterial color="#a6aaa0" roughness={0.95} />
+          </mesh>
+        ))}
+        <mesh position={[0, 0.28, 0]}>
+          <boxGeometry args={[2.05, 0.12, 0.68]} />
+          <meshStandardMaterial color="#5f665f" roughness={0.8} />
+        </mesh>
+      </group>
+      <group position={[-1.6, 0, -1.28]}>
+        <mesh position={[0, 0.48, 0]} castShadow>
+          <boxGeometry args={[1.2, 0.1, 0.72]} />
+          <meshStandardMaterial color="#8b674a" roughness={0.42} />
+        </mesh>
+        {[-0.48, 0.48].map((x) => (
+          <mesh key={x} position={[x, 0.23, 0]}>
+            <boxGeometry args={[0.07, 0.46, 0.07]} />
+            <meshStandardMaterial color="#5b5147" metalness={0.18} roughness={0.55} />
+          </mesh>
+        ))}
+        <mesh position={[0, 0.57, 0]}>
+          <boxGeometry args={[0.4, 0.018, 0.25]} />
+          <meshStandardMaterial color="#f1ece0" roughness={0.9} />
+        </mesh>
+      </group>
+
+      {/* Reference library */}
+      <group position={[-5.55, 0, -4.55]}>
+        <mesh position={[0, 1.42, 0]} castShadow
+          onClick={activate("مكتبة المراجع", "اختار المتدرب مكتبة المراجع والأدوات المهنية.")} {...pointer}>
+          <boxGeometry args={[1.45, 2.85, 0.46]} />
+          <meshStandardMaterial color="#806044" roughness={0.56} />
+        </mesh>
+        {[-0.65, -0.05, 0.55, 1.15, 1.75, 2.35].map((y) => (
+          <mesh key={y} position={[0, y, 0.25]}>
+            <boxGeometry args={[1.35, 0.055, 0.5]} />
+            <meshStandardMaterial color="#bb9a72" roughness={0.56} />
+          </mesh>
+        ))}
+        {Array.from({ length: 15 }).map((_, index) => (
+          <mesh key={index} position={[-0.55 + (index % 5) * 0.27, 0.16 + Math.floor(index / 5) * 0.61, 0.12]} rotation={[0, 0, (index % 3 - 1) * 0.045]}>
+            <boxGeometry args={[0.17, 0.39 + (index % 3) * 0.05, 0.18]} />
+            <meshStandardMaterial color={["#718e83", "#b58a62", "#9c7770", "#c3b9a5"][index % 4]} roughness={0.88} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Plant and clinical side cabinet */}
+      <group position={[-5.0, 0, -1.8]}>
+        <mesh position={[0, 0.3, 0]}>
+          <cylinderGeometry args={[0.28, 0.34, 0.58, 32]} />
+          <meshStandardMaterial color="#9d876e" roughness={0.82} />
+        </mesh>
+        <mesh position={[0, 0.62, 0]}>
+          <cylinderGeometry args={[0.035, 0.06, 0.5, 12]} />
+          <meshStandardMaterial color="#6a7655" roughness={0.95} />
+        </mesh>
+        {Array.from({ length: 9 }).map((_, index) => (
+          <mesh key={index} position={[Math.sin(index * 2.4) * 0.23, 0.95 + (index % 3) * 0.12, Math.cos(index * 2.4) * 0.19]} rotation={[0.3, index, Math.cos(index) * 0.45]} scale={[0.55, 1.05, 0.23]}>
+            <sphereGeometry args={[0.32, 16, 12]} />
+            <meshStandardMaterial color={index % 2 ? "#65876b" : "#789776"} roughness={0.92} />
+          </mesh>
+        ))}
+      </group>
+      <group position={[5.4, 0, -1.8]}>
+        <mesh position={[0, 0.74, 0]} castShadow
+          onClick={activate("خزانة الأدوات", "تفاعل المتدرب مع خزانة أدوات العيادة.")} {...pointer}>
+          <boxGeometry args={[1.15, 1.45, 0.58]} />
+          <meshStandardMaterial color="#d5d3ca" roughness={0.82} />
+        </mesh>
+        <mesh position={[0, 1.52, 0]}>
+          <boxGeometry args={[1.18, 0.1, 0.62]} />
+          <meshStandardMaterial color="#9d9a8e" roughness={0.64} />
+        </mesh>
+        <mesh position={[0, 0.72, 0.31]}>
+          <boxGeometry args={[0.045, 0.16, 0.035]} />
+          <meshStandardMaterial color="#8a806e" metalness={0.55} roughness={0.35} />
+        </mesh>
+      </group>
+
+      {/* Wall art and soft architectural lighting */}
+      <group position={[6.82, 3.35, -2.65]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[1.2, 1.65, 0.09]} />
+          <meshStandardMaterial color="#b99e7e" roughness={0.65} />
+        </mesh>
+        <mesh position={[0, 0, 0.055]}>
+          <planeGeometry args={[1.06, 1.5]} />
+          <meshBasicMaterial color="#d8e2d9" />
+        </mesh>
+        <CanvasLabel text="الصحة النفسية" position={[0, 0.05, 0.07]} size={[0.95, 0.24]} fontSize={21} color="#466c61" />
+        <CanvasLabel text="رعاية · دعم · تمكين" position={[0, -0.25, 0.07]} size={[0.95, 0.2]} fontSize={16} color="#65796f" />
+      </group>
+      <mesh position={[0, 5.98, -1.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <boxGeometry args={[8.5, 0.05, 0.05]} />
+        <meshStandardMaterial color="#ded9ce" />
+      </mesh>
+    </group>
+  );
+}
+
 function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
   const lastEnteredRoom = useRef<string | null>(null);
 
@@ -708,34 +1063,7 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
       <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
       <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
 
-      <Suspense fallback={null}>
-        <PhotographicClinicBackdrop />
-      </Suspense>
-
-      <PhotoRoomHotspot
-        label="مكتب الطبيب"
-        position={[3.15, 0.95, -4.94]}
-        color="#d7a96b"
-        onClick={() => selectRoomTarget("مكتب الطبيب", "تفاعل المتدرب مع مكتب الطبيب ومكان أدوات المقابلة.")}
-      />
-      <PhotoRoomHotspot
-        label="الشاشة التعليمية"
-        position={[3.35, 2.55, -4.94]}
-        color="#4fabb0"
-        onClick={() => selectRoomTarget("الشاشة التعليمية", "فتح نقطة التفاعل الخاصة بالشاشة التعليمية ومحتوى التدريب.")}
-      />
-      <PhotoRoomHotspot
-        label="مكتبة المراجع"
-        position={[-3.35, 2.45, -4.94]}
-        color="#75a68c"
-        onClick={() => selectRoomTarget("مكتبة المراجع", "اختار المتدرب مكتبة المراجع والأدوات المهنية.")}
-      />
-      <PhotoRoomHotspot
-        label="ركن الاستقبال"
-        position={[-3.45, 0.9, -4.94]}
-        color="#b79a79"
-        onClick={() => selectRoomTarget("ركن الاستقبال", "تفاعل المتدرب مع ركن الاستقبال والجلوس.")}
-      />
+      <Clinic3DRoom onSelectTarget={selectRoomTarget} />
 
       {props.avatarModelUrl ? (
         <Suspense fallback={<DoctorAssetPending />}>
