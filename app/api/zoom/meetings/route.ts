@@ -1,19 +1,12 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createZoomMeeting } from "@/lib/zoom";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
 
-function authorized(request: NextRequest) {
-  const expected = process.env.PLATFORM_ADMIN_API_KEY;
-  const provided = request.headers.get("x-platform-admin-key") || "";
-  return Boolean(expected && expected.length >= 32 && expected.length === provided.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(provided)));
-}
-
 export async function POST(request: NextRequest) {
-  if (!authorized(request)) {
-    return NextResponse.json({ error: "إنشاء اجتماعات Zoom متاح لإدارة المنصة فقط." }, { status: 403 });
+  if (!(await requirePlatformRole(request, ["admin"]))) {
+    return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب لإنشاء اجتماعات Zoom." }, { status: 403 });
   }
 
   let body: unknown;

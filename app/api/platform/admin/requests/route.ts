@@ -1,23 +1,16 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { createZoomMeeting } from "@/lib/zoom";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
-
-function authorized(request: NextRequest) {
-  const expected = process.env.PLATFORM_ADMIN_API_KEY;
-  const provided = request.headers.get("x-platform-admin-key") || "";
-  return Boolean(expected && expected.length >= 32 && expected.length === provided.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(provided)));
-}
 
 function clean(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: "هذه القائمة متاحة لإدارة المنصة فقط." }, { status: 403 });
+  if (!(await requirePlatformRole(request, ["admin"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
 
   const status = clean(request.nextUrl.searchParams.get("status"), 30) || "pending_review";
   const kind = clean(request.nextUrl.searchParams.get("kind"), 40);
@@ -60,7 +53,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: "تعديل الطلبات متاح لإدارة المنصة فقط." }, { status: 403 });
+  if (!(await requirePlatformRole(request, ["admin"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
 
   let body: unknown;
   try {

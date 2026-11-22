@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Check, KeyRound, LoaderCircle, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Check, LoaderCircle, LogOut, RefreshCw, ShieldCheck, X } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
 type RequestRecord = {
@@ -32,32 +33,58 @@ const kindNames: Record<string,string> = {
 };
 
 export default function PlatformRequestManagementPage() {
-  const [key,setKey]=useState("");
+  const router=useRouter();
   const [requests,setRequests]=useState<RequestRecord[]>([]);
   const [notes,setNotes]=useState<Record<string,string>>({});
   const [prices,setPrices]=useState<Record<string,string>>({});
-  const [loading,setLoading]=useState(false);
+  const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState("");
   const [error,setError]=useState("");
-  const [loaded,setLoaded]=useState(false);
+  const [authenticated,setAuthenticated]=useState(false);
 
   const load=useCallback(async()=>{
     setLoading(true);setError("");
     try {
-      const response=await fetch("/api/platform/requests/admin",{headers:{"x-platform-admin-key":key},cache:"no-store"});
+      const response=await fetch("/api/platform/requests/admin",{cache:"no-store"});
       const data=await response.json();
+      if(response.status===401||response.status===403){router.replace("/login?next=/platform-admin/requests");return;}
       if(!response.ok)throw new Error(data.error||"تعذر تحميل الطلبات.");
-      setRequests(Array.isArray(data.requests)?data.requests:[]);setLoaded(true);
+      setRequests(Array.isArray(data.requests)?data.requests:[]);
+      setAuthenticated(true);
     } catch(cause){setError(cause instanceof Error?cause.message:"حدث خطأ غير متوقع.");}
     finally{setLoading(false);}
-  },[key]);
+  },[router]);
+
+  useEffect(()=>{
+    let active=true;
+    fetch("/api/auth/session",{cache:"no-store"}).then(async response=>{
+      const data=await response.json();
+      if(!active)return;
+      if(response.ok&&data.user?.role==="admin"&&!data.user?.mustChangePassword)void load();
+      else if(response.ok&&data.user?.mustChangePassword)router.replace("/account/change-password");
+      else router.replace("/login?next=/platform-admin/requests");
+    }).catch(()=>{if(active)router.replace("/login?next=/platform-admin/requests");});
+    return()=>{active=false;};
+  },[load,router]);
+
+  async function logout(){
+    await fetch("/api/auth/logout",{method:"POST"});
+    router.replace("/login");
+    router.refresh();
+  }
 
   async function review(item:RequestRecord,action:"approve"|"reject") {
-    if(action==="approve"&&item.kind==="book_order"&&!(Number(prices[item.requestId])>0)){setError("أدخل إجمالي سعر طلب الكتاب بالجنيه المصري أولاً.");return;}
+    if(action==="approve"&&item.kind==="book_order"&&!(Number(prices[item.requestId])>0)){
+      setError("أدخل إجمالي سعر طلب الكتاب بالجنيه المصري أولاً.");return;
+    }
     if(!window.confirm(action==="approve"?"تأكيد اعتماد الطلب؟ سيتم إنشاء اجتماع Zoom تلقائياً للطلبات التي تحتاج جلسة.":"تأكيد رفض الطلب؟"))return;
     setBusy(item.requestId);setError("");
     try{
-      const response=await fetch("/api/platform/requests/admin",{method:"PATCH",headers:{"Content-Type":"application/json","x-platform-admin-key":key},body:JSON.stringify({requestId:item.requestId,action,adminNote:notes[item.requestId]||"",quotedAmount:prices[item.requestId]?Number(prices[item.requestId]):undefined})});
+      const response=await fetch("/api/platform/requests/admin",{
+        method:"PATCH",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({requestId:item.requestId,action,adminNote:notes[item.requestId]||"",quotedAmount:prices[item.requestId]?Number(prices[item.requestId]):undefined}),
+      });
       const data=await response.json();
       if(!response.ok)throw new Error(data.error||"تعذر تحديث الطلب.");
       await load();
@@ -67,23 +94,22 @@ export default function PlatformRequestManagementPage() {
 
   const pending=requests.filter(item=>item.status==="pending_review");
   return <PlatformLayout title="إدارة الطلبات والحجوزات" description="مراجعة طلبات الفصول والاستشارات والقاعات وطلبات شراء الكتب من لوحة موحدة.">
-    <section className="portal-card" style={{marginBottom:18}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}><ShieldCheck size={19}/><strong>دخول إدارة الطلبات</strong></div>
-      <p style={{fontSize:12,color:"#71808d"}}>أدخل مفتاح PLATFORM_ADMIN_API_KEY. لا تحفظ الصفحة المفتاح في المتصفح أو قاعدة البيانات.</p>
-      <div style={{display:"flex",gap:9,flexWrap:"wrap"}}>
-        <input aria-label="مفتاح الإدارة" type="password" autoComplete="off" value={key} onChange={e=>setKey(e.target.value)} placeholder="مفتاح الإدارة" style={{flex:"1 1 260px",minWidth:0,padding:11,border:"1px solid #dce5e9",borderRadius:8}}/>
-        <button className="portal-button" disabled={loading||key.length<32} onClick={load}>{loading?<LoaderCircle size={15} className="spin"/>:<KeyRound size={15}/>} تحميل الطلبات</button>
-        <button className="portal-button secondary" disabled={loading||!loaded} onClick={load}><RefreshCw size={15}/> تحديث</button>
+    <section className="portal-card" style={{marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}><ShieldCheck size={19}/><strong>إدارة الطلبات بصلاحية مدير المنصة</strong></div>
+      <div style={{display:"flex",gap:8}}>
+        <button className="portal-button secondary" disabled={loading} onClick={()=>void load()}><RefreshCw size={15}/> تحديث</button>
+        <button className="portal-button secondary" onClick={()=>void logout()}><LogOut size={15}/> تسجيل الخروج</button>
       </div>
-      {error&&<p role="alert" style={{color:"#b64b48",fontSize:12,marginTop:10}}>{error}</p>}
     </section>
-    {loaded&&<div className="portal-section-title"><div><h2>طلبات قيد المراجعة ({pending.length})</h2><p>إجمالي الطلبات المعروضة: {requests.length}</p></div></div>}
-    {loaded&&requests.length===0&&<div className="portal-card"><p>لا توجد طلبات حتى الآن.</p></div>}
+    {error&&<p role="alert" style={{color:"#b64b48",fontSize:12,margin:"0 0 12px"}}>{error}</p>}
+    {loading&&!authenticated&&<div className="portal-card"><LoaderCircle size={16}/> جارٍ التحقق من صلاحية الحساب...</div>}
+    {authenticated&&<div className="portal-section-title"><div><h2>طلبات قيد المراجعة ({pending.length})</h2><p>إجمالي الطلبات المعروضة: {requests.length}</p></div></div>}
+    {authenticated&&requests.length===0&&!loading&&<div className="portal-card"><p>لا توجد طلبات حتى الآن.</p></div>}
     <div style={{display:"grid",gap:14}}>
       {requests.map(item=><article className="portal-card" key={item.requestId} style={{padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",alignItems:"center"}}>
           <div><span className="portal-chip">{kindNames[item.kind]||item.kind}</span><h3 style={{margin:"9px 0 4px"}}>{item.name}</h3><small style={{color:"#71808d"}}>{item.email}{item.phone?" · "+item.phone:""}</small></div>
-          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"?"تمت الموافقة":item.status==="rejected"?"مرفوض":"بانتظار الدفع"}</strong>
+          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"?"تمت الموافقة":item.status==="rejected"?"مرفوض":item.status==="provisioning"?"جارٍ تجهيز الاجتماع":"بانتظار الدفع"}</strong>
         </div>
         <div style={{display:"grid",gap:5,fontSize:12,color:"#536a75",marginTop:12}}>
           {item.courseTitle&&<div>الدورة: {item.courseTitle}</div>}
@@ -96,6 +122,7 @@ export default function PlatformRequestManagementPage() {
           {item.requestNote&&<div>ملاحظات: {item.requestNote}</div>}
           {item.orderNote&&<div>ملاحظة الطلب: {item.orderNote}</div>}
           {item.quotedAmount&&<div>الإجمالي: {item.quotedAmount} {item.currency||"EGP"} · حالة الدفع: {item.paymentStatus==="payment_due"?"بانتظار الدفع":item.paymentStatus||"غير محدد"}</div>}
+          {item.adminNote&&<div>ملاحظة الإدارة: {item.adminNote}</div>}
           {item.zoomMeeting?.joinUrl&&<a href={item.zoomMeeting.joinUrl} target="_blank" rel="noreferrer">رابط اجتماع Zoom</a>}
         </div>
         {item.status==="pending_review"&&<div style={{display:"grid",gap:9,marginTop:14}}>
@@ -106,7 +133,7 @@ export default function PlatformRequestManagementPage() {
             <button className="portal-button secondary" disabled={busy===item.requestId} onClick={()=>review(item,"reject")}><X size={15}/> رفض الطلب</button>
             {busy===item.requestId&&<small>جارٍ تنفيذ الإجراء...</small>}
           </div>
-          {item.kind==="book_order"&&<small style={{color:"#8a7a60"}}>اعتماد الطلب يسجل السعر ويجعله بانتظار الدفع؛ لا يوجد بوابة دفع مربوطة حالياً.</small>}
+          {item.kind==="book_order"&&<small style={{color:"#8a7a60"}}>اعتماد الطلب يسجل السعر ويجعله بانتظار الدفع؛ لا توجد بوابة دفع مهيأة في إعدادات المشروع حالياً.</small>}
         </div>}
       </article>)}
     </div>

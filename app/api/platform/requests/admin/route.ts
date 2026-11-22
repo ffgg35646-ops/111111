@@ -1,7 +1,7 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { createZoomMeeting } from "@/lib/zoom";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
 
@@ -9,15 +9,8 @@ function clean(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-function authorised(request: NextRequest) {
-  const expected = process.env.PLATFORM_ADMIN_API_KEY || "";
-  const supplied = request.headers.get("x-platform-admin-key") || "";
-  if (expected.length < 32 || supplied.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(supplied));
-}
-
 export async function GET(request: NextRequest) {
-  if (!authorised(request)) return NextResponse.json({ error: "مفتاح الإدارة غير صحيح." }, { status: 403 });
+  if (!(await requirePlatformRole(request, ["admin"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
   try {
     const db = await getClinicalDatabase();
     const records = await db.collection("platform_requests")

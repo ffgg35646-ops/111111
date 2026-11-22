@@ -1,7 +1,8 @@
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { getCaseById, practiceScales } from "@/lib/platform-catalog";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
 
@@ -15,15 +16,9 @@ const supervisorScoreKeys = [
   "professionalBoundaries",
 ] as const;
 
-function isPlatformAdmin(request: NextRequest) {
-  const expected = process.env.PLATFORM_ADMIN_API_KEY || "";
-  const supplied = request.headers.get("x-platform-admin-key") || "";
-  return expected.length >= 32 && supplied.length === expected.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied));
-}
-
 export async function GET(request: NextRequest) {
-  if (!isPlatformAdmin(request)) {
+  const reviewer = await requirePlatformRole(request, ["admin", "supervisor"]);
+  if (!reviewer) {
     return NextResponse.json({ error: "عرض تقارير المحاكاة متاح للمشرف أو إدارة المنصة فقط." }, { status: 403 });
   }
 
@@ -33,6 +28,7 @@ export async function GET(request: NextRequest) {
       .find({}, { projection: {
         _id: 0,
         activityId: 1,
+        trainee: 1,
         caseId: 1,
         caseTitle: 1,
         score: 1,
@@ -58,7 +54,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!isPlatformAdmin(request)) {
+  const reviewer = await requirePlatformRole(request, ["admin", "supervisor"]);
+  if (!reviewer) {
     return NextResponse.json({ error: "اعتماد تقييم المشرف متاح لإدارة المنصة فقط." }, { status: 403 });
   }
 
@@ -101,7 +98,8 @@ export async function PATCH(request: NextRequest) {
             overallScore,
             feedbackNotes,
             reviewedAt,
-            reviewedBy: "platform-admin",
+            reviewedBy: reviewer.userId,
+          reviewerName: reviewer.name,
             rubricVersion: 1,
           },
           "clinicalFormulation.reviewStatus": "supervisor_reviewed",
@@ -111,6 +109,10 @@ export async function PATCH(request: NextRequest) {
     if (result.matchedCount !== 1) {
       return NextResponse.json({ error: "لم يتم العثور على جلسة المحاكاة." }, { status: 404 });
     }
+    await db.collection("platform_audit_logs").insertOne({
+      action: "clinical_simulation_reviewed", actorUserId: reviewer.userId,
+      actorName: reviewer.name, activityId, overallScore, createdAt: reviewedAt,
+    }).catch((error) => console.warn("Unable to record simulation review audit event", error));
     return NextResponse.json({ success: true, activityId, overallScore, reviewedAt });
   } catch (error) {
     console.error("Unable to save supervisor review", error);
@@ -173,6 +175,9 @@ function normaliseConversationTurns(input: unknown) {
 }
 
 export async function POST(request: NextRequest) {
+  const actor = await requirePlatformRole(request, ["admin", "supervisor", "trainer", "trainee"]);
+  if (!actor) return NextResponse.json({ error: "سجّل الدخول إلى حسابك لحفظ نتيجة المحاكاة." }, { status: 401 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -273,6 +278,7 @@ export async function POST(request: NextRequest) {
   };
   const record = {
     activityId: randomUUID(),
+    trainee: { userId: actor.userId, name: actor.name, email: actor.email, role: actor.role },
     caseId: item.id,
     caseTitle: item.title,
     answers,

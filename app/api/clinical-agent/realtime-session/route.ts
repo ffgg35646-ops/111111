@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 20;
@@ -15,6 +16,9 @@ const personas: Record<string, { name: string; description: string }> = {
 };
 
 export async function POST(request: NextRequest) {
+  if (!(await requirePlatformRole(request, ["admin", "supervisor", "trainer", "trainee", "consultant"]))) {
+    return NextResponse.json({ error: "سجّل الدخول إلى حسابك قبل تشغيل الاتصال الصوتي الحي." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

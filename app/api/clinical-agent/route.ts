@@ -1,5 +1,6 @@
 import { streamText } from "ai";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -29,7 +30,10 @@ const personas: Record<string, { name: string; role: string; profile: string }> 
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  if (!(await requirePlatformRole(request, ["admin", "supervisor", "trainer", "trainee", "consultant"]))) {
+    return NextResponse.json({ error: "سجّل الدخول إلى حسابك قبل بدء المحاكاة الصوتية." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
   if (!process.env.AI_GATEWAY_API_KEY && process.env.VERCEL !== "1") {
     return NextResponse.json(
       { error: "خدمة الذكاء الاصطناعي غير مهيأة. أضف AI_GATEWAY_API_KEY إلى متغيرات البيئة." },

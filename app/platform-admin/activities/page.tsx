@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ClipboardCheck, LoaderCircle, RefreshCw, Save, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ClipboardCheck, LoaderCircle, LogOut, RefreshCw, Save, ShieldCheck } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
 const reviewFields = [
@@ -14,69 +15,47 @@ const reviewFields = [
   { key: "professionalBoundaries", label: "السلامة وحدود الاختصاص والخصوصية" },
 ] as const;
 
-type ReviewDraft = {
-  scores: Record<string, string>;
-  feedbackNotes: string;
-};
-
+type ReviewDraft = { scores: Record<string, string>; feedbackNotes: string };
 type Activity = {
-  activityId: string;
-  caseId: string;
-  caseTitle: string;
-  score: number;
-  completedAt: string;
+  activityId: string; caseId: string; caseTitle: string; score: number; completedAt: string;
+  trainee?: { name?: string; email?: string; role?: string };
   clinicalFormulation: {
-    presentingConcern: string;
-    historyAndContext: string;
-    observations: string;
-    strengths: string;
-    hypotheses: string;
-    missingInformation: string;
-    nextSteps: string;
-    selectedScaleTitle: string;
-    reviewStatus: string;
+    presentingConcern: string; historyAndContext: string; observations: string; strengths: string;
+    hypotheses: string; missingInformation: string; nextSteps: string; selectedScaleTitle: string; reviewStatus: string;
   };
   conversationTurns: { role: "user" | "assistant"; content: string }[];
   experienceMode: string;
   vrHeadTrackingSamples?: number;
   vrHandMetrics?: { samples: number; pinchInteractions: number };
-  supervisorReview?: {
-    scores: Record<string, number>;
-    overallScore: number;
-    feedbackNotes: string;
-    reviewedAt: string;
-  };
+  supervisorReview?: { scores: Record<string, number>; overallScore: number; feedbackNotes: string; reviewedAt: string };
 };
 
 function emptyDraft(): ReviewDraft {
-  return {
-    scores: Object.fromEntries(reviewFields.map((field) => [field.key, ""])),
-    feedbackNotes: "",
-  };
+  return { scores: Object.fromEntries(reviewFields.map((field) => [field.key, ""])), feedbackNotes: "" };
 }
 
 export default function SimulationActivityReviewPage() {
-  const [adminKey, setAdminKey] = useState("");
+  const router = useRouter();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
 
-  const loadActivities = async () => {
-    setLoading(true);
-    setError("");
-    setNotice("");
+  const loadActivities = useCallback(async () => {
+    setLoading(true); setError(""); setNotice("");
     try {
-      const response = await fetch("/api/platform/activities", {
-        headers: { "x-platform-admin-key": adminKey },
-        cache: "no-store",
-      });
+      const response = await fetch("/api/platform/activities", { cache: "no-store" });
       const result = await response.json();
+      if (response.status === 401 || response.status === 403) {
+        router.replace("/login?next=/platform-admin/activities");
+        return;
+      }
       if (!response.ok) throw new Error(result.error || "تعذر تحميل تقارير المحاكاة.");
       const rows: Activity[] = Array.isArray(result.activities) ? result.activities : [];
-      setActivities(rows);
+      setActivities(rows); setAuthenticated(true);
       setDrafts((current) => {
         const next = { ...current };
         for (const activity of rows) {
@@ -91,31 +70,34 @@ export default function SimulationActivityReviewPage() {
       });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر تحميل تقارير المحاكاة.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    } finally { setLoading(false); }
+  }, [router]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" }).then(async (response) => {
+      const result = await response.json();
+      if (!active) return;
+      if (!response.ok) { router.replace("/login?next=/platform-admin/activities"); return; }
+      if (result.user?.mustChangePassword) { router.replace("/account/change-password"); return; }
+      if (!["admin", "supervisor"].includes(result.user?.role)) { router.replace("/"); return; }
+      void loadActivities();
+    }).catch(() => { if (active) router.replace("/login?next=/platform-admin/activities"); });
+    return () => { active = false; };
+  }, [loadActivities, router]);
 
   const updateDraft = (activityId: string, update: Partial<ReviewDraft>) => {
-    setDrafts((current) => ({
-      ...current,
-      [activityId]: { ...emptyDraft(), ...current[activityId], ...update },
-    }));
+    setDrafts((current) => ({ ...current, [activityId]: { ...emptyDraft(), ...current[activityId], ...update } }));
   };
 
   const saveReview = async (activity: Activity) => {
     const draft = drafts[activity.activityId] || emptyDraft();
-    setSavingId(activity.activityId);
-    setError("");
-    setNotice("");
+    setSavingId(activity.activityId); setError(""); setNotice("");
     try {
       const scores = Object.fromEntries(reviewFields.map((field) => [field.key, Number(draft.scores[field.key])]));
       const response = await fetch("/api/platform/activities", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-platform-admin-key": adminKey,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activityId: activity.activityId, scores, feedbackNotes: draft.feedbackNotes }),
       });
       const result = await response.json();
@@ -124,32 +106,22 @@ export default function SimulationActivityReviewPage() {
       await loadActivities();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر حفظ مراجعة المشرف.");
-    } finally {
-      setSavingId("");
-    }
+    } finally { setSavingId(""); }
   };
 
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/login"); router.refresh();
+  }
+
   return (
-    <PlatformLayout
-      title="مراجعة تقارير المحاكاة السريرية"
-      description="افتح دراسة الحالة والحوار الذي أجراه المتدرب، ثم قيّم الأداء وفق محاور موحدة واحفظ التغذية الراجعة في سجل الجلسة."
-    >
+    <PlatformLayout title="مراجعة تقارير المحاكاة السريرية" description="افتح دراسة الحالة والحوار الذي أجراه المتدرب، ثم قيّم الأداء وفق محاور موحدة واحفظ التغذية الراجعة في سجل الجلسة.">
       <div className="portal-callout"><ShieldCheck size={16} /> لا تعرض هذه الصفحة إلا سجلات التدريب الخيالية. الدرجات تقدير إشرافي تعليمي وليست تشخيصاً أو ترخيصاً مهنياً.</div>
-      <section className="portal-card" style={{ marginBottom: 16 }}>
-        <strong style={{ display: "block", marginBottom: 8 }}>صلاحية المشرف</strong>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            type="password"
-            autoComplete="off"
-            value={adminKey}
-            onChange={(event) => setAdminKey(event.target.value)}
-            placeholder="مفتاح PLATFORM_ADMIN_API_KEY"
-            aria-label="مفتاح إدارة المنصة"
-            style={{ flex: "1 1 260px", minWidth: 0, padding: 11, border: "1px solid #dce5e9", borderRadius: 8 }}
-          />
-          <button className="portal-button" disabled={loading || adminKey.length < 32} onClick={loadActivities}>
-            {loading ? <LoaderCircle size={15} /> : <RefreshCw size={15} />} تحميل التقارير
-          </button>
+      <section className="portal-card" style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <strong>{authenticated ? "جلسة مراجعة بصلاحية مشرف أو مدير" : "جارٍ التحقق من الصلاحية..."}</strong>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="portal-button secondary" disabled={loading || !authenticated} onClick={() => void loadActivities()}>{loading ? <LoaderCircle size={15} /> : <RefreshCw size={15} />} تحديث التقارير</button>
+          <button className="portal-button secondary" onClick={() => void logout()}><LogOut size={15} /> تسجيل الخروج</button>
         </div>
       </section>
       {error && <div className="portal-callout" role="alert">{error}</div>}
@@ -161,7 +133,7 @@ export default function SimulationActivityReviewPage() {
         return (
           <article className="portal-card" key={activity.activityId} style={{ marginBottom: 14, padding: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-              <div><span className="portal-chip">{activity.clinicalFormulation?.selectedScaleTitle || "لم يحدد مقياساً"}</span><h3 style={{ margin: "9px 0 4px" }}>{activity.caseTitle}</h3><small style={{ color: "#7b8c91" }}>{new Date(activity.completedAt).toLocaleString("ar-EG")} · {activity.experienceMode === "webxr-immersive-vr" ? "VR غامر" : "غرفة ثلاثية الأبعاد"}</small></div>
+              <div><span className="portal-chip">{activity.clinicalFormulation?.selectedScaleTitle || "لم يحدد مقياساً"}</span><h3 style={{ margin: "9px 0 4px" }}>{activity.caseTitle}</h3><small style={{ color: "#7b8c91" }}>{activity.trainee?.name ? activity.trainee.name + " · " : ""}{new Date(activity.completedAt).toLocaleString("ar-EG")} · {activity.experienceMode === "webxr-immersive-vr" ? "VR غامر" : "غرفة ثلاثية الأبعاد"}</small></div>
               <div style={{ textAlign: "left" }}><strong style={{ color: "#177f75", fontSize: 22 }}>{activity.score}/100</strong><small style={{ display: "block", color: "#8a999c" }}>درجة خطوات الحالة</small><b style={{ color: reviewed ? "#237d61" : "#9a7842", fontSize: 10 }}>{reviewed ? "تمت مراجعة المشرف" : "بانتظار مراجعة المشرف"}</b></div>
             </div>
             <details style={{ marginTop: 14 }}>
@@ -199,7 +171,7 @@ export default function SimulationActivityReviewPage() {
           </article>
         );
       })}
-      {!loading && activities.length === 0 && <div className="portal-card"><p>حمّل التقارير لعرض جلسات المحاكاة التي أُكملت وحُفظت في قاعدة البيانات.</p></div>}
+      {!loading && authenticated && activities.length === 0 && <div className="portal-card"><p>لا توجد جلسات محاكاة محفوظة بعد.</p></div>}
     </PlatformLayout>
   );
 }

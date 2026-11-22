@@ -26,6 +26,7 @@ export default function SupervisionPage() {
         body:JSON.stringify({supervisorName,traineeName,traineeCode,scenarioTitle,accessCode}),
       });
       const result = await response.json();
+      if(response.status===401){router.replace("/login?next=/supervision");throw new Error(result.error || "سجّل الدخول بحساب مشرف أو مدرب أولاً.");}
       if(!response.ok) throw new Error(result.error || "تعذر إنشاء الغرفة.");
       const inviteUrl = new URL("/supervision/room",window.location.origin);
       inviteUrl.hash = new URLSearchParams({

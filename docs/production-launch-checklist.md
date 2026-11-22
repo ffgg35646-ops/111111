@@ -12,6 +12,7 @@ This document distinguishes code already present from services and hardware that
 - LiveKit room creation, participant tokens, shared supervision UI, and VR telemetry/data-channel bridge.
 - Zoom Server-to-Server OAuth meeting creation and request queue integration.
 - MongoDB persistence for learning activities, requests, certificates, Zoom meetings, and competency reports.
+- Individual account foundation with admin-managed roles, scrypt password hashes, signed HttpOnly sessions, forced first-login password change, and account audit events.
 
 ## Required environment variables
 Copy .env.example to .env.local locally and configure the same values in the production environment. Never commit real secrets.
@@ -20,7 +21,7 @@ Copy .env.example to .env.local locally and configure the same values in the pro
 - LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET.
 - SUPERVISION_TOKEN_SECRET (32+ characters).
 - SUPERVISION_ACCESS_CODE (32+ characters; share only with authorized supervisors).
-- PLATFORM_ADMIN_API_KEY (32+ characters).
+- PLATFORM_SESSION_SECRET (32+ random characters), PLATFORM_ADMIN_EMAIL, PLATFORM_ADMIN_PASSWORD_HASH (generate locally with `node scripts/hash-platform-password.mjs`).
 - AI_GATEWAY_API_KEY; optional CLINICAL_AI_MODEL.
 - OPENAI_API_KEY for the direct Realtime voice-session endpoint; optional CLINICAL_REALTIME_MODEL. The AI Gateway key does not replace this credential in that endpoint.
 Generate independent random values for each secret. Do not reuse database, Zoom, or LiveKit credentials as application secrets.
@@ -36,7 +37,7 @@ A native Unreal/OpenXR deliverable still requires a separate Unreal project, pac
 The current clinical agent is turn-based and text-streaming. Browser speech recognition and speech synthesis vary by browser, operating system, language pack, and device. Full-duplex low-latency speech requires a realtime audio service/agent, interruption handling, echo cancellation, reconnect behavior, and tests on target headsets. Do not describe the current browser implementation as continuous live voice.
 
 ## Before public production use
-1. Implement individual accounts, verified email, MFA for administrators, role-based authorization, session revocation, and audit logs. The shared supervision code is only an interim gate.
+1. Configure the individual account layer and bootstrap administrator credentials. Role-based authorization, scrypt password hashes, HttpOnly sessions, first-login password changes, account activation/deactivation, and account audit records exist in the repository. Before production, add verified email, administrator MFA, institutional SSO, session revocation, and distributed rate limiting. The shared supervision code remains an additional gate.
 2. Add request throttling and abuse protection to AI and room-creation endpoints.
 3. Configure MongoDB indexes, backups, retention, and access policies.
 4. Complete payment provider onboarding and webhook signature verification before accepting payments.

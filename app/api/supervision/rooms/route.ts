@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { AccessToken, LiveKitAPI } from "livekit-server-sdk";
 import { issueSupervisorSession, supervisorCookieOptions, readSupervisorSession } from "@/lib/supervision-session";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,9 @@ function validAccessCode(supplied: string) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await requirePlatformRole(request, ["admin", "supervisor", "trainer"]))) {
+    return NextResponse.json({ error: "يلزم تسجيل الدخول بحساب مشرف أو مدرب مخوّل لإنشاء غرفة إشراف." }, { status: 401 });
+  }
   const livekitUrl = process.env.LIVEKIT_URL;
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;

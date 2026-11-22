@@ -42,6 +42,7 @@ const routeByLabel: Record<string,string> = {
   "تأجير قاعات Zoom": "/room-rental",
   "إدارة الطلبات والحجوزات": "/platform-admin/requests",
   "مراجعة تقارير المحاكاة": "/platform-admin/activities",
+  "المتدربون والمختصون": "/platform-admin/users",
 };
 
 const stats = [
@@ -89,7 +90,7 @@ export default function HomePage() {
         <div className="topbar-actions">
           <label className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="ابحث في المنصة..."/></label>
           <button className="icon-button notification-button" aria-label="الإشعارات"><Bell size={19}/><i/></button>
-          <div className="admin-profile"><div className="avatar">م</div><div><strong>مدير المنصة</strong><span>واجهة أولية — الدخول الفعلي قيد البناء</span></div></div>
+          <a className="admin-profile" href="/login" style={{ textDecoration: "none", color: "inherit" }}><div className="avatar">د</div><div><strong>دخول المنصة</strong><span>حسابات وصلاحيات مستقلة</span></div></a>
         </div>
       </header>
 
@@ -112,13 +113,13 @@ export default function HomePage() {
 
         <div className="content-grid">
           <section className="panel activity-panel">
-            <div className="panel-heading"><div><h2>مسار العمل التالي</h2><p>الأجزاء التي يلزم بناؤها وربطها قبل التشغيل الفعلي</p></div><span className="roadmap-tag">تأسيس المشروع</span></div>
+            <div className="panel-heading"><div><h2>مسار تشغيل المنظومة</h2><p>الوحدات الأساسية وما يتطلب ربطاً واعتماداً قبل الإطلاق</p></div><span className="roadmap-tag">خطة التشغيل</span></div>
             {[
-              ["تأسيس تسجيل الدخول والصلاحيات","مدير المنصة، الدكتور، المشرف، المدرب، المتدرب"],
-              ["محرر الحالات السريرية","المعلومات الأساسية، التاريخ، الأهداف، السيناريو، معايير التقييم"],
-              ["محرر الشخصيات الافتراضية","الصوت، اللهجة، الشخصية، الخلفية، المعرفة، السلوك الحواري"],
-              ["محرك المحادثة التفاعلية","صوت مباشر، ذاكرة سياقية، استجابات غير محفوظة، ضوابط أمان"],
-            ].map(([title,desc])=><div className="activity-row" key={title}><div className="activity-symbol"><FileText size={18}/></div><div className="activity-main"><strong>{title}</strong><span>{desc}</span></div><span className="status-pill status-muted">لم يبدأ</span></div>)}
+              ["الحسابات والأدوار","دخول آمن وحسابات منفصلة للمدير والمشرف والمدرب والمتدرب والمستشار"],
+              ["دراسة الحالة والتقييم","جمع المعلومات والفرضيات ونقاط القوة والمعلومات الناقصة ومراجعة المشرف"],
+              ["الشخصيات السريرية التفاعلية","شخصيات ثلاثية الأبعاد ومحادثة سياقية بالصوت والنص"],
+              ["المحاكاة والإشراف","WebXR داخل المتصفح وغرف LiveKit وقياسات VR وتقارير الكفاءات"],
+            ].map(([title,desc])=><div className="activity-row" key={title}><div className="activity-symbol"><FileText size={18}/></div><div className="activity-main"><strong>{title}</strong><span>{desc}</span></div><span className="status-pill status-green">وحدة مضافة</span></div>)}
           </section>
           <section className="panel quick-panel">
             <div className="panel-heading"><div><h2>اختصارات الإدارة</h2><p>أقسام الإدارة الأساسية</p></div></div>
@@ -132,10 +133,10 @@ export default function HomePage() {
         </div>
 
         <section className="panel roadmap-panel">
-          <div className="panel-heading"><div><h2>وحدات المنظومة المستهدفة</h2><p>هذه خريطة نطاق العمل وليست خصائص مكتملة بعد</p></div></div>
+          <div className="panel-heading"><div><h2>وحدات المنظومة</h2><p>الوصول إلى وحدات التعلم والتدريب والخدمات والمحاكاة</p></div></div>
           <div className="module-chips">{modules.map(([Icon,label])=><span key={label}><Icon size={16}/>{label}</span>)}</div>
         </section>
-        <footer className="page-footer">منصة التدريب والمحاكاة السريرية <span>•</span> مساحة الإدارة</footer>
+        <footer className="page-footer">منصة التدريب والمحاكاة السريرية <span>•</span> مساحة الإدارة <span>•</span> <a href="/platform-admin/users">إدارة الحسابات</a></footer>
       </div>
     </section>
   </main>;

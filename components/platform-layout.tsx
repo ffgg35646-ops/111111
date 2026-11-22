@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpLeft, BookOpen, Brain, ClipboardList, FileBadge, GraduationCap, HeartHandshake, Library, Video } from "lucide-react";
+import { Activity, ArrowUpLeft, BookOpen, Brain, ClipboardList, FileBadge, Glasses, GraduationCap, HeartHandshake, Library, ShieldCheck, Video } from "lucide-react";
 
 const navigation = [
   { href: "/specialties", label: "المسارات التخصصية", icon: Brain },
@@ -13,6 +13,11 @@ const navigation = [
   { href: "/consultations", label: "الاستشارات", icon: HeartHandshake },
   { href: "/books", label: "الكتب", icon: Library },
   { href: "/certificates", label: "الشهادات", icon: FileBadge },
+  { href: "/simulation", label: "محاكاة VR", icon: Glasses },
+  { href: "/supervision", label: "الإشراف المباشر", icon: Activity },
+  { href: "/competencies", label: "الكفاءات المهنية", icon: ShieldCheck },
+  { href: "/room-rental", label: "تأجير القاعات", icon: Video },
+  { href: "/login", label: "تسجيل الدخول", icon: ShieldCheck },
 ];
 
 export function PlatformLayout({
