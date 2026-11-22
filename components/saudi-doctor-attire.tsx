@@ -61,7 +61,8 @@ function makeClothPanel(width: number, height: number, material: THREE.Material)
   return mesh;
 }
 
-function buildSaudiDoctorAttire(model: THREE.Object3D) {
+function buildSaudiDoctorAttire(modelValue: unknown) {
+  const model = modelValue as THREE.Object3D;
   model.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(model);
   const size = bounds.getSize(new THREE.Vector3());
@@ -248,7 +249,7 @@ function buildSaudiDoctorAttire(model: THREE.Object3D) {
   return group;
 }
 
-export function SaudiDoctorAttire({ model }: { model: THREE.Object3D }) {
+export function SaudiDoctorAttire({ model }: { model: unknown }) {
   const attire = useMemo(() => buildSaudiDoctorAttire(model), [model]);
 
   useEffect(() => () => {
