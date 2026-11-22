@@ -32,8 +32,6 @@ export default function PlatformUsersPage() {
   const [success, setSuccess] = useState("");
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
     try {
       const response = await fetch("/api/platform/users", { cache: "no-store" });
       const data = await response.json();
@@ -105,7 +103,7 @@ export default function PlatformUsersPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}><ShieldCheck size={19}/><strong>إدارة حسابات المنصة</strong></div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="portal-button secondary" type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={14}/> تحديث</button>
+            <button className="portal-button secondary" type="button" onClick={() => { setLoading(true); setError(""); void load(); }} disabled={loading}><RefreshCw size={14}/> تحديث</button>
             <button className="portal-button secondary" type="button" onClick={() => void logout()}>تسجيل الخروج</button>
           </div>
         </div>
