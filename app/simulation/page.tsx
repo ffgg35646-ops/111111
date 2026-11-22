@@ -192,7 +192,18 @@ function SimulationWorkspace() {
     ].join("\n").slice(0, 2600);
   }, [activeCase.track]);
 
+  const activeRoom = clinicalRooms.find((room) => room.id === activeRoomId) ?? clinicalRooms[0];
+  const roomTrainingFocus = activeRoomId === "autism"
+    ? "غرفة طيف التوحد: استخدم لغة واضحة وبسيطة، وناقش التواصل الوظيفي والدعم البصري والحسي واحترام الاختلافات الفردية."
+    : activeRoomId === "cbt"
+      ? "غرفة العلاج المعرفي السلوكي: درّب المتعلم على العلاقة بين الموقف والفكرة والانفعال والسلوك، والأسئلة السقراطية وإعادة التقييم."
+      : activeRoomId === "developmental"
+        ? "غرفة التقييم النمائي: ركّز على التاريخ النمائي والمهارات التكيفية والملاحظة متعددة المصادر وحدود المقاييس والإحالة."
+        : "غرفة الخدمة الاجتماعية: ركّز على المقابلة المهنية والتقدير البيئي والأسري ونقاط القوة والموارد وخطة التدخل.";
   const voiceScenario = useMemo(() => [
+    "الغرفة الحالية: " + activeRoom.title + ". " + roomTrainingFocus,
+    "الجلسة فردية وخاصة: المتدرب وحده مع الطبيب الافتراضي داخل الغرفة، ولا يوجد متدربون أو أصوات مشاركين آخرين.",
+    "ابدأ بتحية طبيعية موجزة ثم اسأل المتدرب عما يريد البدء به. لا تلقِ محاضرة طويلة؛ تحاور معه وجهاً لوجه بالصوت، وانتظر إجابته، واسأل سؤالاً واحداً في كل مرة.",
     "الهوية الثابتة للمتحدث: الطبيب النفسي الافتراضي السعودي. أنت الطبيب والمدرب والمشرف، ولست المريض أو أحد أفراد أسرته.",
     "مهمتك: تعليم المتدرب مهارات المقابلة ودراسة الحالة وفهم المقاييس والتفكير الإكلينيكي المسؤول، مع شرح عملي وتغذية راجعة.",
     "عنوان الحالة التدريبية: " + activeCase.title,
@@ -204,7 +215,7 @@ function SimulationWorkspace() {
     "المحتوى العلمي الموجود في فهرس المنصة لهذا المجال:",
     platformKnowledge,
     "قواعد مهمة: استخدم محتوى المنصة المرفق، ولا تدّع الاطلاع على مواد أخرى غير مرفقة. لا تخترع تفاصيل حالة أو نتائج مقاييس أو مراجع. ميّز بين الملاحظة والفرضية والدليل، ولا تصدر تشخيصاً رسمياً أو علاجاً لحالة حقيقية. اسأل المتدرب سؤالاً واحداً في كل خطوة عند التدريب التفاعلي.",
-  ].join("\n").slice(0, 4800), [activeCase, platformKnowledge]);
+  ].join("\n").slice(0, 4800), [activeCase, platformKnowledge, activeRoom, activeRoomId, roomTrainingFocus]);
 
   const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || DEFAULT_DOCTOR_AVATAR_MODEL_URL;
   const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
