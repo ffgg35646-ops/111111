@@ -61,10 +61,41 @@ function makeClothPanel(width: number, height: number, material: THREE.Material)
   return mesh;
 }
 
+type SourceBounds = {
+  min: { x: number; y: number; z: number };
+  max: { x: number; y: number; z: number };
+};
+
+type SourceModel = {
+  updateMatrixWorld: (force?: boolean) => void;
+  traverse: (callback: (object: {
+    isMesh?: boolean;
+    geometry?: {
+      boundingBox: SourceBounds | null;
+      computeBoundingBox: () => void;
+    };
+    matrixWorld?: unknown;
+  }) => void) => void;
+};
+
 function buildSaudiDoctorAttire(modelValue: unknown) {
-  const model = modelValue as THREE.Object3D;
+  const model = modelValue as SourceModel;
   model.updateMatrixWorld(true);
-  const bounds = new THREE.Box3().setFromObject(model);
+  const bounds = new THREE.Box3();
+  model.traverse((object) => {
+    if (!object.isMesh || !object.geometry) return;
+    if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+    const sourceBounds = object.geometry.boundingBox;
+    if (!sourceBounds || !object.matrixWorld) return;
+    const matrix = object.matrixWorld as THREE.Matrix4;
+    for (const x of [sourceBounds.min.x, sourceBounds.max.x]) {
+      for (const y of [sourceBounds.min.y, sourceBounds.max.y]) {
+        for (const z of [sourceBounds.min.z, sourceBounds.max.z]) {
+          bounds.expandByPoint(new THREE.Vector3(x, y, z).applyMatrix4(matrix));
+        }
+      }
+    }
+  });
   const size = bounds.getSize(new THREE.Vector3());
   const center = bounds.getCenter(new THREE.Vector3());
   const height = Math.max(size.y, 1.35);
