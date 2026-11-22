@@ -69,7 +69,7 @@ function buildSaudiDoctorAttire(model: THREE.Object3D) {
   const height = Math.max(size.y, 1.35);
   const baseY = bounds.min.y + height * 0.018;
   const robeHeight = height * 0.765;
-  const frontZ = center.z + Math.max(size.z * 0.22, height * 0.095);
+  const frontZ = center.z + Math.max(size.z * 0.48, height * 0.145);
   const group = new THREE.Group();
   group.name = "SCD01_Saudi_Doctor_Attire";
 
@@ -229,8 +229,8 @@ function buildSaudiDoctorAttire(model: THREE.Object3D) {
   group.add(cap);
 
   [-1, 1].forEach((side) => {
-    const tail = makeClothPanel(height * 0.17, height * 0.39, shemaghMaterial);
-    tail.position.set(center.x + side * height * 0.075, headTop - height * 0.245, center.z + height * 0.018);
+    const tail = makeClothPanel(height * 0.17, height * 0.27, shemaghMaterial);
+    tail.position.set(center.x + side * height * 0.075, headTop - height * 0.155, center.z + height * 0.018);
     tail.rotation.y = side * 0.17;
     tail.rotation.z = side * -0.07;
     group.add(tail);
