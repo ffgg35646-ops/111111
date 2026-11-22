@@ -167,7 +167,16 @@ export default function CharactersPage() {
           </section>
         )}
 
-        <section className="avatar-next-steps">
+<section className="avatar-reference-gallery" aria-label="مراجع هوية الطبيب السعودي">
+          <div className="avatar-reference-heading"><div><span>SAUDI DOCTOR IDENTITY</span><h2>مراجع الشخصية المعتمدة</h2><p>الصور الثلاث المرفوعة للمشروع: الجسم الكامل من الأمام، الظهر، والوجه. تُستخدم للحفاظ على هوية واحدة عند تجهيز المجسم البشري النهائي.</p></div><span className="avatar-reference-count">3 مراجع أصلية</span></div>
+          <div className="avatar-reference-grid">
+            <figure><img src="/Gemini_Generated_Image_ra23zcra23zcra23.jpg" alt="الطبيب السعودي بالزي الرسمي من الأمام بكامل الجسم" /><figcaption><strong>المنظور الأمامي</strong><small>الجسم الكامل والزي السعودي والمعطف الطبي</small></figcaption></figure>
+            <figure><img src="/Gemini_Generated_Image_3wt3653wt3653wt3.jpg" alt="الطبيب السعودي من الخلف" /><figcaption><strong>المنظور الخلفي</strong><small>تفاصيل الثوب والشماغ والهيئة الخلفية</small></figcaption></figure>
+            <figure><img src="/Gemini_Generated_Image_pp65izpp65izpp65.jpg" alt="لقطة قريبة لوجه الطبيب السعودي" /><figcaption><strong>مرجع الوجه</strong><small>ملامح الوجه والهوية البصرية للشخصية</small></figcaption></figure>
+          </div>
+        </section>
+
+                <section className="avatar-next-steps">
           <div><Sparkles size={18} /><div><strong>ربط الطبيب بالمحاكاة</strong><p>يُستخدم ملف الطبيب نفسه في غرفة المتصفح وعميل Unreal VR، بينما تتغير الحالة والمادة العلمية فقط.</p></div></div>
           <button onClick={() => setShowSpecs(true)}><SlidersHorizontal size={16} /> مواصفات الموديل</button>
         </section>
