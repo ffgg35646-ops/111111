@@ -254,6 +254,7 @@ function RealisticDoctor({
   }>>([]);
   const headBoneRef = useRef<THREE.Bone | null>(null);
   const jawObjectRef = useRef<THREE.Object3D | null>(null);
+  const gestureArmsRef = useRef<Array<{ object: THREE.Object3D; base: THREE.Euler; side: number }>>([]);
   const headObjectRef = useRef<THREE.Object3D | null>(null);
   const headBaseRef = useRef<THREE.Euler | null>(null);
   const eyeBonesRef = useRef<Array<{ bone: THREE.Bone; base: THREE.Euler }>>([]);
@@ -278,6 +279,7 @@ function RealisticDoctor({
         });
       }
       if (/^jaw$/i.test(object.name)) jawObjectRef.current = object;
+      if (/^(left|right)_arm$/i.test(object.name)) gestureArmsRef.current.push({ object, base: new THREE.Euler(object.rotation.x, object.rotation.y, object.rotation.z), side: /^left/i.test(object.name) ? -1 : 1 });
       if (/^head$/i.test(object.name)) headObjectRef.current = object;
       const bone = object as THREE.Bone;
       if (bone.isBone && /left.?eye|right.?eye/i.test(bone.name)) bones.push(bone);
@@ -326,9 +328,19 @@ function RealisticDoctor({
       );
     }
     if (headObjectRef.current && !headBoneRef.current) {
+      const attentiveNod = motion === "listen" ? Math.sin(elapsed * 1.15) * 0.035 : 0;
+      headObjectRef.current.rotation.x = THREE.MathUtils.damp(headObjectRef.current.rotation.x, attentiveNod, 5, delta);
       headObjectRef.current.rotation.y = Math.sin(elapsed * 0.29) * 0.025;
       headObjectRef.current.rotation.z = Math.sin(elapsed * 0.23) * 0.008;
     }
+    // Restrained hand gestures use the named arm nodes in the bundled doctor model.
+    gestureArmsRef.current.forEach(({ object, base, side }) => {
+      const talkingGesture = speaking || motion === "talk";
+      const targetX = base.x + (talkingGesture ? Math.sin(elapsed * 3.1 + side) * 0.075 : 0);
+      const targetZ = base.z + (talkingGesture ? side * (0.035 + Math.max(0, Math.sin(elapsed * 2.1)) * 0.09) : 0);
+      object.rotation.x = THREE.MathUtils.damp(object.rotation.x, targetX, 5, delta);
+      object.rotation.z = THREE.MathUtils.damp(object.rotation.z, targetZ, 5, delta);
+    });
 
     for (const mesh of faceMeshesRef.current) {
       const dictionary = mesh.morphTargetDictionary;
