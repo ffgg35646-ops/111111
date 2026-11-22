@@ -48,7 +48,27 @@ export default function PlatformUsersPage() {
     }
   }, [router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/platform/users", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!active) return;
+        if (response.status === 401 || response.status === 403) {
+          router.replace("/login?next=/platform-admin/users");
+          return;
+        }
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل الحسابات.");
+        setUsers(Array.isArray(data.users) ? data.users : []);
+      })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : "تعذر تحميل الحسابات.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [router]);
 
   async function createUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
