@@ -472,7 +472,7 @@ function SimulationWorkspace() {
           roomEvents: finalRoomEvents,
           conversationTurns: conversationRef.current,
           experienceMode: immersiveMode ? "webxr-immersive-vr" : "browser-3d-room",
-          avatarModelSource: uploadedAvatarUrl ? "custom-glb" : defaultAvatarModelUrl ? "library-avatar" : "age-appropriate-model-required",
+          avatarModelSource: uploadedAvatarUrl ? "custom-glb" : defaultAvatarModelUrl ? "library-avatar" : "doctor-model-not-configured",
         }),
       });
       const result = await response.json();
