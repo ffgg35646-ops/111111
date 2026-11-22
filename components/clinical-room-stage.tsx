@@ -316,11 +316,13 @@ function RealisticDoctor({
       const influences = mesh.morphTargetInfluences;
       const jawIndex = dictionary.jawOpen ?? dictionary.JawOpen ?? dictionary.mouthOpen ?? dictionary["mouth-open"];
       if (jawIndex !== undefined) {
+        // eslint-disable-next-line react-hooks/immutability -- Three.js morph weights are updated in the render loop, not React state.
         influences[jawIndex] = THREE.MathUtils.damp(influences[jawIndex] ?? 0, jawTarget, 13, delta);
       }
       for (const name of ["eyeBlinkLeft", "eyeBlinkRight"]) {
         const index = dictionary[name];
         if (index !== undefined) {
+          // eslint-disable-next-line react-hooks/immutability -- Three.js morph weights are updated in the render loop, not React state.
           influences[index] = THREE.MathUtils.damp(influences[index] ?? 0, blinkWeight, 20, delta);
         }
       }
