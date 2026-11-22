@@ -654,6 +654,28 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
     <group>
       <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
       <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
+      {props.roomId === "autism" ? (
+        <group position={[-2.8, 0.08, 1.8]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.82, 40]} /><meshStandardMaterial color="#d8c8a8" roughness={0.95} /></mesh>
+          {[-0.42, 0, 0.42].map((x, index) => <mesh key={index} position={[x, 0.22, 0]} castShadow><boxGeometry args={[0.28, 0.42, 0.28]} /><meshStandardMaterial color={index === 0 ? "#9db9a5" : index === 1 ? "#d9c69c" : "#9db4c4"} /></mesh>)}
+          <CanvasLabel text="أدوات بصرية وحسية" position={[0, 1.2, -0.02]} size={[1.8, 0.22]} fontSize={24} color="#8d7757" />
+        </group>
+      ) : props.roomId === "cbt" ? (
+        <group position={[-3.25, 1.55, -3.85]}>
+          <mesh><boxGeometry args={[1.45, 1.05, 0.08]} /><meshStandardMaterial color="#dce8f0" /></mesh>
+          <CanvasLabel text="الفكرة · الشعور · السلوك" position={[0, 0.1, 0.06]} size={[1.3, 0.48]} fontSize={25} color="#527d9b" />
+        </group>
+      ) : props.roomId === "developmental" ? (
+        <group position={[-3.1, 0.15, 1.65]}>
+          {[-0.36, 0, 0.36].map((x, index) => <mesh key={index} position={[x, 0.32, 0]} castShadow><boxGeometry args={[0.3, 0.62, 0.3]} /><meshStandardMaterial color={index === 0 ? "#a9c5a7" : index === 1 ? "#d7c89f" : "#a9bdca"} /></mesh>)}
+          <CanvasLabel text="ملاحظة المهارات التكيفية" position={[0, 1.0, 0]} size={[2.0, 0.22]} fontSize={22} color="#62866c" />
+        </group>
+      ) : (
+        <group position={[-3.3, 1.55, -3.85]}>
+          <mesh><boxGeometry args={[1.5, 1.05, 0.08]} /><meshStandardMaterial color="#e3eeea" /></mesh>
+          <CanvasLabel text="الأسرة · البيئة · الموارد" position={[0, 0.1, 0.06]} size={[1.35, 0.45]} fontSize={24} color="#4e8a7e" />
+        </group>
+      )}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
         <planeGeometry args={[9, 8.5]} />
         <meshStandardMaterial color={roomPalette.floor} roughness={0.92} />
