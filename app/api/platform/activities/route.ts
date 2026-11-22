@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
       ? "custom-glb"
       : data.avatarModelSource === "library-avatar"
         ? "library-avatar"
-        : "age-appropriate-model-required",
+        : "doctor-model-not-configured",
     experienceMode: data.experienceMode === "webxr-immersive-vr"
       ? "webxr-immersive-vr"
       : data.experienceMode === "browser-3d-room"
