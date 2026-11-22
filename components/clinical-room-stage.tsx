@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
+import { OrbitControls, useAnimations, useGLTF, useTexture } from "@react-three/drei";
 import { createXRStore, IfInSessionMode, XR } from "@react-three/xr";
 import * as THREE from "three";
 import { CanvasTexture, SRGBColorSpace, Vector3 } from "three";
@@ -180,35 +180,6 @@ function WorldButton({
         fontSize={27}
         color={disabled ? "#91a2a6" : "#ffffff"}
       />
-    </group>
-  );
-}
-
-function Chair({
-  position,
-  rotation = 0,
-  tone = "#547984",
-}: {
-  position: [number, number, number];
-  rotation?: number;
-  tone?: string;
-}) {
-  return (
-    <group position={position} rotation={[0, rotation, 0]}>
-      <mesh position={[0, 0.52, 0]} castShadow>
-        <boxGeometry args={[0.68, 0.12, 0.68]} />
-        <meshStandardMaterial color={tone} />
-      </mesh>
-      <mesh position={[0, 0.95, -0.28]} castShadow>
-        <boxGeometry args={[0.68, 0.82, 0.1]} />
-        <meshStandardMaterial color={tone} />
-      </mesh>
-      {[[-0.25, 0.23, -0.24], [0.25, 0.23, -0.24], [-0.25, 0.23, 0.24], [0.25, 0.23, 0.24]].map((point, index) => (
-        <mesh key={index} position={point as [number, number, number]} castShadow>
-          <cylinderGeometry args={[0.035, 0.035, 0.46, 10]} />
-          <meshStandardMaterial color="#63747c" />
-        </mesh>
-      ))}
     </group>
   );
 }
@@ -645,217 +616,140 @@ function HandTrackingTelemetry({ onRoomEvent, enabled }: { onRoomEvent?: (type: 
   return null;
 }
 
+function PhotographicClinicBackdrop() {
+  const texture = useTexture("/clinic/clinic-room-reference.png");
+
+  useEffect(() => {
+    texture.colorSpace = SRGBColorSpace;
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+  }, [texture]);
+
+  const image = texture.image as { width?: number; height?: number } | undefined;
+  const aspect = image?.width && image?.height ? image.width / image.height : 16 / 9;
+  const height = 12;
+  const width = height * aspect;
+
+  return (
+    <mesh position={[0, 1.65, -5.35]}>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial map={texture} toneMapped={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+function PhotoRoomHotspot({
+  label,
+  position,
+  color,
+  onClick,
+}: {
+  label: string;
+  position: [number, number, number];
+  color: string;
+  onClick: () => void;
+}) {
+  return (
+    <group position={position}>
+      <mesh
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick();
+        }}
+        onPointerOver={() => { document.body.style.cursor = "pointer"; }}
+        onPointerOut={() => { document.body.style.cursor = "auto"; }}
+      >
+        <circleGeometry args={[0.23, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0, 0.012]}>
+        <ringGeometry args={[0.15, 0.185, 36]} />
+        <meshBasicMaterial color={color} transparent opacity={0.95} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0, 0.02]}>
+        <circleGeometry args={[0.055, 24]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+      <CanvasLabel
+        text={label}
+        position={[0, -0.32, 0.025]}
+        size={[1.45, 0.21]}
+        fontSize={22}
+        color="#243d3b"
+      />
+    </group>
+  );
+}
+
 function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
-  const roomPalette = props.roomId === "autism"
-    ? { floor: "#f1eadf", walls: "#fbf7ef", desk: "#c6a77c", accent: "#d6a75f", chair: "#8d9d8c" }
-    : props.roomId === "cbt"
-      ? { floor: "#e6edf2", walls: "#f5f8fb", desk: "#9eafc2", accent: "#6e9dc1", chair: "#64849b" }
-      : props.roomId === "developmental"
-        ? { floor: "#e8eee9", walls: "#f6faf6", desk: "#a6b99e", accent: "#79a58a", chair: "#668c7b" }
-        : { floor: "#e7edef", walls: "#f8fbfb", desk: "#b68f6a", accent: "#5fc4b3", chair: "#59857f" };
+  const lastEnteredRoom = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (lastEnteredRoom.current === props.roomId) return;
+    lastEnteredRoom.current = props.roomId;
+    props.onRoomEvent?.(
+      "clinic_room_entered",
+      "دخل المتدرب إلى " + props.roomLabel + "؛ أصبحت نقاط الغرفة والطبيب متاحة للتفاعل الفردي.",
+    );
+  }, [props.roomId, props.roomLabel, props.onRoomEvent]);
+
   const selectDoctor = () => {
     props.onSelect("الطبيب النفسي السعودي");
-    props.onRoomEvent?.("doctor_selected", "تم تحديد الطبيب النفسي السعودي الافتراضي داخل القاعة");
+    props.onRoomEvent?.("doctor_selected", "تم تحديد الطبيب النفسي السعودي الافتراضي داخل العيادة.");
   };
-  const openCaseFile = () => {
-    props.onSelect("ملف الحالة");
-    props.onRoomEvent?.("case_file_opened", "فتح ملف الحالة داخل القاعة");
+
+  const selectRoomTarget = (target: string, eventLabel: string) => {
+    props.onSelect(target);
+    props.onRoomEvent?.("clinic_object_selected", eventLabel);
   };
 
   return (
     <group>
       <HeadsetAssessmentTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
       <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
-      {props.roomId === "autism" ? (
-        <group position={[-2.8, 0.08, 1.8]}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.82, 40]} /><meshStandardMaterial color="#d8c8a8" roughness={0.95} /></mesh>
-          {[-0.42, 0, 0.42].map((x, index) => <mesh key={index} position={[x, 0.22, 0]} castShadow><boxGeometry args={[0.28, 0.42, 0.28]} /><meshStandardMaterial color={index === 0 ? "#9db9a5" : index === 1 ? "#d9c69c" : "#9db4c4"} /></mesh>)}
-          <CanvasLabel text="أدوات بصرية وحسية" position={[0, 1.2, -0.02]} size={[1.8, 0.22]} fontSize={24} color="#8d7757" />
-        </group>
-      ) : props.roomId === "cbt" ? (
-        <group position={[-3.25, 1.55, -3.85]}>
-          <mesh><boxGeometry args={[1.45, 1.05, 0.08]} /><meshStandardMaterial color="#dce8f0" /></mesh>
-          <CanvasLabel text="الفكرة · الشعور · السلوك" position={[0, 0.1, 0.06]} size={[1.3, 0.48]} fontSize={25} color="#527d9b" />
-        </group>
-      ) : props.roomId === "developmental" ? (
-        <group position={[-3.1, 0.15, 1.65]}>
-          {[-0.36, 0, 0.36].map((x, index) => <mesh key={index} position={[x, 0.32, 0]} castShadow><boxGeometry args={[0.3, 0.62, 0.3]} /><meshStandardMaterial color={index === 0 ? "#a9c5a7" : index === 1 ? "#d7c89f" : "#a9bdca"} /></mesh>)}
-          <CanvasLabel text="ملاحظة المهارات التكيفية" position={[0, 1.0, 0]} size={[2.0, 0.22]} fontSize={22} color="#62866c" />
-        </group>
-      ) : (
-        <group position={[-3.3, 1.55, -3.85]}>
-          <mesh><boxGeometry args={[1.5, 1.05, 0.08]} /><meshStandardMaterial color="#e3eeea" /></mesh>
-          <CanvasLabel text="الأسرة · البيئة · الموارد" position={[0, 0.1, 0.06]} size={[1.35, 0.45]} fontSize={24} color="#4e8a7e" />
-        </group>
-      )}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
-        <planeGeometry args={[9, 8.5]} />
-        <meshStandardMaterial color={roomPalette.floor} roughness={0.92} />
-      </mesh>
-      <mesh position={[0, 1.5, -4.25]} receiveShadow>
-        <boxGeometry args={[9, 3, 0.12]} />
-        <meshStandardMaterial color={roomPalette.walls} />
-      </mesh>
-      <mesh position={[-4.45, 1.5, 0]} receiveShadow>
-        <boxGeometry args={[0.12, 3, 8.5]} />
-        <meshStandardMaterial color={roomPalette.walls} />
-      </mesh>
-      <mesh position={[4.45, 1.5, -0.8]} receiveShadow>
-        <boxGeometry args={[0.12, 3, 6.9]} />
-        <meshStandardMaterial color="#f4f8f8" />
-      </mesh>
-      <mesh position={[0, 2.98, 0]}>
-        <boxGeometry args={[9, 0.1, 8.5]} />
-        <meshStandardMaterial color="#dbe5e7" />
-      </mesh>
 
-      <CanvasLabel text={props.roomLabel} position={[0, 2.66, -4.16]} size={[3.4, 0.28]} fontSize={34} color={roomPalette.accent} />
+      <Suspense fallback={null}>
+        <PhotographicClinicBackdrop />
+      </Suspense>
 
-      {/* Spatial room architecture: doorway, soft seating, rug, shelving and ceiling lighting. */}
-      <group position={[3.92, 0, 1.55]}>
-        <mesh position={[0, 1.12, 0]} castShadow><boxGeometry args={[0.11, 2.24, 1.48]} /><meshStandardMaterial color="#d5c9b8" roughness={0.88} /></mesh>
-        <mesh position={[-0.065, 1.08, 0]}><boxGeometry args={[0.018, 2.06, 1.28]} /><meshStandardMaterial color="#8f765e" roughness={0.75} /></mesh>
-        <mesh position={[-0.045, 1.08, 0.57]}><boxGeometry args={[0.035, 2.08, 0.035]} /><meshStandardMaterial color="#e5d9c7" /></mesh>
-        <mesh position={[-0.025, 1.08, -0.56]}><boxGeometry args={[0.035, 2.08, 0.035]} /><meshStandardMaterial color="#e5d9c7" /></mesh>
-        <mesh position={[0.005, 0.95, 0.42]}><sphereGeometry args={[0.035, 12, 12]} /><meshStandardMaterial color="#c5a66e" metalness={0.55} roughness={0.35} /></mesh>
-      </group>
-      <group position={[-3.45, 0, 2.65]}>
-        <mesh position={[0, 0.38, 0]} castShadow receiveShadow><boxGeometry args={[1.72, 0.24, 0.72]} /><meshStandardMaterial color={roomPalette.chair} roughness={0.9} /></mesh>
-        <mesh position={[0, 0.78, -0.25]} castShadow><boxGeometry args={[1.72, 0.68, 0.2]} /><meshStandardMaterial color={roomPalette.chair} roughness={0.94} /></mesh>
-        {[-0.72, 0.72].map((x) => <mesh key={x} position={[x, 0.2, 0]} castShadow><boxGeometry args={[0.1, 0.38, 0.62]} /><meshStandardMaterial color="#806d5c" /></mesh>)}
-        <mesh position={[0, 0.12, 0.04]}><boxGeometry args={[1.8, 0.035, 0.82]} /><meshStandardMaterial color="#e7e1d6" roughness={1} /></mesh>
-      </group>
-      <group position={[0, 0.015, 0.05]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><circleGeometry args={[1.72, 64]} /><meshStandardMaterial color={props.roomId === "autism" ? "#e6d7bd" : props.roomId === "cbt" ? "#cbdde7" : props.roomId === "developmental" ? "#d3e1d0" : "#c9ded9"} roughness={1} /></mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}><ringGeometry args={[1.55, 1.62, 64]} /><meshStandardMaterial color={roomPalette.accent} roughness={0.9} /></mesh>
-      </group>
-      <group position={[3.72, 0, 0.1]}>
-        <mesh position={[0, 0.82, 0]} castShadow><boxGeometry args={[0.46, 1.64, 1.42]} /><meshStandardMaterial color="#b8a58d" roughness={0.92} /></mesh>
-        {[0.35, 0.83, 1.31].map((y) => <mesh key={y} position={[-0.245, y, 0]}><boxGeometry args={[0.025, 0.045, 1.34]} /><meshStandardMaterial color="#e5d9c8" /></mesh>)}
-        {[-0.42, 0, 0.42].map((z, index) => <mesh key={z} position={[-0.29, 0.59 + (index % 2) * 0.5, z]} castShadow><boxGeometry args={[0.12, 0.32, 0.24]} /><meshStandardMaterial color={index % 2 ? "#8da79c" : "#c4a77f"} /></mesh>)}
-      </group>
-      <group position={[0, 2.84, -0.8]}>
-        <mesh><cylinderGeometry args={[0.42, 0.42, 0.07, 32]} /><meshStandardMaterial color="#d5e0df" roughness={0.45} /></mesh>
-        <mesh position={[0, -0.06, 0]}><cylinderGeometry args={[0.25, 0.25, 0.045, 32]} /><meshStandardMaterial color="#f6e9c6" emissive="#e6c77e" emissiveIntensity={0.45} /></mesh>
-      </group>
-      <group position={[0, 1.08, -1.22]}>
-        <mesh position={[0, 0.38, 0.1]}><boxGeometry args={[0.72, 0.42, 0.035]} /><meshStandardMaterial color="#202d32" roughness={0.45} /></mesh>
-        <mesh position={[0, 0.38, 0.125]}><planeGeometry args={[0.64, 0.34]} /><meshBasicMaterial color={props.roomId === "cbt" ? "#d5e9f4" : props.roomId === "autism" ? "#f0e3c8" : "#d9ece7"} /></mesh>
-        <mesh position={[0, 0.13, 0.1]}><boxGeometry args={[0.16, 0.12, 0.16]} /><meshStandardMaterial color="#9b9d98" /></mesh>
-      </group>
-
-      {/* Daylight window and quiet clinical details make the room read as a real consultation space. */}
-      <group position={[4.36, 2.02, -1.55]} rotation={[0, -Math.PI / 2, 0]}>
-        <mesh>
-          <planeGeometry args={[1.72, 1.18]} />
-          <meshBasicMaterial color="#b9d9e4" />
-        </mesh>
-        <mesh position={[0, 0, -0.025]}>
-          <planeGeometry args={[1.58, 1.04]} />
-          <meshBasicMaterial color="#d9edf1" />
-        </mesh>
-        <mesh position={[0, 0, 0.018]}>
-          <boxGeometry args={[0.035, 1.18, 0.045]} />
-          <meshStandardMaterial color="#f7faf9" />
-        </mesh>
-        <mesh position={[0, 0, 0.018]}>
-          <boxGeometry args={[1.72, 0.035, 0.045]} />
-          <meshStandardMaterial color="#f7faf9" />
-        </mesh>
-      </group>
-      <group position={[3.72, 0, -3.2]}>
-        <mesh position={[0, 0.2, 0]} castShadow>
-          <cylinderGeometry args={[0.22, 0.18, 0.4, 20]} />
-          <meshStandardMaterial color="#b9a18b" roughness={0.9} />
-        </mesh>
-        {[-0.16, -0.05, 0.08, 0.17].map((x, index) => (
-          <mesh key={index} position={[x, 0.68 + (index % 2) * 0.12, 0]} rotation={[0, 0, x * 1.4]} castShadow>
-            <coneGeometry args={[0.13, 0.72, 10]} />
-            <meshStandardMaterial color={index % 2 ? "#6f9d83" : "#83aa91"} roughness={0.95} />
-          </mesh>
-        ))}
-      </group>
-      <group position={[-3.85, 2.12, -3.55]}>
-        <mesh>
-          <boxGeometry args={[0.72, 0.52, 0.045]} />
-          <meshStandardMaterial color="#d7e4df" />
-        </mesh>
-        <mesh position={[0, 0, 0.03]}>
-          <boxGeometry args={[0.62, 0.42, 0.02]} />
-          <meshStandardMaterial color="#f6f8f5" />
-        </mesh>
-        <mesh position={[0, -0.12, 0.045]}>
-          <boxGeometry args={[0.28, 0.025, 0.015]} />
-          <meshStandardMaterial color="#76a79c" />
-        </mesh>
-      </group>
-
-      <mesh position={[0, 0.78, -1.22]} castShadow receiveShadow>
-        <boxGeometry args={[2.25, 0.14, 1.05]} />
-        <meshStandardMaterial color={roomPalette.desk} />
-      </mesh>
-      {[[-1, 0.37, -0.84], [1, 0.37, -0.84], [-1, 0.37, -1.6], [1, 0.37, -1.6]].map((point, index) => (
-        <mesh key={index} position={point as [number, number, number]} castShadow>
-          <boxGeometry args={[0.1, 0.76, 0.1]} />
-          <meshStandardMaterial color="#8b735d" />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.12, -1.22]} castShadow>
-        <boxGeometry args={[1.9, 0.05, 0.8]} />
-        <meshStandardMaterial color="#e8e1d7" />
-      </mesh>
-
-      <Chair position={[0, 0, -2.35]} rotation={0} tone={roomPalette.chair} />
-      <Chair position={[0, 0, 1.45]} rotation={Math.PI} tone={roomPalette.chair} />
+      <PhotoRoomHotspot
+        label="مكتب الطبيب"
+        position={[3.15, 0.95, -4.94]}
+        color="#d7a96b"
+        onClick={() => selectRoomTarget("مكتب الطبيب", "تفاعل المتدرب مع مكتب الطبيب ومكان أدوات المقابلة.")}
+      />
+      <PhotoRoomHotspot
+        label="الشاشة التعليمية"
+        position={[3.35, 2.55, -4.94]}
+        color="#4fabb0"
+        onClick={() => selectRoomTarget("الشاشة التعليمية", "فتح نقطة التفاعل الخاصة بالشاشة التعليمية ومحتوى التدريب.")}
+      />
+      <PhotoRoomHotspot
+        label="مكتبة المراجع"
+        position={[-3.35, 2.45, -4.94]}
+        color="#75a68c"
+        onClick={() => selectRoomTarget("مكتبة المراجع", "اختار المتدرب مكتبة المراجع والأدوات المهنية.")}
+      />
+      <PhotoRoomHotspot
+        label="ركن الاستقبال"
+        position={[-3.45, 0.9, -4.94]}
+        color="#b79a79"
+        onClick={() => selectRoomTarget("ركن الاستقبال", "تفاعل المتدرب مع ركن الاستقبال والجلوس.")}
+      />
 
       {props.avatarModelUrl ? (
         <Suspense fallback={<DoctorAssetPending />}>
-          <RealisticDoctor modelUrl={props.avatarModelUrl} speaking={props.avatarSpeaking} speechLevel={props.avatarSpeechLevel} motion={props.avatarMotion} onSelect={selectDoctor} />
+          <RealisticDoctor
+            modelUrl={props.avatarModelUrl}
+            speaking={props.avatarSpeaking}
+            speechLevel={props.avatarSpeechLevel}
+            motion={props.avatarMotion}
+            onSelect={selectDoctor}
+          />
         </Suspense>
       ) : (
         <DoctorAssetPending />
       )}
-
-      <mesh position={[-3.2, 0.48, 1.18]} castShadow>
-        <boxGeometry args={[0.9, 0.1, 0.68]} />
-        <meshStandardMaterial color="#b68f6a" />
-      </mesh>
-      <group
-        position={[-3.2, 0.62, 1.18]}
-        onClick={(event) => { event.stopPropagation(); openCaseFile(); }}
-      >
-        <mesh castShadow>
-          <boxGeometry args={[0.58, 0.08, 0.42]} />
-          <meshStandardMaterial color="#d9e4dc" />
-        </mesh>
-        <mesh position={[0.12, 0.055, 0]} castShadow>
-          <boxGeometry args={[0.28, 0.018, 0.32]} />
-          <meshStandardMaterial color="#f7f6ed" />
-        </mesh>
-      </group>
-
-      <mesh position={[-2.7, 1.82, -4.16]}>
-        <boxGeometry args={[1.36, 0.75, 0.035]} />
-        <meshStandardMaterial color="#dcebe8" />
-      </mesh>
-      <mesh position={[-2.7, 1.82, -4.12]}>
-        <boxGeometry args={[1.22, 0.6, 0.025]} />
-        <meshStandardMaterial color="#bed6d1" />
-      </mesh>
-      <mesh position={[2.65, 1.15, -4.14]}>
-        <boxGeometry args={[1.1, 1.52, 0.04]} />
-        <meshStandardMaterial color="#a5c3bd" />
-      </mesh>
-      <mesh position={[2.65, 1.92, -4.1]}>
-        <boxGeometry args={[1.0, 0.13, 0.05]} />
-        <meshStandardMaterial color="#638c85" />
-      </mesh>
-
-      <mesh position={[0, 2.72, -2.2]}>
-        <sphereGeometry args={[0.055, 12, 12]} />
-        <meshStandardMaterial color="#f0c56e" emissive="#e2ad42" emissiveIntensity={0.5} />
-      </mesh>
-      <Grid position={[0, -0.035, 0]} args={[9, 8.5]} cellSize={0.5} cellThickness={0.35} sectionSize={2} sectionThickness={0.7} fadeDistance={12} infiniteGrid />
 
       <AssessmentBoard
         scenarioTitle={props.scenarioTitle}
@@ -897,7 +791,10 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
   const enterVR = async () => {
     setXrMessage("جارٍ التحقق من دعم النظارة...");
     try {
-      const session = await xrStore.enterVR();
+      const sessionPromise = xrStore.enterVR();
+      props.onStartRealtimeVoice();
+      props.onRoomEvent?.("clinic_voice_start_requested", "طلب المتدرب بدء الحوار الصوتي الحي عند دخول غرفة الواقع الافتراضي.");
+      const session = await sessionPromise;
       if (!session) {
         props.onImmersiveChange?.(false);
         setXrMessage("لم يتم العثور على جلسة WebXR. افتح المنصة من متصفح النظارة المتوافق عبر HTTPS.");
@@ -915,7 +812,7 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
   return (
     <div className="clinical-room-canvas">
       <div className="clinical-room-actions">
-        <button type="button" onClick={enterVR}>دخول VR بالنظارة</button>
+        <button type="button" onClick={enterVR}>دخول VR وبدء الحوار مع الطبيب</button>
         <span>الطبيب الافتراضي والمقابلة الصوتية داخل القاعة</span>
         {xrMessage && <small role="status">{xrMessage}</small>}
       </div>
