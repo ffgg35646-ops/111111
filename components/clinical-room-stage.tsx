@@ -26,6 +26,8 @@ export type ClinicalRoomStep = {
 };
 
 type ClinicalRoomStageProps = {
+  roomId: string;
+  roomLabel: string;
   onSelect: (target: string) => void;
   onRoomEvent?: (type: string, label: string) => void;
   onImmersiveChange?: (active: boolean) => void;
@@ -632,6 +634,13 @@ function HandTrackingTelemetry({ onRoomEvent, enabled }: { onRoomEvent?: (type: 
 }
 
 function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
+  const roomPalette = props.roomId === "autism"
+    ? { floor: "#f1eadf", walls: "#fbf7ef", desk: "#c6a77c", accent: "#d6a75f", chair: "#8d9d8c" }
+    : props.roomId === "cbt"
+      ? { floor: "#e6edf2", walls: "#f5f8fb", desk: "#9eafc2", accent: "#6e9dc1", chair: "#64849b" }
+      : props.roomId === "developmental"
+        ? { floor: "#e8eee9", walls: "#f6faf6", desk: "#a6b99e", accent: "#79a58a", chair: "#668c7b" }
+        : { floor: "#e7edef", walls: "#f8fbfb", desk: "#b68f6a", accent: "#5fc4b3", chair: "#59857f" };
   const selectDoctor = () => {
     props.onSelect("الطبيب النفسي السعودي");
     props.onRoomEvent?.("doctor_selected", "تم تحديد الطبيب النفسي السعودي الافتراضي داخل القاعة");
@@ -647,15 +656,15 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
       <HandTrackingTelemetry onRoomEvent={props.onRoomEvent} enabled={props.spatialTelemetryEnabled} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
         <planeGeometry args={[9, 8.5]} />
-        <meshStandardMaterial color="#e7edef" roughness={0.92} />
+        <meshStandardMaterial color={roomPalette.floor} roughness={0.92} />
       </mesh>
       <mesh position={[0, 1.5, -4.25]} receiveShadow>
         <boxGeometry args={[9, 3, 0.12]} />
-        <meshStandardMaterial color="#f8fbfb" />
+        <meshStandardMaterial color={roomPalette.walls} />
       </mesh>
       <mesh position={[-4.45, 1.5, 0]} receiveShadow>
         <boxGeometry args={[0.12, 3, 8.5]} />
-        <meshStandardMaterial color="#f4f8f8" />
+        <meshStandardMaterial color={roomPalette.walls} />
       </mesh>
       <mesh position={[4.45, 1.5, -0.8]} receiveShadow>
         <boxGeometry args={[0.12, 3, 6.9]} />
@@ -665,6 +674,8 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
         <boxGeometry args={[9, 0.1, 8.5]} />
         <meshStandardMaterial color="#dbe5e7" />
       </mesh>
+
+      <CanvasLabel text={props.roomLabel} position={[0, 2.66, -4.16]} size={[3.4, 0.28]} fontSize={34} color={roomPalette.accent} />
 
       {/* Daylight window and quiet clinical details make the room read as a real consultation space. */}
       <group position={[4.36, 2.02, -1.55]} rotation={[0, -Math.PI / 2, 0]}>
@@ -714,7 +725,7 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
 
       <mesh position={[0, 0.78, -1.22]} castShadow receiveShadow>
         <boxGeometry args={[2.25, 0.14, 1.05]} />
-        <meshStandardMaterial color="#b68f6a" />
+        <meshStandardMaterial color={roomPalette.desk} />
       </mesh>
       {[[-1, 0.37, -0.84], [1, 0.37, -0.84], [-1, 0.37, -1.6], [1, 0.37, -1.6]].map((point, index) => (
         <mesh key={index} position={point as [number, number, number]} castShadow>
@@ -727,8 +738,8 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
         <meshStandardMaterial color="#e8e1d7" />
       </mesh>
 
-      <Chair position={[0, 0, -2.35]} rotation={0} tone="#59857f" />
-      <Chair position={[0, 0, 1.45]} rotation={Math.PI} tone="#71828c" />
+      <Chair position={[0, 0, -2.35]} rotation={0} tone={roomPalette.chair} />
+      <Chair position={[0, 0, 1.45]} rotation={Math.PI} tone={roomPalette.chair} />
 
       {props.avatarModelUrl ? (
         <Suspense fallback={<DoctorAssetPending />}>
