@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { SaudiDoctorAttire } from "@/components/saudi-doctor-attire";
 
 type MorphMesh = THREE.Mesh & {
   morphTargetDictionary: Record<string, number>;
@@ -114,7 +115,7 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
     });
   });
 
-  return <group ref={ref} position={[0, -1, 0]}><primitive object={model} /></group>;
+  return <group ref={ref} position={[0, -1, 0]}><primitive object={model} /><SaudiDoctorAttire model={model} /></group>;
 }
 
 export default function AvatarStage({ modelUrl, expression, motion }: { modelUrl: string | null; expression: string; motion: string }) {
