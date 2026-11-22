@@ -242,6 +242,8 @@ function RealisticDoctor({
   }>>([]);
   const headBoneRef = useRef<THREE.Bone | null>(null);
   const jawObjectRef = useRef<THREE.Object3D | null>(null);
+  const mouthObjectRef = useRef<THREE.Mesh | null>(null);
+  const eyeObjectsRef = useRef<Array<{ object: THREE.Object3D; baseScale: THREE.Vector3; base: THREE.Euler }>>([]);
   const gestureArmsRef = useRef<Array<{ object: THREE.Object3D; base: THREE.Euler; side: number }>>([]);
   const headObjectRef = useRef<THREE.Object3D | null>(null);
   const headBaseRef = useRef<THREE.Euler | null>(null);
@@ -267,6 +269,13 @@ function RealisticDoctor({
         });
       }
       if (/^jaw$/i.test(object.name)) jawObjectRef.current = object;
+      if (/^(left|right)_eye$/i.test(object.name)) {
+        eyeObjectsRef.current.push({
+          object,
+          baseScale: object.scale.clone(),
+          base: new THREE.Euler(object.rotation.x, object.rotation.y, object.rotation.z),
+        });
+      }
       if (/^(left|right)_arm$/i.test(object.name)) gestureArmsRef.current.push({ object, base: new THREE.Euler(object.rotation.x, object.rotation.y, object.rotation.z), side: /^left/i.test(object.name) ? -1 : 1 });
       if (/^head$/i.test(object.name)) headObjectRef.current = object;
       const bone = object as THREE.Bone;
@@ -306,6 +315,8 @@ function RealisticDoctor({
     const faceShell = new THREE.Mesh(geometry, material);
     faceShell.name = "DoctorPhotoFaceShell";
     faceShell.renderOrder = 2;
+    // Keep the photographic skin slightly behind the separately modelled eyes and nose.
+    faceShell.position.z = -0.06;
     head.add(faceShell);
 
     return () => {
@@ -314,6 +325,25 @@ function RealisticDoctor({
       material.dispose();
     };
   }, [model, facePhotoTexture]);
+
+  useEffect(() => {
+    const head = model.getObjectByName("Head");
+    if (!head) return;
+    const geometry = new THREE.SphereGeometry(1, 24, 16);
+    const material = new THREE.MeshStandardMaterial({ color: "#54262a", roughness: 0.94, side: THREE.DoubleSide });
+    const mouth = new THREE.Mesh(geometry, material);
+    mouth.name = "RealtimeMouthOpening";
+    mouth.position.set(0, -0.4, 0.94);
+    mouth.scale.set(0.34, 0.018, 0.075);
+    head.add(mouth);
+    mouthObjectRef.current = mouth;
+    return () => {
+      head.remove(mouth);
+      geometry.dispose();
+      material.dispose();
+      mouthObjectRef.current = null;
+    };
+  }, [model]);
 
   useEffect(() => {
     const patterns = speaking || motion === "talk"
@@ -400,6 +430,15 @@ function RealisticDoctor({
     eyeBonesRef.current.forEach(({ bone, base }) => {
       bone.rotation.set(base.x + gaze.y, base.y + gaze.x, base.z);
     });
+    eyeObjectsRef.current.forEach(({ object, baseScale, base }) => {
+      object.scale.y = THREE.MathUtils.damp(object.scale.y, baseScale.y * (1 - blinkWeight * 0.96), 24, delta);
+      object.rotation.x = base.x + gaze.y * 0.45;
+      object.rotation.y = base.y + gaze.x * 0.65;
+    });
+    if (mouthObjectRef.current) {
+      const open = speaking || motion === "talk" ? 0.025 + Math.min(0.105, Math.max(0.018, speechLevel * 0.16)) : 0.018;
+      mouthObjectRef.current.scale.y = THREE.MathUtils.damp(mouthObjectRef.current.scale.y, open, 17, delta);
+    }
   });
 
   return (
