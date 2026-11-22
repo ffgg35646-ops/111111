@@ -36,7 +36,7 @@ protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Clinical VR|Assessment")
-    TObjectPtr<USceneComponent> PatientTargetComponent;
+    TObjectPtr<USceneComponent> DoctorTargetComponent;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Clinical VR|Assessment")
     float HeadPoseSampleIntervalSeconds = 5.0f;
