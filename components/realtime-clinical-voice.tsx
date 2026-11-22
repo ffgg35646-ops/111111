@@ -8,7 +8,7 @@ type TranscriptTurn = { role: "user" | "assistant"; content: string };
 type RealtimeClinicalVoiceProps = {
   scenario: string;
   onTranscript: (turn: TranscriptTurn) => void;
-  onSpeakingChange?: (speaking: boolean) => void;
+  onSpeakingChange?: (speaking: boolean) => void;\n  onSpeechLevelChange?: (level: number) => void;
   onEvent?: (type: string, label: string) => void;
   onConnecting?: () => void;
   onStatusChange?: (status: "idle" | "connecting" | "live" | "error") => void;
@@ -56,14 +56,28 @@ export function RealtimeClinicalVoice({
     peerRef.current = null;
     microphoneRef.current?.getTracks().forEach((track) => track.stop());
     microphoneRef.current = null;
+    if (analysisFrameRef.current !== null) {
+      window.cancelAnimationFrame(analysisFrameRef.current);
+      analysisFrameRef.current = null;
+    }
+    audioSourceRef.current?.disconnect();
+    audioSourceRef.current = null;
+    audioAnalyserRef.current?.disconnect();
+    audioAnalyserRef.current = null;
+    audioSamplesRef.current = null;
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
     if (audioRef.current) audioRef.current.srcObject = null;
     assistantTranscriptRef.current = "";
     onSpeakingChange?.(false);
+    onSpeechLevelChange?.(0);
     if (notify) {
       setMuted(false);
       onMutedChange?.(false);
     }
-  }, [onMutedChange, onSpeakingChange]);
+  }, [onMutedChange, onSpeakingChange, onSpeechLevelChange]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -120,7 +134,37 @@ export function RealtimeClinicalVoice({
       peer.ontrack = (event) => {
         const audio = audioRef.current;
         if (!audio) return;
-        audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+        const remoteStream = event.streams[0] ?? new MediaStream([event.track]);
+        audio.srcObject = remoteStream;
+        try {
+          const context = new AudioContext();
+          const analyser = context.createAnalyser();
+          analyser.fftSize = 512;
+          const source = context.createMediaStreamSource(remoteStream);
+          source.connect(analyser);
+          audioContextRef.current = context;
+          audioAnalyserRef.current = analyser;
+          audioSourceRef.current = source;
+          audioSamplesRef.current = new Uint8Array(new ArrayBuffer(analyser.fftSize));
+          void context.resume().catch(() => undefined);
+          const sampleSpeechLevel = () => {
+            const activeAnalyser = audioAnalyserRef.current;
+            const samples = audioSamplesRef.current;
+            if (!activeAnalyser || !samples || !mountedRef.current) return;
+            activeAnalyser.getByteTimeDomainData(samples);
+            let sumSquares = 0;
+            for (let index = 0; index < samples.length; index += 1) {
+              const centered = (samples[index] - 128) / 128;
+              sumSquares += centered * centered;
+            }
+            const rms = Math.sqrt(sumSquares / samples.length);
+            onSpeechLevelChange?.(Math.min(1, rms * 4.5));
+            analysisFrameRef.current = window.requestAnimationFrame(sampleSpeechLevel);
+          };
+          analysisFrameRef.current = window.requestAnimationFrame(sampleSpeechLevel);
+        } catch {
+          onSpeechLevelChange?.(0);
+        }
         void audio.play().catch(() => {
           if (mountedRef.current) setError("الاتصال قائم؛ اضغط تشغيل الصوت للسماح بسماع الشخصية.");
         });
