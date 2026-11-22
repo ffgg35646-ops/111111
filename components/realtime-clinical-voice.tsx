@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Phone, PhoneOff, Radio, Volume2 } from "lucide-react";
 
-type PersonaId = "father" | "mother" | "child" | "teen";
 type TranscriptTurn = { role: "user" | "assistant"; content: string };
 
 type RealtimeClinicalVoiceProps = {
-  personaId: PersonaId;
   scenario: string;
   onTranscript: (turn: TranscriptTurn) => void;
   onSpeakingChange?: (speaking: boolean) => void;
@@ -26,7 +24,6 @@ type RealtimeEvent = {
 };
 
 export function RealtimeClinicalVoice({
-  personaId,
   scenario,
   onTranscript,
   onSpeakingChange,
@@ -104,7 +101,7 @@ export function RealtimeClinicalVoice({
       const tokenResponse = await fetch("/api/clinical-agent/realtime-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personaId, scenario }),
+        body: JSON.stringify({ scenario }),
         cache: "no-store",
       });
       const tokenPayload = await tokenResponse.json().catch(() => ({})) as {
@@ -221,7 +218,7 @@ export function RealtimeClinicalVoice({
       setError(cause instanceof Error ? cause.message : "تعذر تشغيل الصوت الحي.");
       onEvent?.("realtime_voice_failed", "فشل إنشاء الاتصال الصوتي الحي.");
     }
-  }, [cleanup, onConnecting, onEvent, onSpeakingChange, onTranscript, personaId, scenario, status]);
+  }, [cleanup, onConnecting, onEvent, onSpeakingChange, onTranscript, scenario, status]);
 
   const toggleMute = useCallback(() => {
     const nextMuted = !muted;
