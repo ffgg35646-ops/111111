@@ -242,41 +242,90 @@ function RealisticDoctor({
   const gltf = useGLTF(modelUrl);
   const model = gltf.scene;
   const { actions, names, ref } = useAnimations(gltf.animations);
+  const blinkRef = useRef({ next: 2.6, started: -1 });
 
-  useEffect(() => {
-    const patterns = speaking || motion === "talk"
-      ? [/talk|speak/i]
-      : motion === "listen"
-        ? [/listen|idle|think/i]
-        : [/idle|stand|neutral/i, /listen|think/i];
-    const selectedName = names.find((name) => patterns.some((pattern) => pattern.test(name))) ?? names[0];
-
-    Object.values(actions).forEach((action) => action?.fadeOut(0.18));
-    if (selectedName) actions[selectedName]?.reset().fadeIn(0.2).play();
-
-    return () => {
-      Object.values(actions).forEach((action) => action?.fadeOut(0.12));
-    };
-  }, [actions, names, speaking, motion]);
-
-  useFrame((_, delta) => {
+  const faceMeshes = useMemo(() => {
+    const found: Array<{
+      morphTargetDictionary: Record<string, number>;
+      morphTargetInfluences: number[];
+    }> = [];
     model.traverse((object) => {
-      const mesh = object as unknown as {
+      const mesh = object as THREE.Object3D & {
         isMesh?: boolean;
         morphTargetDictionary?: Record<string, number>;
         morphTargetInfluences?: number[];
       };
+      if (mesh.isMesh && mesh.morphTargetDictionary && mesh.morphTargetInfluences) {
+        found.push({
+          morphTargetDictionary: mesh.morphTargetDictionary,
+          morphTargetInfluences: mesh.morphTargetInfluences,
+        });
+      }
+    });
+    return found;
+  }, [model]);
+
+  const headBone = useMemo(() => {
+    let found: THREE.Bone | null = null;
+    model.traverse((object) => {
+      if (!found && (object as THREE.Bone).isBone && /mixamorig:head|head$/i.test(object.name)) {
+        found = object as THREE.Bone;
+      }
+    });
+    return found;
+  }, [model]);
+  const headBase = useMemo(
+    () => headBone ? new THREE.Euler(headBone.rotation.x, headBone.rotation.y, headBone.rotation.z) : null,
+    [headBone],
+  );
+
+  useEffect(() => {
+    const patterns = speaking || motion === "talk"
+      ? [/talk|gestic/i, /confident/i]
+      : motion === "listen"
+        ? [/think/i, /idle/i]
+        : [/idle/i, /think/i];
+    const selectedName = names.find((name) => patterns.some((pattern) => pattern.test(name))) ?? names[0];
+
+    Object.values(actions).forEach((action) => action?.fadeOut(0.2));
+    if (selectedName) actions[selectedName]?.reset().fadeIn(0.25).play();
+
+    return () => Object.values(actions).forEach((action) => action?.fadeOut(0.12));
+  }, [actions, names, speaking, motion]);
+
+  useFrame(({ clock }, delta) => {
+    const elapsed = clock.elapsedTime;
+    const blink = blinkRef.current;
+    if (elapsed >= blink.next) {
+      blink.started = elapsed;
+      blink.next = elapsed + 2.7 + Math.random() * 2.8;
+    }
+    const blinkWeight = blink.started >= 0 && elapsed - blink.started < 0.14
+      ? Math.sin(((elapsed - blink.started) / 0.14) * Math.PI)
+      : 0;
+    const jawTarget = speaking ? Math.min(0.72, Math.max(0.035, speechLevel * 1.65)) : 0;
+
+    for (const mesh of faceMeshes) {
       const dictionary = mesh.morphTargetDictionary;
       const influences = mesh.morphTargetInfluences;
-      if (!mesh.isMesh || !dictionary || !influences) return;
+      const jawIndex = dictionary.jawOpen ?? dictionary.JawOpen ?? dictionary.mouthOpen ?? dictionary["mouth-open"];
+      if (jawIndex !== undefined) {
+        influences[jawIndex] = THREE.MathUtils.damp(influences[jawIndex] ?? 0, jawTarget, 13, delta);
+      }
+      for (const name of ["eyeBlinkLeft", "eyeBlinkRight"]) {
+        const index = dictionary[name];
+        if (index !== undefined) {
+          influences[index] = THREE.MathUtils.damp(influences[index] ?? 0, blinkWeight, 20, delta);
+        }
+      }
+    }
 
-      Object.entries(dictionary).forEach(([name, index]) => {
-        if (!/^(jawopen|mouthopen|mouth-open)$/i.test(name)) return;
-        const target = speaking ? Math.max(0.06, Math.min(0.72, speechLevel * 2.2)) : 0;
-        const current = influences[index] ?? 0;
-        influences[index] = current + (target - current) * Math.min(1, delta * 11);
-      });
-    });
+    // Small natural head motion; the main talking gestures come from the embedded mocap clip.
+    if (headBone && headBase) {
+      headBone.rotation.x = headBase.x + Math.sin(elapsed * 0.41) * (motion === "listen" ? 0.018 : 0.01);
+      headBone.rotation.y = headBase.y + Math.sin(elapsed * 0.29) * 0.026;
+      headBone.rotation.z = headBase.z + Math.sin(elapsed * 0.23) * 0.008;
+    }
   });
 
   return (
