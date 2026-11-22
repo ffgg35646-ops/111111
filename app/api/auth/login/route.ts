@@ -84,24 +84,8 @@ export async function POST(request: NextRequest) {
     console.error("Platform account database is unavailable", error);
   }
 
-  if (!account) {
-    const adminEmail = (process.env.PLATFORM_ADMIN_EMAIL || "").trim().toLowerCase();
-    const adminHash = process.env.PLATFORM_ADMIN_PASSWORD_HASH || "";
-    if (email === adminEmail && verifyPasswordHash(password, adminHash)) {
-      const parsedHash = parsePasswordHash(adminHash);
-      account = {
-        userId: "environment-admin",
-        email,
-        name: "مدير المنصة",
-        role: "admin",
-        status: "active",
-        passwordSalt: parsedHash?.salt,
-        passwordHash: parsedHash?.hash,
-        mustChangePassword: false,
-      };
-    } else if (databaseUnavailable) {
-      return NextResponse.json({ error: "تعذر الاتصال بقاعدة حسابات المنصة. تحقق من MONGODB_URI ثم أعد المحاولة." }, { status: 503 });
-    }
+  if (!account && databaseUnavailable) {
+    return NextResponse.json({ error: "تعذر الاتصال بقاعدة حسابات المنصة. تحقق من MONGODB_URI ثم أعد المحاولة." }, { status: 503 });
   }
 
   const validAccount = Boolean(account &&

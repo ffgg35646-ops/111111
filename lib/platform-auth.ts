@@ -1,6 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
+import { getClinicalDatabase } from "@/lib/mongodb";
 
 export const PLATFORM_SESSION_COOKIE = "clinical_platform_session";
 export const PLATFORM_ROLES = ["admin", "supervisor", "trainer", "trainee", "consultant"] as const;
@@ -103,7 +104,30 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
 
 export async function requirePlatformRole(request: NextRequest, roles: PlatformRole[]) {
   const session = await readPlatformSession(request);
-  return session && !session.mustChangePassword && roles.includes(session.role) ? session : null;
+  if (!session || session.mustChangePassword) return null;
+
+  try {
+    const db = await getClinicalDatabase();
+    const account = await db.collection("platform_users").findOne(
+      { userId: session.userId, email: session.email },
+      { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1, status: 1, mustChangePassword: 1 } },
+    );
+    if (!account || account.status !== "active" || account.mustChangePassword === true) return null;
+    if (typeof account.role !== "string" || !PLATFORM_ROLES.includes(account.role as PlatformRole)) return null;
+    const currentRole = account.role as PlatformRole;
+    if (!roles.includes(currentRole)) return null;
+
+    return {
+      userId: session.userId,
+      email: session.email,
+      name: typeof account.name === "string" ? account.name : session.name,
+      role: currentRole,
+      mustChangePassword: false,
+    } satisfies PlatformSession;
+  } catch (error) {
+    console.error("Unable to verify current platform account status", error);
+    return null;
+  }
 }
 
 export function platformSessionCookieOptions(isProduction = process.env.NODE_ENV === "production") {
