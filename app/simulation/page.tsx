@@ -84,8 +84,47 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: new () => RecognitionInstance;
 };
 
+const clinicalRooms = [
+  {
+    "id": "social",
+    "title": "غرفة الخدمة الاجتماعية",
+    "track": "الخدمة الاجتماعية",
+    "caseId": "family-social-assessment",
+    "description": "مقابلة فردية، تقدير اجتماعي، شبكة الأسرة والموارد وخطة التدخل.",
+    "tag": "مقابلة وتقدير"
+  },
+  {
+    "id": "cbt",
+    "title": "غرفة العلاج المعرفي السلوكي",
+    "track": "العلاج المعرفي السلوكي",
+    "caseId": "cbt-anxiety",
+    "description": "جلسة تدريب فردية على الأفكار التلقائية ونموذج ABC وإعادة التقييم.",
+    "tag": "جلسة علاجية تدريبية"
+  },
+  {
+    "id": "autism",
+    "title": "غرفة طيف التوحد",
+    "track": "اضطراب طيف التوحد",
+    "caseId": "autism-support-session",
+    "description": "بيئة هادئة منخفضة المثيرات مع أدوات بصرية وتدريب التواصل والدعم الحسي.",
+    "tag": "بيئة حسية هادئة"
+  },
+  {
+    "id": "developmental",
+    "title": "غرفة التقييم النمائي",
+    "track": "الاضطرابات النمائية والإعاقة الذهنية",
+    "caseId": "developmental-referral",
+    "description": "مراجعة التاريخ النمائي والمهارات التكيفية والملاحظة والإحالة المهنية.",
+    "tag": "تقييم نمائي"
+  }
+] as const;
+
 function SimulationWorkspace() {
   const params = useSearchParams();
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(() => {
+    const requestedRoom = params.get("room");
+    return clinicalRooms.some((room) => room.id === requestedRoom) ? requestedRoom! : null;
+  });
   const [caseId, setCaseId] = useState(() => {
     const requested = params.get("case");
     return requested && trainingCases.some((item) => item.id === requested)
@@ -434,7 +473,7 @@ function SimulationWorkspace() {
     setConversation([]);
     setVoiceInput("");
     setRoomEvents([{ type: "room_entered", label: "بدء حالة تدريبية جديدة", occurredAt: new Date().toISOString() }]);
-    window.history.replaceState(null, "", "/simulation?case=" + id);
+    window.history.replaceState(null, "", "/simulation?case=" + id + (activeRoomId ? "&room=" + activeRoomId : ""));
   };
 
   const choose = (choiceId: string) => {
@@ -492,6 +531,23 @@ function SimulationWorkspace() {
     }
   };
 
+  const enterClinicalRoom = (room: (typeof clinicalRooms)[number]) => {
+    changeCase(room.caseId);
+    setActiveRoomId(room.id);
+    window.history.replaceState(null, "", "/simulation?room=" + room.id + "&case=" + room.caseId);
+  };
+
+  const leaveClinicalRoom = () => {
+    recognitionRef.current?.abort();
+    shouldSendSpeechRef.current = false;
+    aborterRef.current?.abort();
+    stopAvatarSpeech();
+    realtimeControlsRef.current?.stop();
+    setRealtimeStatus("idle");
+    setActiveRoomId(null);
+    window.history.replaceState(null, "", "/simulation");
+  };
+
   const restart = () => {
     setStepIndex(0);
     setAnswers({});
@@ -517,6 +573,29 @@ function SimulationWorkspace() {
       eyebrow="SAUDI VIRTUAL CLINICAL DOCTOR"
       description="تدرّب مع طبيب نفسي افتراضي سعودي واحد ثابت، يشرح لك المهارات المهنية ويرشدك في دراسة الحالة والمقاييس والتفكير الإكلينيكي."
     >
+      {!activeRoomId ? (
+        <section className="clinical-room-directory" aria-label="اختيار غرفة التدريب الفردية">
+          <div className="clinical-room-directory-head">
+            <span>SOLO CLINICAL TRAINING</span>
+            <h2>اختر غرفة التدريب</h2>
+            <p>كل تخصص داخل غرفة مستقلة بتجهيزاتها وسيناريوها الخاص. تدخل أنت وحدك إلى الجلسة، ولا يظهر متدربون آخرون داخل الغرفة.</p>
+            <div className="clinical-solo-note"><i /> جلسة فردية خاصة · دخول مستقل لكل غرفة · حفظ تقدم كل حالة</div>
+          </div>
+          <div className="clinical-room-directory-grid">
+            {clinicalRooms.map((room,index) => (
+              <article className={`clinical-room-card room-${room.id}`} key={room.id}>
+                <div className="clinical-room-card-visual"><span>0{index+1}</span><b>{room.tag}</b><div className="clinical-room-card-door"><i /><i /><i /></div></div>
+                <div className="clinical-room-card-copy"><small>{room.track}</small><h3>{room.title}</h3><p>{room.description}</p><button type="button" onClick={() => enterClinicalRoom(room)}>دخول الغرفة بشكل فردي <ArrowRight size={15}/></button></div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <>
+          <div className="clinical-active-room-bar">
+            <div><span>غرفة تدريب فردية</span><strong>{clinicalRooms.find((room) => room.id === activeRoomId)?.title}</strong><small>أنت المتدرب الوحيد داخل هذه الجلسة</small></div>
+            <button type="button" onClick={leaveClinicalRoom}>العودة إلى الغرف</button>
+          </div>
       <div className="simulation-toolbar">
         <label>اختر الحالة
           <select value={caseId} onChange={(event) => changeCase(event.target.value)}>
@@ -579,6 +658,8 @@ function SimulationWorkspace() {
               onStartRealtimeVoice={() => realtimeControlsRef.current?.start()}
               onStopRealtimeVoice={() => realtimeControlsRef.current?.stop()}
               onToggleRealtimeMute={() => realtimeControlsRef.current?.toggleMute()}
+              roomId={activeRoomId ?? "social"}
+              roomLabel={clinicalRooms.find((room) => room.id === activeRoomId)?.title ?? "غرفة المقابلة السريرية"}
               scenarioTitle={activeCase.title}
               avatarModelUrl={avatarModelUrl}
               avatarSpeaking={avatarSpeaking}
@@ -810,6 +891,8 @@ function SimulationWorkspace() {
       <div className="portal-callout simulation-disclaimer">
         <Info size={16} /> الحوار الصوتي يستخدم التعرف على الكلام والصوت المنطوق المتاحين في المتصفح، وقد تختلف جودتهما حسب النظارة والمتصفح واللغة المثبتة. تقييم الدرجة يعتمد على Rubric الحالة؛ ويُحفظ نص الحوار كدليل للمراجعة ولا يصدر حكماً مهنياً آلياً نهائياً.
       </div>
+        </>
+      )}
     </PlatformLayout>
   );
 }
