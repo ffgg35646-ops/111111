@@ -1,0 +1,205 @@
+"use client";
+
+import { useState } from "react";
+import { ClipboardCheck, LoaderCircle, RefreshCw, Save, ShieldCheck } from "lucide-react";
+import { PlatformLayout } from "@/components/platform-layout";
+
+const reviewFields = [
+  { key: "communication", label: "التواصل وبناء العلاقة" },
+  { key: "activeListening", label: "الإنصات وجمع المعلومات" },
+  { key: "evidenceReasoning", label: "الاستدلال وربط الفرضيات بالأدلة" },
+  { key: "assessmentSelection", label: "اختيار المقياس وحدود استخدامه" },
+  { key: "strengthsBasedPractice", label: "مراعاة نقاط القوة ووجهة نظر الحالة" },
+  { key: "planningAndReferral", label: "خطة الدعم والإحالة والمتابعة" },
+  { key: "professionalBoundaries", label: "السلامة وحدود الاختصاص والخصوصية" },
+] as const;
+
+type ReviewDraft = {
+  scores: Record<string, string>;
+  feedbackNotes: string;
+};
+
+type Activity = {
+  activityId: string;
+  caseId: string;
+  caseTitle: string;
+  score: number;
+  completedAt: string;
+  clinicalFormulation: {
+    presentingConcern: string;
+    historyAndContext: string;
+    observations: string;
+    strengths: string;
+    hypotheses: string;
+    missingInformation: string;
+    nextSteps: string;
+    selectedScaleTitle: string;
+    reviewStatus: string;
+  };
+  conversationTurns: { role: "user" | "assistant"; content: string }[];
+  experienceMode: string;
+  vrHeadTrackingSamples?: number;
+  vrHandMetrics?: { samples: number; pinchInteractions: number };
+  supervisorReview?: {
+    scores: Record<string, number>;
+    overallScore: number;
+    feedbackNotes: string;
+    reviewedAt: string;
+  };
+};
+
+function emptyDraft(): ReviewDraft {
+  return {
+    scores: Object.fromEntries(reviewFields.map((field) => [field.key, ""])),
+    feedbackNotes: "",
+  };
+}
+
+export default function SimulationActivityReviewPage() {
+  const [adminKey, setAdminKey] = useState("");
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
+  const [loading, setLoading] = useState(false);
+  const [savingId, setSavingId] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const loadActivities = async () => {
+    setLoading(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/platform/activities", {
+        headers: { "x-platform-admin-key": adminKey },
+        cache: "no-store",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "تعذر تحميل تقارير المحاكاة.");
+      const rows: Activity[] = Array.isArray(result.activities) ? result.activities : [];
+      setActivities(rows);
+      setDrafts((current) => {
+        const next = { ...current };
+        for (const activity of rows) {
+          if (activity.supervisorReview && !next[activity.activityId]) {
+            next[activity.activityId] = {
+              scores: Object.fromEntries(reviewFields.map((field) => [field.key, String(activity.supervisorReview?.scores?.[field.key] ?? "")])),
+              feedbackNotes: activity.supervisorReview.feedbackNotes || "",
+            };
+          }
+        }
+        return next;
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر تحميل تقارير المحاكاة.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateDraft = (activityId: string, update: Partial<ReviewDraft>) => {
+    setDrafts((current) => ({
+      ...current,
+      [activityId]: { ...emptyDraft(), ...current[activityId], ...update },
+    }));
+  };
+
+  const saveReview = async (activity: Activity) => {
+    const draft = drafts[activity.activityId] || emptyDraft();
+    setSavingId(activity.activityId);
+    setError("");
+    setNotice("");
+    try {
+      const scores = Object.fromEntries(reviewFields.map((field) => [field.key, Number(draft.scores[field.key])]));
+      const response = await fetch("/api/platform/activities", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-platform-admin-key": adminKey,
+        },
+        body: JSON.stringify({ activityId: activity.activityId, scores, feedbackNotes: draft.feedbackNotes }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "تعذر حفظ مراجعة المشرف.");
+      setNotice("تم حفظ مراجعة المشرف وربطها بتقرير دراسة الحالة.");
+      await loadActivities();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر حفظ مراجعة المشرف.");
+    } finally {
+      setSavingId("");
+    }
+  };
+
+  return (
+    <PlatformLayout
+      title="مراجعة تقارير المحاكاة السريرية"
+      description="افتح دراسة الحالة والحوار الذي أجراه المتدرب، ثم قيّم الأداء وفق محاور موحدة واحفظ التغذية الراجعة في سجل الجلسة."
+    >
+      <div className="portal-callout"><ShieldCheck size={16} /> لا تعرض هذه الصفحة إلا سجلات التدريب الخيالية. الدرجات تقدير إشرافي تعليمي وليست تشخيصاً أو ترخيصاً مهنياً.</div>
+      <section className="portal-card" style={{ marginBottom: 16 }}>
+        <strong style={{ display: "block", marginBottom: 8 }}>صلاحية المشرف</strong>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            type="password"
+            autoComplete="off"
+            value={adminKey}
+            onChange={(event) => setAdminKey(event.target.value)}
+            placeholder="مفتاح PLATFORM_ADMIN_API_KEY"
+            aria-label="مفتاح إدارة المنصة"
+            style={{ flex: "1 1 260px", minWidth: 0, padding: 11, border: "1px solid #dce5e9", borderRadius: 8 }}
+          />
+          <button className="portal-button" disabled={loading || adminKey.length < 32} onClick={loadActivities}>
+            {loading ? <LoaderCircle size={15} /> : <RefreshCw size={15} />} تحميل التقارير
+          </button>
+        </div>
+      </section>
+      {error && <div className="portal-callout" role="alert">{error}</div>}
+      {notice && <div className="portal-callout"><ClipboardCheck size={15} /> {notice}</div>}
+      {activities.length > 0 && <div className="portal-section-title"><div><h2>جلسات المحاكاة المحفوظة</h2><p>يعرض النظام آخر {activities.length} جلسة مسجلة.</p></div></div>}
+      {activities.map((activity) => {
+        const draft = drafts[activity.activityId] || emptyDraft();
+        const reviewed = activity.supervisorReview;
+        return (
+          <article className="portal-card" key={activity.activityId} style={{ marginBottom: 14, padding: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+              <div><span className="portal-chip">{activity.clinicalFormulation?.selectedScaleTitle || "لم يحدد مقياساً"}</span><h3 style={{ margin: "9px 0 4px" }}>{activity.caseTitle}</h3><small style={{ color: "#7b8c91" }}>{new Date(activity.completedAt).toLocaleString("ar-EG")} · {activity.experienceMode === "webxr-immersive-vr" ? "VR غامر" : "غرفة ثلاثية الأبعاد"}</small></div>
+              <div style={{ textAlign: "left" }}><strong style={{ color: "#177f75", fontSize: 22 }}>{activity.score}/100</strong><small style={{ display: "block", color: "#8a999c" }}>درجة خطوات الحالة</small><b style={{ color: reviewed ? "#237d61" : "#9a7842", fontSize: 10 }}>{reviewed ? "تمت مراجعة المشرف" : "بانتظار مراجعة المشرف"}</b></div>
+            </div>
+            <details style={{ marginTop: 14 }}>
+              <summary style={{ cursor: "pointer", color: "#287b72", fontWeight: 700, fontSize: 12 }}>عرض دراسة الحالة المكتوبة</summary>
+              <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                {[
+                  ["المشكلة أو الاحتياج", activity.clinicalFormulation?.presentingConcern],
+                  ["التاريخ والسياق", activity.clinicalFormulation?.historyAndContext],
+                  ["الملاحظات", activity.clinicalFormulation?.observations],
+                  ["نقاط القوة", activity.clinicalFormulation?.strengths],
+                  ["الفرضيات التعليمية", activity.clinicalFormulation?.hypotheses],
+                  ["المعلومات الناقصة", activity.clinicalFormulation?.missingInformation],
+                  ["الخطوات التالية والإحالة", activity.clinicalFormulation?.nextSteps],
+                ].map(([label, value]) => <div key={String(label)}><b style={{ fontSize: 10, color: "#49666c" }}>{label}</b><p style={{ margin: "4px 0 0", fontSize: 11, color: "#71848a", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{value || "—"}</p></div>)}
+              </div>
+            </details>
+            <details style={{ marginTop: 10 }}>
+              <summary style={{ cursor: "pointer", color: "#287b72", fontWeight: 700, fontSize: 12 }}>عرض الحوار مع الشخصية الافتراضية ({activity.conversationTurns?.length || 0} رسالة)</summary>
+              <div style={{ display: "grid", gap: 7, marginTop: 10 }}>
+                {(activity.conversationTurns || []).map((turn, index) => <p key={index} style={{ margin: 0, padding: 9, borderRadius: 7, background: turn.role === "user" ? "#f0f7f5" : "#f7f8f9", fontSize: 10, color: "#60777c", lineHeight: 1.8 }}><b>{turn.role === "user" ? "المتدرب" : "الشخصية"}: </b>{turn.content}</p>)}
+              </div>
+            </details>
+            <section style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid #edf1f1" }}>
+              <strong style={{ fontSize: 12, color: "#46666a" }}>تقييم المشرف (0 إلى 5 لكل محور)</strong>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10, marginTop: 10 }}>
+                {reviewFields.map((field) => <label key={field.key} style={{ display: "grid", gap: 5, fontSize: 10, color: "#60777c" }}>{field.label}<select value={draft.scores[field.key] || ""} onChange={(event) => updateDraft(activity.activityId, { scores: { ...draft.scores, [field.key]: event.target.value } })} style={{ padding: 9, border: "1px solid #dce5e9", borderRadius: 7, background: "#fff" }}><option value="">اختر الدرجة</option>{[0,1,2,3,4,5].map((score) => <option key={score} value={score}>{score} / 5</option>)}</select></label>)}
+              </div>
+              <label style={{ display: "grid", gap: 6, marginTop: 11, fontSize: 10, color: "#60777c" }}>ملاحظات المشرف ونقاط التحسين<textarea value={draft.feedbackNotes} onChange={(event) => updateDraft(activity.activityId, { feedbackNotes: event.target.value })} rows={3} maxLength={2000} placeholder="اذكر ما أُنجز جيداً، وما يحتاج إلى تطوير، وسؤالاً تدريبياً للمتدرب." style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 7, lineHeight: 1.8 }} /></label>
+              {reviewed && <p style={{ color: "#60817a", fontSize: 10 }}>آخر متوسط إشرافي: {reviewed.overallScore}/5 · {new Date(reviewed.reviewedAt).toLocaleString("ar-EG")}</p>}
+              <button className="portal-button" onClick={() => void saveReview(activity)} disabled={savingId === activity.activityId || reviewFields.some((field) => !draft.scores[field.key]) || draft.feedbackNotes.trim().length < 10} style={{ marginTop: 10 }}>
+                {savingId === activity.activityId ? <LoaderCircle size={15} /> : <Save size={15} />} حفظ مراجعة المشرف
+              </button>
+              <small style={{ display: "block", color: "#87969a", fontSize: 9, marginTop: 7 }}>يُحفظ التقييم كمراجعة تعليمية مرتبطة بالجلسة، مع إبقاء الدرجة الآلية لخطوات الحالة منفصلة.</small>
+            </section>
+          </article>
+        );
+      })}
+      {!loading && activities.length === 0 && <div className="portal-card"><p>حمّل التقارير لعرض جلسات المحاكاة التي أُكملت وحُفظت في قاعدة البيانات.</p></div>}
+    </PlatformLayout>
+  );
+}

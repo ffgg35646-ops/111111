@@ -1,9 +1,122 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { getCaseById, practiceScales } from "@/lib/platform-catalog";
 
 export const runtime = "nodejs";
+
+const supervisorScoreKeys = [
+  "communication",
+  "activeListening",
+  "evidenceReasoning",
+  "assessmentSelection",
+  "strengthsBasedPractice",
+  "planningAndReferral",
+  "professionalBoundaries",
+] as const;
+
+function isPlatformAdmin(request: NextRequest) {
+  const expected = process.env.PLATFORM_ADMIN_API_KEY || "";
+  const supplied = request.headers.get("x-platform-admin-key") || "";
+  return expected.length >= 32 && supplied.length === expected.length &&
+    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied));
+}
+
+export async function GET(request: NextRequest) {
+  if (!isPlatformAdmin(request)) {
+    return NextResponse.json({ error: "عرض تقارير المحاكاة متاح للمشرف أو إدارة المنصة فقط." }, { status: 403 });
+  }
+
+  try {
+    const db = await getClinicalDatabase();
+    const records = await db.collection("platform_learning_activities")
+      .find({}, { projection: {
+        _id: 0,
+        activityId: 1,
+        caseId: 1,
+        caseTitle: 1,
+        score: 1,
+        completedAt: 1,
+        clinicalFormulation: 1,
+        conversationTurns: 1,
+        experienceMode: 1,
+        vrHeadTrackingSamples: 1,
+        vrHandMetrics: 1,
+        supervisorReview: 1,
+      } })
+      .sort({ completedAt: -1 })
+      .limit(100)
+      .toArray();
+
+    return NextResponse.json({ activities: records }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    console.error("Unable to load clinical simulation activities", error);
+    return NextResponse.json({ error: "تعذر تحميل تقارير المحاكاة. تحقق من قاعدة البيانات." }, { status: 503 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  if (!isPlatformAdmin(request)) {
+    return NextResponse.json({ error: "اعتماد تقييم المشرف متاح لإدارة المنصة فقط." }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "بيانات مراجعة التقرير غير صالحة." }, { status: 400 });
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "بيانات مراجعة التقرير غير مكتملة." }, { status: 400 });
+  }
+
+  const data = body as Record<string, unknown>;
+  const activityId = typeof data.activityId === "string" ? data.activityId.trim().slice(0, 60) : "";
+  const rawScores = data.scores;
+  const feedbackNotes = typeof data.feedbackNotes === "string" ? data.feedbackNotes.trim().slice(0, 2000) : "";
+  if (!/^[0-9a-f-]{36}$/i.test(activityId) || !rawScores || typeof rawScores !== "object" || Array.isArray(rawScores)) {
+    return NextResponse.json({ error: "اختر تقريراً صحيحاً وأدخل درجات محاور المراجعة." }, { status: 400 });
+  }
+
+  const scoreInput = rawScores as Record<string, unknown>;
+  const scores = Object.fromEntries(supervisorScoreKeys.map((key) => [key, Number(scoreInput[key])])) as Record<(typeof supervisorScoreKeys)[number], number>;
+  const invalidScore = supervisorScoreKeys.some((key) => !Number.isInteger(scores[key]) || scores[key] < 0 || scores[key] > 5);
+  if (invalidScore || feedbackNotes.length < 10) {
+    return NextResponse.json({ error: "أدخل درجة صحيحة من 0 إلى 5 لكل محور، وملاحظة إشرافية لا تقل عن 10 أحرف." }, { status: 400 });
+  }
+
+  const overallScore = Number((supervisorScoreKeys.reduce((sum, key) => sum + scores[key], 0) / supervisorScoreKeys.length).toFixed(2));
+  const reviewedAt = new Date();
+
+  try {
+    const db = await getClinicalDatabase();
+    const result = await db.collection("platform_learning_activities").updateOne(
+      { activityId },
+      {
+        $set: {
+          supervisorReview: {
+            scores,
+            overallScore,
+            feedbackNotes,
+            reviewedAt,
+            reviewedBy: "platform-admin",
+            rubricVersion: 1,
+          },
+          "clinicalFormulation.reviewStatus": "supervisor_reviewed",
+        },
+      },
+    );
+    if (result.matchedCount !== 1) {
+      return NextResponse.json({ error: "لم يتم العثور على جلسة المحاكاة." }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, activityId, overallScore, reviewedAt });
+  } catch (error) {
+    console.error("Unable to save supervisor review", error);
+    return NextResponse.json({ error: "تعذر حفظ تقييم المشرف." }, { status: 503 });
+  }
+}
 
 const allowedRoomEventTypes = new Set([
   "room_entered",

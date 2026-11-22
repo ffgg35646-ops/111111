@@ -15,7 +15,7 @@ const sections = [
   { title:"المسارات التخصصية", items:[["منظومة التدريب التخصصي",Brain],["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
   { title:"المحاكاة السريرية", items:[["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
   { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
-  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["الإعدادات والصلاحيات",Settings]] },
+  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["الإعدادات والصلاحيات",Settings]] },
 ] as const;
 
 const routeByLabel: Record<string,string> = {
@@ -39,6 +39,7 @@ const routeByLabel: Record<string,string> = {
   "المتجر المعرفي والكتب": "/books",
   "تأجير قاعات Zoom": "/room-rental",
   "إدارة الطلبات والحجوزات": "/platform-admin/requests",
+  "مراجعة تقارير المحاكاة": "/platform-admin/activities",
 };
 
 const stats = [
