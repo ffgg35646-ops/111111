@@ -21,18 +21,13 @@ import {
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import { RealtimeClinicalVoice } from "@/components/realtime-clinical-voice";
-import { getCaseById, practiceScales, trainingCases } from "@/lib/platform-catalog";
+import { courses, getCaseById, learningTracks, practiceScales, trainingCases } from "@/lib/platform-catalog";
 import "./simulation.css";
 
 const ClinicalRoomStage = dynamic(() => import("@/components/clinical-room-stage"), {
   ssr: false,
   loading: () => <div className="simulation-stage-loading">جارٍ تجهيز القاعة والشخصية الافتراضية...</div>,
 });
-
-const AVATAR_MODEL_URLS = {
-  father: "https://memoriesrohit.github.io/avatar-studio/models/daniel_formal.glb",
-  mother: "https://memoriesrohit.github.io/avatar-studio/models/aisha_formal.glb",
-} as const;
 
 type ClinicalFormulation = {
   presentingConcern: string;
@@ -66,7 +61,6 @@ const FORMULATION_REQUIREMENTS = [
   { key: "nextSteps", minLength: 20 },
 ] as const;
 
-type PersonaId = "father" | "mother" | "child" | "teen";
 type ConversationTurn = { role: "user" | "assistant"; content: string };
 type RoomEvent = { type: string; label: string; occurredAt: string };
 type RecognitionAlternative = { transcript: string };
@@ -100,7 +94,7 @@ function SimulationWorkspace() {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
-  const [selectedTarget, setSelectedTarget] = useState("الشخصية الافتراضية");
+  const [selectedTarget, setSelectedTarget] = useState("الطبيب النفسي السعودي");
   const [completed, setCompleted] = useState(false);
   const [savedScore, setSavedScore] = useState<number | null>(null);
   const [savedActivityId, setSavedActivityId] = useState<string | null>(null);
@@ -139,32 +133,42 @@ function SimulationWorkspace() {
 
   const activeCase = useMemo(() => getCaseById(caseId), [caseId]);
   const activeStep = activeCase.steps[stepIndex];
-  const voicePersona: PersonaId = activeCase.ageGroup === "طفل"
-    ? "child"
-    : activeCase.ageGroup === "مراهق"
-      ? "teen"
-      : activeCase.track === "الخدمة الاجتماعية"
-        ? "mother"
-        : "father";
+  const platformKnowledge = useMemo(() => {
+    const track = learningTracks.find((item) => item.title === activeCase.track);
+    if (!track) return "لا تتوفر مادة منهجية مرتبطة بهذا المسار داخل فهرس المنصة حتى الآن.";
+    const relatedCourses = courses.filter((course) => course.trackId === track.id).slice(0, 3);
+    return [
+      "المسار: " + track.title,
+      "وصف المسار: " + track.summary,
+      "المهارات المستهدفة: " + track.skills.join("، "),
+      ...relatedCourses.map((course) => [
+        "المقرر: " + course.title,
+        "الملخص: " + course.summary,
+        "نواتج التعلم: " + course.outcomes.slice(0, 5).join("، "),
+        "محاور الدروس: " + course.lessons.slice(0, 5).join("، "),
+      ].join("\\n")),
+      "أدوات تدريب ذات صلة: " + practiceScales.slice(0, 5).map((scale) => scale.title + " — " + scale.purpose).join("؛ "),
+    ].join("\\n").slice(0, 2600);
+  }, [activeCase.track]);
 
   const voiceScenario = useMemo(() => [
-    "العنوان: " + activeCase.title,
-    "نوع الحالة: " + activeCase.track,
-    "العمر/الفئة: " + activeCase.ageGroup,
-    "مكان المقابلة: " + activeCase.setting,
+    "الهوية الثابتة للمتحدث: الطبيب النفسي الافتراضي السعودي. أنت الطبيب والمدرب والمشرف، ولست المريض أو أحد أفراد أسرته.",
+    "مهمتك: تعليم المتدرب مهارات المقابلة ودراسة الحالة وفهم المقاييس والتفكير الإكلينيكي المسؤول، مع شرح عملي وتغذية راجعة.",
+    "عنوان الحالة التدريبية: " + activeCase.title,
+    "المجال: " + activeCase.track,
+    "الفئة العمرية للحالة (سياق الحالة فقط وليست هوية الطبيب): " + activeCase.ageGroup,
+    "بيئة الحالة: " + activeCase.setting,
     "ملخص الحالة: " + activeCase.briefing,
     "أهداف التدريب: " + activeCase.learningGoals.join("، "),
-    "تعليمات الشخصية: أجب من منظور الشخصية فقط وبما يتناسب مع المعلومات الواردة في ملف الحالة. لا تكشف كل التفاصيل دفعة واحدة. لا تخترع معلومات طبية أو اجتماعية غير مذكورة. لا تقدم تشخيصاً أو علاجاً.",
-  ].join("\n"), [activeCase]);
+    "المحتوى العلمي الموجود في فهرس المنصة لهذا المجال:",
+    platformKnowledge,
+    "قواعد مهمة: استخدم محتوى المنصة المرفق، ولا تدّع الاطلاع على مواد أخرى غير مرفقة. لا تخترع تفاصيل حالة أو نتائج مقاييس أو مراجع. ميّز بين الملاحظة والفرضية والدليل، ولا تصدر تشخيصاً رسمياً أو علاجاً لحالة حقيقية. اسأل المتدرب سؤالاً واحداً في كل خطوة عند التدريب التفاعلي.",
+  ].join("\\n").slice(0, 4800), [activeCase, platformKnowledge]);
 
-  const defaultAvatarModelUrl = voicePersona === "father"
-    ? AVATAR_MODEL_URLS.father
-    : voicePersona === "mother"
-      ? AVATAR_MODEL_URLS.mother
-      : null;
+  const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || null;
   const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
   const avatarModelLabel = uploadedAvatarName
-    || (voicePersona === "father" ? "شخصية رجل واقعية مرخصة" : voicePersona === "mother" ? "شخصية امرأة واقعية مرخصة" : "يتطلب موديل مناسباً للعمر");
+    || (defaultAvatarModelUrl ? "موديل الطبيب السعودي المرتبط" : "موديل الطبيب السعودي غير مربوط");
   const answeredCount = activeCase.steps.filter((step) => Boolean(answers[step.id])).length;
   const selectedPracticeScale = practiceScales.find((scale) => scale.id === clinicalFormulation.selectedScaleId);
   const completedFormulationFields = FORMULATION_REQUIREMENTS.filter(({ key, minLength }) =>
@@ -258,7 +262,6 @@ function SimulationWorkspace() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          personaId: voicePersona,
           scenario: voiceScenario,
           messages: nextMessages.map(({ role, content }) => ({ role, content })),
         }),
@@ -509,8 +512,8 @@ function SimulationWorkspace() {
   return (
     <PlatformLayout
       title="قاعة المحاكاة والمقابلة السريرية"
-      eyebrow="IMMERSIVE VR LIVE PATIENT"
-      description="واجه شخصية بشرية ثلاثية الأبعاد وجهاً لوجه، تحدث معها بالصوت، ثم أكمل خطوات التقييم واحفظ نتيجة التدريب."
+      eyebrow="SAUDI VIRTUAL CLINICAL DOCTOR"
+      description="تدرّب مع طبيب نفسي افتراضي سعودي واحد ثابت، يشرح لك المهارات المهنية ويرشدك في دراسة الحالة والمقاييس والتفكير الإكلينيكي."
     >
       <div className="simulation-toolbar">
         <label>اختر الحالة
@@ -555,12 +558,12 @@ function SimulationWorkspace() {
           </div>
 
           <div className="simulation-avatar-toolbar">
-            <div><b>الشخصية:</b> {avatarModelLabel}</div>
+            <div><b>الطبيب الافتراضي:</b> {avatarModelLabel}</div>
             <label className="simulation-avatar-upload">
-              <Upload size={14} /> تحميل شخصية GLB مخصصة
+              <Upload size={14} /> تحميل موديل الطبيب السعودي
               <input type="file" accept=".glb,model/gltf-binary" onChange={(event) => handleAvatarUpload(event.target.files?.[0])} />
             </label>
-            {uploadedAvatarUrl && <button type="button" className="simulation-remove-avatar" onClick={removeCustomAvatar}>العودة للشخصية الافتراضية</button>}
+            {uploadedAvatarUrl && <button type="button" className="simulation-remove-avatar" onClick={removeCustomAvatar}>العودة إلى الموديل المرتبط</button>}
           </div>
 
           <div className="simulation-stage-wrap">
@@ -618,7 +621,6 @@ function SimulationWorkspace() {
           </div>
 
           <RealtimeClinicalVoice
-            personaId={voicePersona}
             scenario={voiceScenario}
             onConnecting={() => {
               recognitionRef.current?.abort();
