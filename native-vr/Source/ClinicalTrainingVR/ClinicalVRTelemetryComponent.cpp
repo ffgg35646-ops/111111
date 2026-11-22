@@ -70,25 +70,25 @@ void UClinicalVRTelemetryComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
 {
     if (!GetWorld()) return;
-    if (!PatientTargetComponent)
+    if (!DoctorTargetComponent)
     {
         for (TActorIterator<AClinicalVRRoomEnvironment> It(GetWorld()); It; ++It)
         {
-            PatientTargetComponent = It->GetPatientGazeTarget();
+            DoctorTargetComponent = It->GetDoctorGazeTarget();
             break;
         }
     }
-    if (!PatientTargetComponent) return;
+    if (!DoctorTargetComponent) return;
 
     APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
     if (!PlayerController || !PlayerController->PlayerCameraManager) return;
 
     const FVector HeadLocation = PlayerController->PlayerCameraManager->GetCameraLocation();
     const FVector Forward = PlayerController->PlayerCameraManager->GetCameraRotation().Vector().GetSafeNormal();
-    const FVector PatientLocation = PatientTargetComponent->GetComponentLocation();
-    const FVector ToPatient = (PatientLocation - HeadLocation).GetSafeNormal();
-    const float HeadAngle = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Forward, ToPatient), -1.0f, 1.0f)));
-    const float DistanceCm = FVector::Distance(HeadLocation, PatientLocation);
+    const FVector DoctorLocation = DoctorTargetComponent->GetComponentLocation();
+    const FVector ToDoctor = (DoctorLocation - HeadLocation).GetSafeNormal();
+    const float HeadAngle = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Forward, ToDoctor), -1.0f, 1.0f)));
+    const float DistanceCm = FVector::Distance(HeadLocation, DoctorLocation);
 
     TArray<TSharedPtr<FJsonObject>> Events;
     auto AddNumericEvent = [&Events](const FString& Type, const FString& Label, float Value, const FString& Unit)
@@ -102,8 +102,8 @@ void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
     };
 
     AddNumericEvent(TEXT("head_pose_sample"), TEXT("Unreal OpenXR head pose sample"), 1.0f, TEXT("sample"));
-    AddNumericEvent(TEXT("head_direction_angle_degrees"), TEXT("Head direction angle to simulated patient"), HeadAngle, TEXT("degrees"));
-    AddNumericEvent(TEXT("interaction_distance_cm"), TEXT("Approximate distance to simulated patient"), DistanceCm, TEXT("cm"));
+    AddNumericEvent(TEXT("head_direction_angle_degrees"), TEXT("Head direction angle to simulated doctor"), HeadAngle, TEXT("degrees"));
+    AddNumericEvent(TEXT("interaction_distance_cm"), TEXT("Approximate distance to simulated doctor"), DistanceCm, TEXT("cm"));
     SendEvents(Events);
 
     const auto SampleTrackedHand = [this](const EControllerHand Hand, const FString& Handedness)
@@ -129,15 +129,15 @@ void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
 
     // Eye tracking is opt-in and only emits coarse, non-identifying evidence.
     // No raw eye images, pupil measurements, or detailed gaze traces are stored.
-    if (bEnableEyeGazeTelemetry && bEyeGazeConsentProvided && PatientTargetComponent && UEyeTrackerFunctionLibrary::IsEyeTrackerConnected())
+    if (bEnableEyeGazeTelemetry && bEyeGazeConsentProvided && DoctorTargetComponent && UEyeTrackerFunctionLibrary::IsEyeTrackerConnected())
     {
         FEyeTrackerGazeData GazeData;
         if (UEyeTrackerFunctionLibrary::GetGazeData(GazeData) && GazeData.ConfidenceValue >= 0.35f)
         {
             const FVector GazeDirection = GazeData.GazeDirection.GetSafeNormal();
-            const FVector ToPatientFromGaze = (PatientTargetComponent->GetComponentLocation() - GazeData.GazeOrigin).GetSafeNormal();
+            const FVector ToDoctorFromGaze = (DoctorTargetComponent->GetComponentLocation() - GazeData.GazeOrigin).GetSafeNormal();
             const float GazeAngle = FMath::RadiansToDegrees(FMath::Acos(
-                FMath::Clamp(FVector::DotProduct(GazeDirection, ToPatientFromGaze), -1.0f, 1.0f)));
+                FMath::Clamp(FVector::DotProduct(GazeDirection, ToDoctorFromGaze), -1.0f, 1.0f)));
 
             TArray<TSharedPtr<FJsonObject>> EyeEvents;
             auto AddEyeEvent = [&EyeEvents](const FString& Type, const FString& Label, float Value, const FString& Unit)
@@ -151,7 +151,7 @@ void UClinicalVRTelemetryComponent::PublishHeadPoseSample()
             };
 
             AddEyeEvent(TEXT("eye_gaze_sample"), TEXT("Opt-in eye gaze sample valid"), 1.0f, TEXT("sample"));
-            AddEyeEvent(TEXT("eye_gaze_angle_degrees"), TEXT("Eye gaze direction angle to simulated patient"), GazeAngle, TEXT("degrees"));
+            AddEyeEvent(TEXT("eye_gaze_angle_degrees"), TEXT("Eye gaze direction angle to simulated doctor"), GazeAngle, TEXT("degrees"));
             AddEyeEvent(TEXT("eye_gaze_confidence"), TEXT("Eye gaze confidence"), GazeData.ConfidenceValue, TEXT("ratio"));
             SendEvents(EyeEvents);
         }
