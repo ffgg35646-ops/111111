@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -24,43 +24,30 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
   const { actions, names, ref } = useAnimations(gltf.animations);
   const blinkRef = useRef({ next: 2.8, started: -1 });
   const model = gltf.scene;
+  const faceMeshesRef = useRef<MorphMesh[]>([]);
+  const headBoneRef = useRef<THREE.Bone | null>(null);
+  const headBaseRef = useRef<THREE.Euler | null>(null);
+  const eyeBonesRef = useRef<Array<{ bone: THREE.Bone; base: THREE.Euler }>>([]);
+  const gazeRef = useRef({ nextAt: 0.8, x: 0, y: 0, targetX: 0, targetY: 0 });
 
-  const faceMeshes = useMemo(() => {
-    const found: MorphMesh[] = [];
+  useEffect(() => {
+    const faces: MorphMesh[] = [];
+    const bones: THREE.Bone[] = [];
     model.traverse((object) => {
       const mesh = object as MorphMesh;
-      if (mesh.isMesh && mesh.morphTargetDictionary && mesh.morphTargetInfluences) found.push(mesh);
-    });
-    return found;
-  }, [model]);
-
-  const headBone = useMemo(() => {
-    const matches: THREE.Bone[] = [];
-    model.traverse((object) => {
-      if ((object as THREE.Bone).isBone && /mixamorig:head|head$/i.test(object.name)) {
-        matches.push(object as THREE.Bone);
-      }
-    });
-    return matches[0] ?? null;
-  }, [model]);
-
-  const headBase = useMemo(
-    () => headBone ? new THREE.Euler(headBone.rotation.x, headBone.rotation.y, headBone.rotation.z) : null,
-    [headBone],
-  );
-  const eyeBones = useMemo(() => {
-    const matches: THREE.Bone[] = [];
-    model.traverse((object) => {
+      if (mesh.isMesh && mesh.morphTargetDictionary && mesh.morphTargetInfluences) faces.push(mesh);
       const bone = object as THREE.Bone;
-      if (bone.isBone && /left.?eye|right.?eye/i.test(bone.name)) matches.push(bone);
+      if (bone.isBone && /left.?eye|right.?eye/i.test(bone.name)) bones.push(bone);
+      if (bone.isBone && /mixamorig:head|head$/i.test(bone.name)) headBoneRef.current = bone;
     });
-    return matches;
+    faceMeshesRef.current = faces;
+    const head = headBoneRef.current;
+    headBaseRef.current = head ? new THREE.Euler(head.rotation.x, head.rotation.y, head.rotation.z) : null;
+    eyeBonesRef.current = bones.map((bone) => ({
+      bone,
+      base: new THREE.Euler(bone.rotation.x, bone.rotation.y, bone.rotation.z),
+    }));
   }, [model]);
-  const eyeBases = useMemo(
-    () => eyeBones.map((bone) => new THREE.Euler(bone.rotation.x, bone.rotation.y, bone.rotation.z)),
-    [eyeBones],
-  );
-  const gazeRef = useRef({ nextAt: 0.8, x: 0, y: 0, targetX: 0, targetY: 0 });
 
   useEffect(() => {
     const preferredName = motion === "talk"
@@ -89,7 +76,7 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
     const targets = FACE_PRESETS[expression] ?? {};
     const speech = motion === "talk" ? 0.13 : 0;
 
-    for (const mesh of faceMeshes) {
+    for (const mesh of faceMeshesRef.current) {
       const dictionary = mesh.morphTargetDictionary;
       const influences = mesh.morphTargetInfluences;
       const namesToUpdate = new Set([...Object.keys(targets), "jawOpen", "eyeBlinkLeft", "eyeBlinkRight"]);
@@ -104,6 +91,8 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
     }
 
     // Gentle head micro-movement keeps the listening/talking character from feeling frozen.
+    const headBone = headBoneRef.current;
+    const headBase = headBaseRef.current;
     if (headBone && headBase) {
       headBone.rotation.x = headBase.x + Math.sin(elapsed * 0.43) * 0.012;
       headBone.rotation.y = headBase.y + Math.sin(elapsed * 0.31) * 0.025;
@@ -119,9 +108,7 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
     }
     gaze.x = THREE.MathUtils.damp(gaze.x, gaze.targetX, 8, delta);
     gaze.y = THREE.MathUtils.damp(gaze.y, gaze.targetY, 8, delta);
-    eyeBones.forEach((bone, index) => {
-      const base = eyeBases[index];
-      if (!base) return;
+    eyeBonesRef.current.forEach(({ bone, base }) => {
       bone.rotation.set(base.x + gaze.y, base.y + gaze.x, base.z);
     });
   });
