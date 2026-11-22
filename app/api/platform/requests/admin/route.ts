@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!authorised(request)) return NextResponse.json({ error: "مفتاح الإدارة غير صحيح." }, { status: 403 });
+  if (!(await requirePlatformRole(request, ["admin"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "بيانات التحديث غير صالحة." }, { status: 400 }); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "بيانات التحديث غير مكتملة." }, { status: 400 });
