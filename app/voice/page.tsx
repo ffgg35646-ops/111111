@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight, AudioLines, Bot, CircleAlert, LoaderCircle, Mic, MicOff,
-  Pause, Send, ShieldCheck, Square, UserRound, Video, Volume2, VolumeX,
+  Pause, Send, Settings2, ShieldCheck, Square, UserRound, Video, Volume2, VolumeX,
 } from "lucide-react";
 import "./voice.css";
 
