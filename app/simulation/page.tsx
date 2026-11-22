@@ -111,6 +111,7 @@ function SimulationWorkspace() {
   const [listening, setListening] = useState(false);
   const [agentBusy, setAgentBusy] = useState(false);
   const [avatarSpeaking, setAvatarSpeaking] = useState(false);
+  const [avatarSpeechLevel, setAvatarSpeechLevel] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [voiceError, setVoiceError] = useState("");
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
@@ -580,6 +581,7 @@ function SimulationWorkspace() {
               scenarioTitle={activeCase.title}
               avatarModelUrl={avatarModelUrl}
               avatarSpeaking={avatarSpeaking}
+              avatarSpeechLevel={avatarSpeechLevel}
               avatarMotion={avatarSpeaking ? "talk" : listening || agentBusy ? "listen" : "idle"}
               voiceStatus={voiceStatus}
               latestUserText={latestUserText}
@@ -635,6 +637,7 @@ function SimulationWorkspace() {
             onMutedChange={setRealtimeMuted}
             onControlsReady={registerRealtimeControls}
             onSpeakingChange={setAvatarSpeaking}
+            onSpeechLevelChange={setAvatarSpeechLevel}
             onEvent={recordRoomEvent}
             onTranscript={(turn) => {
               const nextConversation = [...conversationRef.current, turn].slice(-20);
