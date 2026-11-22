@@ -303,12 +303,8 @@ function RealisticDoctor({
     if (!head) return;
 
     // A curved facial shell uses the original close-up photo on the live 3D head.
-    const geometry = new THREE.SphereGeometry(1.008, 64, 48, Math.PI / 2, Math.PI, 0, Math.PI);
-    const uv = geometry.attributes.uv;
-    for (let index = 0; index < uv.count; index += 1) {
-      uv.setX(index, (uv.getX(index) - 0.25) * 2);
-    }
-    uv.needsUpdate = true;
+    // The first half-turn of the sphere faces the camera (+Z), and its UVs already span 0..1.
+    const geometry = new THREE.SphereGeometry(1.008, 64, 48, 0, Math.PI, 0, Math.PI);
     const material = new THREE.MeshStandardMaterial({
       map: facePhotoTexture,
       roughness: 0.82,
