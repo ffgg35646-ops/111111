@@ -8,7 +8,8 @@ type TranscriptTurn = { role: "user" | "assistant"; content: string };
 type RealtimeClinicalVoiceProps = {
   scenario: string;
   onTranscript: (turn: TranscriptTurn) => void;
-  onSpeakingChange?: (speaking: boolean) => void;\n  onSpeechLevelChange?: (level: number) => void;
+  onSpeakingChange?: (speaking: boolean) => void;
+  onSpeechLevelChange?: (level: number) => void;
   onEvent?: (type: string, label: string) => void;
   onConnecting?: () => void;
   onStatusChange?: (status: "idle" | "connecting" | "live" | "error") => void;
@@ -27,6 +28,7 @@ export function RealtimeClinicalVoice({
   scenario,
   onTranscript,
   onSpeakingChange,
+  onSpeechLevelChange,
   onEvent,
   onConnecting,
   onStatusChange,
@@ -42,6 +44,11 @@ export function RealtimeClinicalVoice({
   const channelRef = useRef<RTCDataChannel | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const assistantTranscriptRef = useRef("");
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioAnalyserRef = useRef<AnalyserNode | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const audioSamplesRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const analysisFrameRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => { onStatusChange?.(status); }, [onStatusChange, status]);
