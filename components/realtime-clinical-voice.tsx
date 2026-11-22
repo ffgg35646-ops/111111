@@ -49,6 +49,8 @@ export function RealtimeClinicalVoice({
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const audioSamplesRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const analysisFrameRef = useRef<number | null>(null);
+  const lastSpeechLevelRef = useRef(0);
+  const lastSpeechLevelEmitAtRef = useRef(0);
   const mountedRef = useRef(true);
 
   useEffect(() => { onStatusChange?.(status); }, [onStatusChange, status]);
@@ -72,6 +74,8 @@ export function RealtimeClinicalVoice({
     audioAnalyserRef.current?.disconnect();
     audioAnalyserRef.current = null;
     audioSamplesRef.current = null;
+    lastSpeechLevelRef.current = 0;
+    lastSpeechLevelEmitAtRef.current = 0;
     if (audioContextRef.current) {
       void audioContextRef.current.close().catch(() => undefined);
       audioContextRef.current = null;
@@ -154,7 +158,7 @@ export function RealtimeClinicalVoice({
           audioSourceRef.current = source;
           audioSamplesRef.current = new Uint8Array(new ArrayBuffer(analyser.fftSize));
           void context.resume().catch(() => undefined);
-          const sampleSpeechLevel = () => {
+          const sampleSpeechLevel = (timestamp: number) => {
             const activeAnalyser = audioAnalyserRef.current;
             const samples = audioSamplesRef.current;
             if (!activeAnalyser || !samples || !mountedRef.current) return;
@@ -165,7 +169,14 @@ export function RealtimeClinicalVoice({
               sumSquares += centered * centered;
             }
             const rms = Math.sqrt(sumSquares / samples.length);
-            onSpeechLevelChange?.(Math.min(1, rms * 4.5));
+            const nextLevel = Math.min(1, rms * 4.5);
+            // Limit React updates to meaningful level changes at up to 20 Hz.
+            if (timestamp - lastSpeechLevelEmitAtRef.current >= 50 &&
+                Math.abs(nextLevel - lastSpeechLevelRef.current) >= 0.035) {
+              lastSpeechLevelRef.current = nextLevel;
+              lastSpeechLevelEmitAtRef.current = timestamp;
+              onSpeechLevelChange?.(nextLevel);
+            }
             analysisFrameRef.current = window.requestAnimationFrame(sampleSpeechLevel);
           };
           analysisFrameRef.current = window.requestAnimationFrame(sampleSpeechLevel);
