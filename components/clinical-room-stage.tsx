@@ -208,62 +208,24 @@ function Chair({
   );
 }
 
-function BasicPatient({ onSelect }: { onSelect: () => void }) {
+function DoctorAssetPending() {
   return (
-    <group
-      position={[0, 0, -2.35]}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelect();
-      }}
-      onPointerOver={() => { document.body.style.cursor = "pointer"; }}
-      onPointerOut={() => { document.body.style.cursor = "auto"; }}
-    >
-      <mesh position={[0, 1.12, 0]} castShadow>
-        <capsuleGeometry args={[0.28, 0.72, 5, 14]} />
-        <meshStandardMaterial color="#668e91" roughness={0.82} />
+    <group position={[0, 1.58, -2.35]}>
+      <mesh>
+        <planeGeometry args={[2.35, 0.92]} />
+        <meshStandardMaterial color="#e0e9e9" roughness={0.9} />
       </mesh>
-      <mesh position={[0, 1.86, 0.015]} castShadow>
-        <sphereGeometry args={[0.235, 28, 24]} />
-        <meshStandardMaterial color="#bd896f" roughness={0.86} />
+      <mesh position={[0, 0, 0.012]}>
+        <planeGeometry args={[2.24, 0.82]} />
+        <meshBasicMaterial color="#f7faf9" />
       </mesh>
-      <mesh position={[0, 1.63, 0.015]} castShadow>
-        <cylinderGeometry args={[0.085, 0.105, 0.16, 16]} />
-        <meshStandardMaterial color="#bd896f" />
-      </mesh>
-      <mesh position={[-0.075, 1.91, 0.22]}>
-        <sphereGeometry args={[0.018, 10, 10]} />
-        <meshBasicMaterial color="#263940" />
-      </mesh>
-      <mesh position={[0.075, 1.91, 0.22]}>
-        <sphereGeometry args={[0.018, 10, 10]} />
-        <meshBasicMaterial color="#263940" />
-      </mesh>
-      <mesh position={[0, 1.83, 0.235]}>
-        <boxGeometry args={[0.055, 0.012, 0.012]} />
-        <meshBasicMaterial color="#805d52" />
-      </mesh>
-      <mesh position={[-0.35, 1.22, 0]} rotation={[0, 0, -0.34]} castShadow>
-        <capsuleGeometry args={[0.085, 0.58, 4, 10]} />
-        <meshStandardMaterial color="#bd896f" />
-      </mesh>
-      <mesh position={[0.35, 1.22, 0]} rotation={[0, 0, 0.34]} castShadow>
-        <capsuleGeometry args={[0.085, 0.58, 4, 10]} />
-        <meshStandardMaterial color="#bd896f" />
-      </mesh>
-      <mesh position={[-0.15, 0.48, 0]} castShadow>
-        <capsuleGeometry args={[0.095, 0.55, 4, 10]} />
-        <meshStandardMaterial color="#334c58" />
-      </mesh>
-      <mesh position={[0.15, 0.48, 0]} castShadow>
-        <capsuleGeometry args={[0.095, 0.55, 4, 10]} />
-        <meshStandardMaterial color="#334c58" />
-      </mesh>
+      <CanvasLabel text="الطبيب السعودي غير مربوط" position={[0, 0.13, 0.025]} size={[2.12, 0.28]} fontSize={34} color="#284954" />
+      <CanvasLabel text="اربط موديل الطبيب البشري المعتمد" position={[0, -0.18, 0.025]} size={[2.12, 0.22]} fontSize={25} color="#60757b" />
     </group>
   );
 }
 
-function RealisticPatient({
+function RealisticDoctor({
   modelUrl,
   speaking,
   motion,
@@ -579,9 +541,9 @@ function HandTrackingTelemetry({ onRoomEvent, enabled }: { onRoomEvent?: (type: 
 }
 
 function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
-  const selectPatient = () => {
-    props.onSelect("الشخصية الافتراضية");
-    props.onRoomEvent?.("patient_selected", "تم تحديد الشخصية الافتراضية داخل القاعة");
+  const selectDoctor = () => {
+    props.onSelect("الطبيب النفسي السعودي");
+    props.onRoomEvent?.("doctor_selected", "تم تحديد الطبيب النفسي السعودي الافتراضي داخل القاعة");
   };
   const openCaseFile = () => {
     props.onSelect("ملف الحالة");
@@ -632,11 +594,11 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
       <Chair position={[0, 0, 1.45]} rotation={Math.PI} tone="#71828c" />
 
       {props.avatarModelUrl ? (
-        <Suspense fallback={<BasicPatient onSelect={selectPatient} />}>
-          <RealisticPatient modelUrl={props.avatarModelUrl} speaking={props.avatarSpeaking} motion={props.avatarMotion} onSelect={selectPatient} />
+        <Suspense fallback={<DoctorAssetPending />}>
+          <RealisticDoctor modelUrl={props.avatarModelUrl} speaking={props.avatarSpeaking} motion={props.avatarMotion} onSelect={selectDoctor} />
         </Suspense>
       ) : (
-        <BasicPatient onSelect={selectPatient} />
+        <DoctorAssetPending />
       )}
 
       <mesh position={[-3.2, 0.48, 1.18]} castShadow>
@@ -739,7 +701,7 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
     <div className="clinical-room-canvas">
       <div className="clinical-room-actions">
         <button type="button" onClick={enterVR}>دخول VR بالنظارة</button>
-        <span>الشخصية الحية والمقابلة الصوتية داخل القاعة</span>
+        <span>الطبيب الافتراضي والمقابلة الصوتية داخل القاعة</span>
         {xrMessage && <small role="status">{xrMessage}</small>}
       </div>
       <Canvas shadows camera={{ position: [0, 1.65, 6.5], fov: 50 }} dpr={[1, 1.5]}>
@@ -754,7 +716,7 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
           </IfInSessionMode>
         </XR>
       </Canvas>
-      <div className="clinical-room-compass"><span /> شخصية بشرية ثلاثية الأبعاد · حوار صوتي داخل القاعة · WebXR</div>
+      <div className="clinical-room-compass"><span /> طبيب نفسي سعودي افتراضي · حوار صوتي داخل القاعة · WebXR</div>
     </div>
   );
 }
