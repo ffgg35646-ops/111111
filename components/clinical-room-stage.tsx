@@ -251,6 +251,8 @@ function RealisticDoctor({
     morphTargetInfluences: number[];
   }>>([]);
   const headBoneRef = useRef<THREE.Bone | null>(null);
+  const jawObjectRef = useRef<THREE.Object3D | null>(null);
+  const headObjectRef = useRef<THREE.Object3D | null>(null);
   const headBaseRef = useRef<THREE.Euler | null>(null);
   const eyeBonesRef = useRef<Array<{ bone: THREE.Bone; base: THREE.Euler }>>([]);
   const gazeRef = useRef({ nextAt: 0.8, x: 0, y: 0, targetX: 0, targetY: 0 });
@@ -273,6 +275,8 @@ function RealisticDoctor({
           morphTargetInfluences: mesh.morphTargetInfluences,
         });
       }
+      if (/^jaw$/i.test(object.name)) jawObjectRef.current = object;
+      if (/^head$/i.test(object.name)) headObjectRef.current = object;
       const bone = object as THREE.Bone;
       if (bone.isBone && /left.?eye|right.?eye/i.test(bone.name)) bones.push(bone);
       if (bone.isBone && /mixamorig:head|head$/i.test(bone.name)) headBoneRef.current = bone;
@@ -311,6 +315,18 @@ function RealisticDoctor({
       ? Math.sin(((elapsed - blink.started) / 0.14) * Math.PI)
       : 0;
     const jawTarget = speaking ? Math.min(0.72, Math.max(0.035, speechLevel * 1.65)) : 0;
+    if (jawObjectRef.current) {
+      jawObjectRef.current.rotation.x = THREE.MathUtils.damp(
+        jawObjectRef.current.rotation.x,
+        speaking ? 0.12 + jawTarget * 0.42 : 0,
+        15,
+        delta,
+      );
+    }
+    if (headObjectRef.current && !headBoneRef.current) {
+      headObjectRef.current.rotation.y = Math.sin(elapsed * 0.29) * 0.025;
+      headObjectRef.current.rotation.z = Math.sin(elapsed * 0.23) * 0.008;
+    }
 
     for (const mesh of faceMeshesRef.current) {
       const dictionary = mesh.morphTargetDictionary;
@@ -649,6 +665,52 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
         <boxGeometry args={[9, 0.1, 8.5]} />
         <meshStandardMaterial color="#dbe5e7" />
       </mesh>
+
+      {/* Daylight window and quiet clinical details make the room read as a real consultation space. */}
+      <group position={[4.36, 2.02, -1.55]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh>
+          <planeGeometry args={[1.72, 1.18]} />
+          <meshBasicMaterial color="#b9d9e4" />
+        </mesh>
+        <mesh position={[0, 0, -0.025]}>
+          <planeGeometry args={[1.58, 1.04]} />
+          <meshBasicMaterial color="#d9edf1" />
+        </mesh>
+        <mesh position={[0, 0, 0.018]}>
+          <boxGeometry args={[0.035, 1.18, 0.045]} />
+          <meshStandardMaterial color="#f7faf9" />
+        </mesh>
+        <mesh position={[0, 0, 0.018]}>
+          <boxGeometry args={[1.72, 0.035, 0.045]} />
+          <meshStandardMaterial color="#f7faf9" />
+        </mesh>
+      </group>
+      <group position={[3.72, 0, -3.2]}>
+        <mesh position={[0, 0.2, 0]} castShadow>
+          <cylinderGeometry args={[0.22, 0.18, 0.4, 20]} />
+          <meshStandardMaterial color="#b9a18b" roughness={0.9} />
+        </mesh>
+        {[-0.16, -0.05, 0.08, 0.17].map((x, index) => (
+          <mesh key={index} position={[x, 0.68 + (index % 2) * 0.12, 0]} rotation={[0, 0, x * 1.4]} castShadow>
+            <coneGeometry args={[0.13, 0.72, 10]} />
+            <meshStandardMaterial color={index % 2 ? "#6f9d83" : "#83aa91"} roughness={0.95} />
+          </mesh>
+        ))}
+      </group>
+      <group position={[-3.85, 2.12, -3.55]}>
+        <mesh>
+          <boxGeometry args={[0.72, 0.52, 0.045]} />
+          <meshStandardMaterial color="#d7e4df" />
+        </mesh>
+        <mesh position={[0, 0, 0.03]}>
+          <boxGeometry args={[0.62, 0.42, 0.02]} />
+          <meshStandardMaterial color="#f6f8f5" />
+        </mesh>
+        <mesh position={[0, -0.12, 0.045]}>
+          <boxGeometry args={[0.28, 0.025, 0.015]} />
+          <meshStandardMaterial color="#76a79c" />
+        </mesh>
+      </group>
 
       <mesh position={[0, 0.78, -1.22]} castShadow receiveShadow>
         <boxGeometry args={[2.25, 0.14, 1.05]} />
