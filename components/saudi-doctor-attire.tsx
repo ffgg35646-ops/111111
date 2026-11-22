@@ -107,6 +107,8 @@ function buildSaudiDoctorAttire(modelValue: unknown) {
   const sleeveMeshes: Array<{ side: number; mesh: THREE.Mesh }> = [];
   const cuffMeshes: Array<{ side: number; mesh: THREE.Mesh }> = [];
   const headMeshes: THREE.Mesh[] = [];
+  const attachedMeshes: THREE.Mesh[] = [];
+  group.userData.attachedMeshes = attachedMeshes;
 
   const thobeMaterial = new THREE.MeshStandardMaterial({
     color: "#f5f6f2",
@@ -593,7 +595,10 @@ function buildSaudiDoctorAttire(modelValue: unknown) {
 , "i"),
       new RegExp(`mixamorig:${sideName}arm`, "i"),
     ]);
-    if (arm) arm.attach(mesh);
+    if (arm) {
+      arm.attach(mesh);
+      attachedMeshes.push(mesh);
+    }
   }
 
   for (const { side, mesh } of cuffMeshes) {
@@ -890,11 +895,17 @@ function buildSaudiDoctorAttire(modelValue: unknown) {
 , "i"),
       new RegExp(`mixamorig:${sideName}forearm`, "i"),
     ]);
-    if (forearm) forearm.attach(mesh);
+    if (forearm) {
+      forearm.attach(mesh);
+      attachedMeshes.push(mesh);
+    }
   }
 
   const headBone = findBone([/head$/i, /mixamorig:head/i]);
-  if (headBone) headMeshes.forEach((mesh) => headBone.attach(mesh));
+  if (headBone) headMeshes.forEach((mesh) => {
+    headBone.attach(mesh);
+    attachedMeshes.push(mesh);
+  });
 
   return group;
 }
@@ -904,16 +915,23 @@ export function SaudiDoctorAttire({ model }: { model: unknown }) {
 
   useEffect(() => () => {
     attire.parent?.remove(attire);
+    const meshes = new Set<THREE.Mesh>(attire.userData.attachedMeshes as THREE.Mesh[] | undefined);
     attire.traverse((object) => {
       const mesh = object as THREE.Mesh;
-      if (!mesh.isMesh) return;
+      if (mesh.isMesh) meshes.add(mesh);
+    });
+    const materials = new Set<THREE.Material>();
+    const textures = new Set<THREE.Texture>();
+    meshes.forEach((mesh) => {
+      mesh.parent?.remove(mesh);
       mesh.geometry.dispose();
-      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      materials.forEach((material) => {
-        if ("map" in material && material.map instanceof THREE.Texture) material.map.dispose();
-        material.dispose();
+      (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach((material) => {
+        materials.add(material);
+        if ("map" in material && material.map instanceof THREE.Texture) textures.add(material.map);
       });
     });
+    textures.forEach((texture) => texture.dispose());
+    materials.forEach((material) => material.dispose());
   }, [attire]);
 
   // The outfit is attached to the avatar's skeleton in buildSaudiDoctorAttire.
