@@ -251,7 +251,7 @@ function RealisticDoctor({
       morphTargetInfluences: number[];
     }> = [];
     model.traverse((object) => {
-      const mesh = object as THREE.Object3D & {
+      const mesh = object as unknown as {
         isMesh?: boolean;
         morphTargetDictionary?: Record<string, number>;
         morphTargetInfluences?: number[];
@@ -267,13 +267,13 @@ function RealisticDoctor({
   }, [model]);
 
   const headBone = useMemo(() => {
-    let found: THREE.Bone | null = null;
+    const matches: THREE.Bone[] = [];
     model.traverse((object) => {
-      if (!found && (object as THREE.Bone).isBone && /mixamorig:head|head$/i.test(object.name)) {
-        found = object as THREE.Bone;
+      if ((object as THREE.Bone).isBone && /mixamorig:head|head$/i.test(object.name)) {
+        matches.push(object as THREE.Bone);
       }
     });
-    return found;
+    return matches[0] ?? null;
   }, [model]);
   const headBase = useMemo(
     () => headBone ? new THREE.Euler(headBone.rotation.x, headBone.rotation.y, headBone.rotation.z) : null,
