@@ -273,17 +273,18 @@ function RealisticDoctor({
           morphTargetInfluences: mesh.morphTargetInfluences,
         });
       }
-      if (/^jaw$/i.test(object.name)) jawObjectRef.current = object;
+      const sceneObject = object as unknown as THREE.Object3D;
+      if (/^jaw$/i.test(object.name)) jawObjectRef.current = sceneObject;
       if (/^(left|right)_eye$/i.test(object.name)) {
         eyeObjectsRef.current.push({
-          object,
-          baseScale: object.scale.clone(),
-          base: new THREE.Euler(object.rotation.x, object.rotation.y, object.rotation.z),
+          object: sceneObject,
+          baseScale: sceneObject.scale.clone(),
+          base: new THREE.Euler(sceneObject.rotation.x, sceneObject.rotation.y, sceneObject.rotation.z),
         });
       }
-      if (/^(left|right)_arm$/i.test(object.name)) gestureArmsRef.current.push({ object, base: new THREE.Euler(object.rotation.x, object.rotation.y, object.rotation.z), side: /^left/i.test(object.name) ? -1 : 1 });
-      if (/^head$/i.test(object.name)) headObjectRef.current = object;
-      const bone = object as THREE.Bone;
+      if (/^(left|right)_arm$/i.test(object.name)) gestureArmsRef.current.push({ object: sceneObject, base: new THREE.Euler(sceneObject.rotation.x, sceneObject.rotation.y, sceneObject.rotation.z), side: /^left/i.test(object.name) ? -1 : 1 });
+      if (/^head$/i.test(object.name)) headObjectRef.current = sceneObject;
+      const bone = object as unknown as THREE.Bone;
       if (bone.isBone && /left.?eye|right.?eye/i.test(bone.name)) bones.push(bone);
       if (bone.isBone && /mixamorig:head|head$/i.test(bone.name)) headBoneRef.current = bone;
     });
