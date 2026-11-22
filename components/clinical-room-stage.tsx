@@ -256,6 +256,11 @@ function RealisticDoctor({
       morphTargetInfluences: number[];
     }> = [];
     const bones: THREE.Bone[] = [];
+    eyeObjectsRef.current = [];
+    gestureArmsRef.current = [];
+    headObjectRef.current = null;
+    jawObjectRef.current = null;
+    headBoneRef.current = null;
     model.traverse((object) => {
       const mesh = object as unknown as {
         isMesh?: boolean;
