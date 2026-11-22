@@ -73,3 +73,8 @@ npm run dev
 - تمت إضافة أساس مصادقة للحسابات الفردية: كلمات مرور مجزأة باستخدام scrypt، جلسات JWT داخل HttpOnly cookies، أدوار مدير/مشرف/مدرب/متدرب/مستشار، إنشاء وتعطيل الحسابات، تغيير كلمة المرور المؤقتة عند أول دخول، وسجل تدقيق إداري. لم تتم إضافة MFA أو SSO أو التحقق من البريد أو استعادة كلمة المرور بعد.
 - تكامل Unreal/OpenXR يجب أن يرسل حالة المشهد وقياسات VR عبر Data Channel وفق الدليل.
 - راجع docs/supervision-and-competency-setup.md لإعداد مفاتيح LiveKit وMongoDB ومتطلبات الأمان.
+
+
+## SCD-01 Saudi attire
+
+The shared web avatar now renders a three-dimensional Saudi attire layer over the same male rig: white thobe, red-and-white shemagh and black agal, plus a white clinical coat, badge and stethoscope. This is a procedural geometry overlay in the browser, not a replacement commercial character mesh. Validate fit and animation on the deployed model/device before production approval.
