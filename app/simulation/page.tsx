@@ -146,9 +146,9 @@ function SimulationWorkspace() {
         "الملخص: " + course.summary,
         "نواتج التعلم: " + course.outcomes.slice(0, 5).join("، "),
         "محاور الدروس: " + course.lessons.slice(0, 5).join("، "),
-      ].join("\\n")),
+      ].join("\n")),
       "أدوات تدريب ذات صلة: " + practiceScales.slice(0, 5).map((scale) => scale.title + " — " + scale.purpose).join("؛ "),
-    ].join("\\n").slice(0, 2600);
+    ].join("\n").slice(0, 2600);
   }, [activeCase.track]);
 
   const voiceScenario = useMemo(() => [
@@ -163,7 +163,7 @@ function SimulationWorkspace() {
     "المحتوى العلمي الموجود في فهرس المنصة لهذا المجال:",
     platformKnowledge,
     "قواعد مهمة: استخدم محتوى المنصة المرفق، ولا تدّع الاطلاع على مواد أخرى غير مرفقة. لا تخترع تفاصيل حالة أو نتائج مقاييس أو مراجع. ميّز بين الملاحظة والفرضية والدليل، ولا تصدر تشخيصاً رسمياً أو علاجاً لحالة حقيقية. اسأل المتدرب سؤالاً واحداً في كل خطوة عند التدريب التفاعلي.",
-  ].join("\\n").slice(0, 4800), [activeCase, platformKnowledge]);
+  ].join("\n").slice(0, 4800), [activeCase, platformKnowledge]);
 
   const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || null;
   const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
