@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid, OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import { createXRStore, IfInSessionMode, XR } from "@react-three/xr";
+import * as THREE from "three";
 import { CanvasTexture, SRGBColorSpace, Vector3 } from "three";
 import "./clinical-room-stage.css";
 
