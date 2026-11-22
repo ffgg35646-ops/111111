@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "ClinicalVRRoomEnvironment.generated.h"
 
+class AActor;
 class USceneComponent;
 class UStaticMeshComponent;
 class USkeletalMesh;
@@ -18,26 +19,31 @@ class CLINICALTRAININGVR_API AClinicalVRRoomEnvironment : public AActor
 public:
     AClinicalVRRoomEnvironment();
     virtual void BeginPlay() override;
-    USceneComponent* GetPatientGazeTarget() const { return PatientGazeTarget; }
+    USceneComponent* GetDoctorGazeTarget() const { return DoctorGazeTarget; }
 
 protected:
     UPROPERTY(VisibleAnywhere, Category = "Clinical Room")
     TObjectPtr<USceneComponent> SceneRoot;
 
-    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Patient")
-    TObjectPtr<USceneComponent> PatientAnchor;
+    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Virtual Doctor")
+    TObjectPtr<USceneComponent> DoctorAnchor;
 
-    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Patient")
-    TObjectPtr<USceneComponent> PatientGazeTarget;
+    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Virtual Doctor")
+    TObjectPtr<USceneComponent> DoctorGazeTarget;
 
-    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Patient")
-    TObjectPtr<USkeletalMeshComponent> PatientCharacter;
+    UPROPERTY(VisibleAnywhere, Category = "Clinical Room|Virtual Doctor")
+    TObjectPtr<USkeletalMeshComponent> DoctorCharacter;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clinical Room|Patient")
-    TObjectPtr<USkeletalMesh> PatientSkeletalMeshAsset;
+    // Use a MetaHuman Blueprint class here when the full body + face rig is available.
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clinical Room|Virtual Doctor")
+    TSubclassOf<AActor> DoctorCharacterClass;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clinical Room|Patient")
-    TSubclassOf<UAnimInstance> PatientAnimationClass;
+    // Optional fallback for a single skeletal-mesh character that is not a MetaHuman Blueprint.
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clinical Room|Virtual Doctor")
+    TObjectPtr<USkeletalMesh> DoctorSkeletalMeshAsset;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Clinical Room|Virtual Doctor")
+    TSubclassOf<UAnimInstance> DoctorAnimationClass;
 
     UPROPERTY(VisibleAnywhere, Category = "Clinical Room")
     TObjectPtr<UStaticMeshComponent> Floor;
@@ -53,10 +59,4 @@ protected:
 
     UPROPERTY(VisibleAnywhere, Category = "Clinical Room")
     TObjectPtr<UStaticMeshComponent> InterviewDesk;
-
-    UPROPERTY(VisibleAnywhere, Category = "Clinical Room")
-    TObjectPtr<UStaticMeshComponent> PatientBody;
-
-    UPROPERTY(VisibleAnywhere, Category = "Clinical Room")
-    TObjectPtr<UStaticMeshComponent> PatientHead;
 };
