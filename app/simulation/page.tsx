@@ -23,6 +23,7 @@ import { PlatformLayout } from "@/components/platform-layout";
 import { RealtimeClinicalVoice } from "@/components/realtime-clinical-voice";
 import { courses, getCaseById, learningTracks, practiceScales, trainingCases } from "@/lib/platform-catalog";
 import "./simulation.css";
+import { DEFAULT_DOCTOR_AVATAR_MODEL_URL } from "@/lib/doctor-avatar";
 
 const ClinicalRoomStage = dynamic(() => import("@/components/clinical-room-stage"), {
   ssr: false,
@@ -166,7 +167,7 @@ function SimulationWorkspace() {
     "قواعد مهمة: استخدم محتوى المنصة المرفق، ولا تدّع الاطلاع على مواد أخرى غير مرفقة. لا تخترع تفاصيل حالة أو نتائج مقاييس أو مراجع. ميّز بين الملاحظة والفرضية والدليل، ولا تصدر تشخيصاً رسمياً أو علاجاً لحالة حقيقية. اسأل المتدرب سؤالاً واحداً في كل خطوة عند التدريب التفاعلي.",
   ].join("\n").slice(0, 4800), [activeCase, platformKnowledge]);
 
-  const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || null;
+  const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || DEFAULT_DOCTOR_AVATAR_MODEL_URL;
   const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
   const avatarModelLabel = uploadedAvatarName
     || (defaultAvatarModelUrl ? "موديل الطبيب السعودي المرتبط" : "موديل الطبيب السعودي غير مربوط");
@@ -582,7 +583,7 @@ function SimulationWorkspace() {
               avatarModelUrl={avatarModelUrl}
               avatarSpeaking={avatarSpeaking}
               avatarSpeechLevel={avatarSpeechLevel}
-              avatarMotion={avatarSpeaking ? "talk" : listening || agentBusy ? "listen" : "idle"}
+              avatarMotion={avatarSpeaking ? "talk" : listening || agentBusy || realtimeStatus === "live" ? "listen" : "idle"}
               voiceStatus={voiceStatus}
               latestUserText={latestUserText}
               latestAssistantText={latestAssistantText}
