@@ -19,8 +19,9 @@ import {
   Video,
 } from "lucide-react";
 import AvatarStage from "@/components/avatar-stage";
+import { DEFAULT_DOCTOR_AVATAR_MODEL_URL } from "@/lib/doctor-avatar";
 
-const DOCTOR_MODEL_URL = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || null;
+const DOCTOR_MODEL_URL = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || DEFAULT_DOCTOR_AVATAR_MODEL_URL;
 const EXPRESSIONS = ["محايد", "اهتمام", "ابتسامة", "تأمل", "قلق مهني", "استغراب"];
 
 export default function CharactersPage() {
@@ -75,7 +76,7 @@ export default function CharactersPage() {
           </div>
           <div className="asset-status">
             <span className={modelUrl ? "live-dot" : "status-dot"} />
-            {modelUrl ? "تم ربط ملف موديل" : "ملف الموديل النهائي غير مربوط"}
+            {modelUrl ? "المجسم البشري محمّل" : "ملف الموديل غير متاح"}
           </div>
         </div>
 
@@ -92,7 +93,7 @@ export default function CharactersPage() {
           <section className="avatar-stage-card">
             <div className="stage-toolbar">
               <div><span className="stage-kicker">معاينة الموديل البشري</span><strong>الطبيب النفسي السعودي</strong></div>
-              <span className="stage-mode"><span className={modelUrl ? "live-dot" : "status-dot"} /> {modelUrl ? "الموديل مرتبط" : "بانتظار الموديل"}</span>
+              <span className="stage-mode"><span className={modelUrl ? "live-dot" : "status-dot"} /> {modelUrl ? "المجسم يعمل" : "بانتظار الموديل"}</span>
             </div>
             <div className="avatar-canvas">
               <AvatarStage modelUrl={modelUrl} expression={expression} motion={motion} />
@@ -114,7 +115,7 @@ export default function CharactersPage() {
               </div>
             </div>
             <div className="stage-footer">
-              <div><span className="file-indicator" /><span>{modelName || (DOCTOR_MODEL_URL ? "موديل مرتبط من إعدادات المنصة" : "لم يتم ربط موديل الطبيب")}</span></div>
+              <div><span className="file-indicator" /><span>{modelName || (process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() ? "موديل الطبيب المعتمد من إعدادات المنصة" : "النموذج البشري الأساسي المربوط للمعاينة")}</span></div>
               <button disabled={!uploadedModelUrl} onClick={removeUploadedModel}>إزالة المعاينة المحلية</button>
             </div>
           </section>
