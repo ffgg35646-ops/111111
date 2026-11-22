@@ -36,6 +36,7 @@ type ClinicalRoomStageProps = {
   scenarioTitle: string;
   avatarModelUrl: string | null;
   avatarSpeaking: boolean;
+  avatarSpeechLevel: number;
   avatarMotion: "idle" | "listen" | "talk";
   voiceStatus: string;
   latestUserText: string;
@@ -228,11 +229,13 @@ function DoctorAssetPending() {
 function RealisticDoctor({
   modelUrl,
   speaking,
+  speechLevel,
   motion,
   onSelect,
 }: {
   modelUrl: string;
   speaking: boolean;
+  speechLevel: number;
   motion: "idle" | "listen" | "talk";
   onSelect: () => void;
 }) {
@@ -256,8 +259,7 @@ function RealisticDoctor({
     };
   }, [actions, names, speaking, motion]);
 
-  useFrame((state, delta) => {
-    const time = state.clock.getElapsedTime();
+  useFrame((_, delta) => {
     model.traverse((object) => {
       const mesh = object as unknown as {
         isMesh?: boolean;
@@ -270,7 +272,7 @@ function RealisticDoctor({
 
       Object.entries(dictionary).forEach(([name, index]) => {
         if (!/^(jawopen|mouthopen|mouth-open)$/i.test(name)) return;
-        const target = speaking ? 0.14 + Math.max(0, Math.sin(time * 9.5)) * 0.34 : 0;
+        const target = speaking ? Math.max(0.06, Math.min(0.72, speechLevel * 2.2)) : 0;
         const current = influences[index] ?? 0;
         influences[index] = current + (target - current) * Math.min(1, delta * 11);
       });
@@ -595,7 +597,7 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
 
       {props.avatarModelUrl ? (
         <Suspense fallback={<DoctorAssetPending />}>
-          <RealisticDoctor modelUrl={props.avatarModelUrl} speaking={props.avatarSpeaking} motion={props.avatarMotion} onSelect={selectDoctor} />
+          <RealisticDoctor modelUrl={props.avatarModelUrl} speaking={props.avatarSpeaking} speechLevel={props.avatarSpeechLevel} motion={props.avatarMotion} onSelect={selectDoctor} />
         </Suspense>
       ) : (
         <DoctorAssetPending />
