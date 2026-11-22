@@ -7,6 +7,7 @@ import { createXRStore, IfInSessionMode, XR } from "@react-three/xr";
 import * as THREE from "three";
 import { CanvasTexture, SRGBColorSpace, Vector3 } from "three";
 import "./clinical-room-stage.css";
+import { SaudiDoctorAttire } from "@/components/saudi-doctor-attire";
 
 const xrStore = createXRStore({ foveation: 1, handTracking: true });
 
@@ -362,6 +363,7 @@ function RealisticDoctor({
     >
       <group ref={ref}>
         <primitive object={model} />
+        <SaudiDoctorAttire model={model} />
       </group>
     </group>
   );
