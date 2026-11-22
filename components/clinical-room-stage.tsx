@@ -699,6 +699,39 @@ function ClinicScene({ props }: { props: ClinicalRoomStageProps }) {
 
       <CanvasLabel text={props.roomLabel} position={[0, 2.66, -4.16]} size={[3.4, 0.28]} fontSize={34} color={roomPalette.accent} />
 
+      {/* Spatial room architecture: doorway, soft seating, rug, shelving and ceiling lighting. */}
+      <group position={[3.92, 0, 1.55]}>
+        <mesh position={[0, 1.12, 0]} castShadow><boxGeometry args={[0.11, 2.24, 1.48]} /><meshStandardMaterial color="#d5c9b8" roughness={0.88} /></mesh>
+        <mesh position={[-0.065, 1.08, 0]}><boxGeometry args={[0.018, 2.06, 1.28]} /><meshStandardMaterial color="#8f765e" roughness={0.75} /></mesh>
+        <mesh position={[-0.045, 1.08, 0.57]}><boxGeometry args={[0.035, 2.08, 0.035]} /><meshStandardMaterial color="#e5d9c7" /></mesh>
+        <mesh position={[-0.025, 1.08, -0.56]}><boxGeometry args={[0.035, 2.08, 0.035]} /><meshStandardMaterial color="#e5d9c7" /></mesh>
+        <mesh position={[0.005, 0.95, 0.42]}><sphereGeometry args={[0.035, 12, 12]} /><meshStandardMaterial color="#c5a66e" metalness={0.55} roughness={0.35} /></mesh>
+      </group>
+      <group position={[-3.45, 0, 2.65]}>
+        <mesh position={[0, 0.38, 0]} castShadow receiveShadow><boxGeometry args={[1.72, 0.24, 0.72]} /><meshStandardMaterial color={roomPalette.chair} roughness={0.9} /></mesh>
+        <mesh position={[0, 0.78, -0.25]} castShadow><boxGeometry args={[1.72, 0.68, 0.2]} /><meshStandardMaterial color={roomPalette.chair} roughness={0.94} /></mesh>
+        {[-0.72, 0.72].map((x) => <mesh key={x} position={[x, 0.2, 0]} castShadow><boxGeometry args={[0.1, 0.38, 0.62]} /><meshStandardMaterial color="#806d5c" /></mesh>)}
+        <mesh position={[0, 0.12, 0.04]}><boxGeometry args={[1.8, 0.035, 0.82]} /><meshStandardMaterial color="#e7e1d6" roughness={1} /></mesh>
+      </group>
+      <group position={[0, 0.015, 0.05]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><circleGeometry args={[1.72, 64]} /><meshStandardMaterial color={props.roomId === "autism" ? "#e6d7bd" : props.roomId === "cbt" ? "#cbdde7" : props.roomId === "developmental" ? "#d3e1d0" : "#c9ded9"} roughness={1} /></mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}><ringGeometry args={[1.55, 1.62, 64]} /><meshStandardMaterial color={roomPalette.accent} roughness={0.9} /></mesh>
+      </group>
+      <group position={[3.72, 0, 0.1]}>
+        <mesh position={[0, 0.82, 0]} castShadow><boxGeometry args={[0.46, 1.64, 1.42]} /><meshStandardMaterial color="#b8a58d" roughness={0.92} /></mesh>
+        {[0.35, 0.83, 1.31].map((y) => <mesh key={y} position={[-0.245, y, 0]}><boxGeometry args={[0.025, 0.045, 1.34]} /><meshStandardMaterial color="#e5d9c8" /></mesh>)}
+        {[-0.42, 0, 0.42].map((z, index) => <mesh key={z} position={[-0.29, 0.59 + (index % 2) * 0.5, z]} castShadow><boxGeometry args={[0.12, 0.32, 0.24]} /><meshStandardMaterial color={index % 2 ? "#8da79c" : "#c4a77f"} /></mesh>)}
+      </group>
+      <group position={[0, 2.84, -0.8]}>
+        <mesh><cylinderGeometry args={[0.42, 0.42, 0.07, 32]} /><meshStandardMaterial color="#d5e0df" roughness={0.45} /></mesh>
+        <mesh position={[0, -0.06, 0]}><cylinderGeometry args={[0.25, 0.25, 0.045, 32]} /><meshStandardMaterial color="#f6e9c6" emissive="#e6c77e" emissiveIntensity={0.45} /></mesh>
+      </group>
+      <group position={[0, 1.08, -1.22]}>
+        <mesh position={[0, 0.38, 0.1]}><boxGeometry args={[0.72, 0.42, 0.035]} /><meshStandardMaterial color="#202d32" roughness={0.45} /></mesh>
+        <mesh position={[0, 0.38, 0.125]}><planeGeometry args={[0.64, 0.34]} /><meshBasicMaterial color={props.roomId === "cbt" ? "#d5e9f4" : props.roomId === "autism" ? "#f0e3c8" : "#d9ece7"} /></mesh>
+        <mesh position={[0, 0.13, 0.1]}><boxGeometry args={[0.16, 0.12, 0.16]} /><meshStandardMaterial color="#9b9d98" /></mesh>
+      </group>
+
       {/* Daylight window and quiet clinical details make the room read as a real consultation space. */}
       <group position={[4.36, 2.02, -1.55]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh>
