@@ -205,6 +205,16 @@ export function RealtimeClinicalVoice({
           setStatus("live");
           setSessionId(tokenPayload.session?.id ?? "");
           onEvent?.("realtime_voice_connected", "تم الاتصال الصوتي الحي بالشخصية الافتراضية.");
+
+          // The doctor welcomes the trainee as soon as the live room conversation connects.
+          channel.send(JSON.stringify({
+            type: "response.create",
+            response: {
+              modalities: ["audio", "text"],
+              instructions: "ابدأ الآن بتحية قصيرة وطبيعية للمتدرب بلهجة سعودية بيضاء. عرّف بنفسك باختصار كطبيب افتراضي ومدرب سريري، ورحّب به في الغرفة الحالية، ثم اسأله سؤالاً واحداً فقط: هل نبدأ بالتعرف على الحالة أم بمراجعة مهارة سريرية؟ انتظر إجابته ولا تقدم محاضرة.",
+            },
+          }));
+          onEvent?.("doctor_welcome_started", "بدأ الطبيب الافتراضي ترحيبه الصوتي عند دخول المتدرب للغرفة.");
         }
       });
       channel.addEventListener("message", (messageEvent) => {
