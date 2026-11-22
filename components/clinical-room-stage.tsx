@@ -279,6 +279,19 @@ function RealisticDoctor({
     () => headBone ? new THREE.Euler(headBone.rotation.x, headBone.rotation.y, headBone.rotation.z) : null,
     [headBone],
   );
+  const eyeBones = useMemo(() => {
+    const matches: THREE.Bone[] = [];
+    model.traverse((object) => {
+      const bone = object as THREE.Bone;
+      if (bone.isBone && /left.?eye|right.?eye/i.test(bone.name)) matches.push(bone);
+    });
+    return matches;
+  }, [model]);
+  const eyeBases = useMemo(
+    () => eyeBones.map((bone) => new THREE.Euler(bone.rotation.x, bone.rotation.y, bone.rotation.z)),
+    [eyeBones],
+  );
+  const gazeRef = useRef({ nextAt: 0.8, x: 0, y: 0, targetX: 0, targetY: 0 });
 
   useEffect(() => {
     const patterns = speaking || motion === "talk"
@@ -327,6 +340,20 @@ function RealisticDoctor({
       headBone.rotation.y = headBase.y + Math.sin(elapsed * 0.29) * 0.026;
       headBone.rotation.z = headBase.z + Math.sin(elapsed * 0.23) * 0.008;
     }
+
+    const gaze = gazeRef.current;
+    if (elapsed >= gaze.nextAt) {
+      gaze.targetX = (Math.random() - 0.5) * 0.055;
+      gaze.targetY = (Math.random() - 0.5) * 0.035;
+      gaze.nextAt = elapsed + 0.6 + Math.random() * 1.8;
+    }
+    gaze.x = THREE.MathUtils.damp(gaze.x, gaze.targetX, 8, delta);
+    gaze.y = THREE.MathUtils.damp(gaze.y, gaze.targetY, 8, delta);
+    eyeBones.forEach((bone, index) => {
+      const base = eyeBases[index];
+      if (!base) return;
+      bone.rotation.set(base.x + gaze.y, base.y + gaze.x, base.z);
+    });
   });
 
   return (
