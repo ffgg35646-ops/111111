@@ -32,7 +32,7 @@ const ClinicalRoomStage = dynamic(() => import("@/components/clinical-room-stage
 const AVATAR_MODEL_URLS = {
   father: "https://memoriesrohit.github.io/avatar-studio/models/daniel_formal.glb",
   mother: "https://memoriesrohit.github.io/avatar-studio/models/aisha_formal.glb",
- } as const;
+} as const;
 
 type ClinicalFormulation = {
   presentingConcern: string;

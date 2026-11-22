@@ -86,6 +86,9 @@
 .simulation-report-footnote{line-height:1.8}
 @media(max-width:700px){.simulation-formulation-grid{grid-template-columns:1fr}.simulation-formulation-heading{align-items:center}.simulation-formulation-card{padding:14px}}
 @media print{
-  .portal-topbar,.portal-footer,.simulation-toolbar,.simulation-layout,.simulation-formulation-card,.simulation-bottom-links,.simulation-disclaimer,.simulation-saved-report-head button{display:none!important}
-  .simulation-saved-report{display:grid!important;border:0!important;color:#111!important}
+  .portal-topbar,.portal-footer,.simulation-toolbar,.simulation-room-panel,.simulation-formulation-card,.simulation-bottom-links,.simulation-disclaimer,.simulation-safety-note,.simulation-result>svg,.simulation-result>span,.simulation-result>strong,.simulation-result>p:not(.simulation-result-dialogue),.simulation-result>button,.simulation-result-breakdown,.simulation-vr-evidence,.simulation-saved-report-head button{display:none!important}
+  .simulation-layout{display:block!important}
+  .simulation-assessment-panel{display:block!important;border:0!important;box-shadow:none!important;padding:0!important}
+  .simulation-result{display:block!important;padding:0!important;text-align:right!important}
+  .simulation-saved-report{display:grid!important;border:0!important;color:#111!important;background:#fff!important;break-inside:avoid}
 }
