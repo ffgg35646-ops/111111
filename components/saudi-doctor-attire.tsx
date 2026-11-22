@@ -277,6 +277,21 @@ function buildSaudiDoctorAttire(modelValue: unknown) {
   agal.castShadow = true;
   group.add(agal);
 
+  // Keep the complete outfit in the avatar's skeletal hierarchy. Parenting it
+  // to the pelvis/hips preserves its fitted model-space placement while making
+  // it follow the character's root and torso animation instead of floating as
+  // a sibling object when the avatar moves.
+  const modelObject = modelValue as THREE.Object3D;
+  const bones: THREE.Bone[] = [];
+  modelObject.traverse((object) => {
+    if ((object as THREE.Bone).isBone) bones.push(object as THREE.Bone);
+  });
+  const bodyAnchor = bones.find((bone) => /hips|pelvis/i.test(bone.name))
+    ?? bones.find((bone) => /spine/i.test(bone.name));
+  modelObject.add(group);
+  modelObject.updateMatrixWorld(true);
+  if (bodyAnchor) bodyAnchor.attach(group);
+
   return group;
 }
 
@@ -284,6 +299,7 @@ export function SaudiDoctorAttire({ model }: { model: unknown }) {
   const attire = useMemo(() => buildSaudiDoctorAttire(model), [model]);
 
   useEffect(() => () => {
+    attire.parent?.remove(attire);
     attire.traverse((object) => {
       const mesh = object as THREE.Mesh;
       if (!mesh.isMesh) return;
@@ -296,5 +312,6 @@ export function SaudiDoctorAttire({ model }: { model: unknown }) {
     });
   }, [attire]);
 
-  return <primitive object={attire} />;
+  // The outfit is attached to the avatar's skeleton in buildSaudiDoctorAttire.
+  return null;
 }
