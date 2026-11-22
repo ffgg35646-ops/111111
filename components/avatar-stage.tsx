@@ -86,6 +86,7 @@ function LoadedModel({ url, expression, motion }: { url: string; expression: str
         let target = targets[name] ?? 0;
         if (name === "jawOpen") target = Math.max(target, speech);
         if (name === "eyeBlinkLeft" || name === "eyeBlinkRight") target = Math.max(target, blinkWeight);
+        // eslint-disable-next-line react-hooks/immutability -- Three.js morph weights are an imperative animation buffer, not React state.
         influences[index] = THREE.MathUtils.damp(influences[index] ?? 0, target, 14, delta);
       }
     }
