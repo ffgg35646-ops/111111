@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
-import { getCaseById } from "@/lib/platform-catalog";
+import { getCaseById, practiceScales } from "@/lib/platform-catalog";
 
 export const runtime = "nodejs";
 
@@ -94,6 +94,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "لم تكتمل جميع خطوات الحالة التدريبية بصورة صحيحة." }, { status: 400 });
   }
 
+  const rawFormulation = data.clinicalFormulation;
+  if (!rawFormulation || typeof rawFormulation !== "object" || Array.isArray(rawFormulation)) {
+    return NextResponse.json({ error: "أكمل دراسة الحالة واختيار المقياس التدريبي قبل حفظ الجلسة." }, { status: 400 });
+  }
+  const formulationInput = rawFormulation as Record<string, unknown>;
+  const cleanFormulationText = (value: unknown) => typeof value === "string" ? value.trim().slice(0, 1200) : "";
+  const clinicalFormulation = {
+    presentingConcern: cleanFormulationText(formulationInput.presentingConcern),
+    historyAndContext: cleanFormulationText(formulationInput.historyAndContext),
+    observations: cleanFormulationText(formulationInput.observations),
+    strengths: cleanFormulationText(formulationInput.strengths),
+    hypotheses: cleanFormulationText(formulationInput.hypotheses),
+    missingInformation: cleanFormulationText(formulationInput.missingInformation),
+    nextSteps: cleanFormulationText(formulationInput.nextSteps),
+  };
+  const formulationRequirements = [
+    ["presentingConcern", 12],
+    ["historyAndContext", 20],
+    ["observations", 20],
+    ["strengths", 12],
+    ["hypotheses", 20],
+    ["missingInformation", 12],
+    ["nextSteps", 20],
+  ] as const;
+  const incompleteField = formulationRequirements.find(([key, minLength]) =>
+    clinicalFormulation[key].length < minLength
+  );
+  const selectedScale = practiceScales.find((scale) => scale.id === formulationInput.selectedScaleId);
+  if (incompleteField || !selectedScale) {
+    return NextResponse.json({ error: "تأكد من استكمال وصف المشكلة والسياق والملاحظات ونقاط القوة والفرضيات والمعلومات الناقصة والخطوات التالية، واختر مقياساً تدريبياً." }, { status: 400 });
+  }
+
   const earned = answers.reduce((sum, answer) => sum + answer.earned, 0);
   const maximum = item.steps.length * 20;
   const normalisedRoomEvents = normaliseRoomEvents(data.roomEvents);
@@ -131,6 +163,13 @@ export async function POST(request: NextRequest) {
     caseId: item.id,
     caseTitle: item.title,
     answers,
+    clinicalFormulation: {
+      ...clinicalFormulation,
+      selectedScaleId: selectedScale.id,
+      selectedScaleTitle: selectedScale.title,
+      submittedAt: new Date(),
+      reviewStatus: "awaiting_supervisor_review",
+    },
     score: Math.round((earned / maximum) * 100),
     maximumScore: 100,
     roomEvents: normalisedRoomEvents,
@@ -150,7 +189,7 @@ export async function POST(request: NextRequest) {
         : "browser-simulation",
     completedAt: new Date(),
     learningOnly: true,
-    version: 4,
+    version: 5,
   };
 
   try {
@@ -160,6 +199,12 @@ export async function POST(request: NextRequest) {
       success: true,
       activityId: record.activityId,
       score: record.score,
+      documentation: {
+        completedFields: formulationRequirements.length + 1,
+        totalFields: formulationRequirements.length + 1,
+        selectedScaleTitle: selectedScale.title,
+        reviewStatus: "awaiting_supervisor_review",
+      },
       roomEventCount: record.roomEvents.length,
       vrHeadTrackingSamples,
       vrHeadMetrics,

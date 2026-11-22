@@ -17,10 +17,11 @@ import {
   Upload,
   Volume2,
   VolumeX,
+  Printer,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import { RealtimeClinicalVoice } from "@/components/realtime-clinical-voice";
-import { getCaseById, trainingCases } from "@/lib/platform-catalog";
+import { getCaseById, practiceScales, trainingCases } from "@/lib/platform-catalog";
 import "./simulation.css";
 
 const ClinicalRoomStage = dynamic(() => import("@/components/clinical-room-stage"), {
@@ -31,7 +32,39 @@ const ClinicalRoomStage = dynamic(() => import("@/components/clinical-room-stage
 const AVATAR_MODEL_URLS = {
   father: "https://memoriesrohit.github.io/avatar-studio/models/daniel_formal.glb",
   mother: "https://memoriesrohit.github.io/avatar-studio/models/aisha_formal.glb",
-} as const;
+ } as const;
+
+type ClinicalFormulation = {
+  presentingConcern: string;
+  historyAndContext: string;
+  observations: string;
+  strengths: string;
+  hypotheses: string;
+  missingInformation: string;
+  nextSteps: string;
+  selectedScaleId: string;
+};
+
+const EMPTY_CLINICAL_FORMULATION: ClinicalFormulation = {
+  presentingConcern: "",
+  historyAndContext: "",
+  observations: "",
+  strengths: "",
+  hypotheses: "",
+  missingInformation: "",
+  nextSteps: "",
+  selectedScaleId: "",
+};
+
+const FORMULATION_REQUIREMENTS = [
+  { key: "presentingConcern", minLength: 12 },
+  { key: "historyAndContext", minLength: 20 },
+  { key: "observations", minLength: 20 },
+  { key: "strengths", minLength: 12 },
+  { key: "hypotheses", minLength: 20 },
+  { key: "missingInformation", minLength: 12 },
+  { key: "nextSteps", minLength: 20 },
+] as const;
 
 type PersonaId = "father" | "mother" | "child" | "teen";
 type ConversationTurn = { role: "user" | "assistant"; content: string };
@@ -70,6 +103,8 @@ function SimulationWorkspace() {
   const [selectedTarget, setSelectedTarget] = useState("الشخصية الافتراضية");
   const [completed, setCompleted] = useState(false);
   const [savedScore, setSavedScore] = useState<number | null>(null);
+  const [savedActivityId, setSavedActivityId] = useState<string | null>(null);
+  const [clinicalFormulation, setClinicalFormulation] = useState<ClinicalFormulation>(() => ({ ...EMPTY_CLINICAL_FORMULATION }));
   const [vrHeadTrackingSamples, setVrHeadTrackingSamples] = useState(0);
   const [vrHeadMetrics, setVrHeadMetrics] = useState<{ averageHeadAngleDegrees: number | null; averageDistanceCm: number | null; orientedWithin30DegreesPercent: number | null } | null>(null);
   const [vrHandMetrics, setVrHandMetrics] = useState<{ samples: number; pinchInteractions: number; handsObserved: string[] } | null>(null);
@@ -131,6 +166,11 @@ function SimulationWorkspace() {
   const avatarModelLabel = uploadedAvatarName
     || (voicePersona === "father" ? "شخصية رجل واقعية مرخصة" : voicePersona === "mother" ? "شخصية امرأة واقعية مرخصة" : "يتطلب موديل مناسباً للعمر");
   const answeredCount = activeCase.steps.filter((step) => Boolean(answers[step.id])).length;
+  const selectedPracticeScale = practiceScales.find((scale) => scale.id === clinicalFormulation.selectedScaleId);
+  const completedFormulationFields = FORMULATION_REQUIREMENTS.filter(({ key, minLength }) =>
+    clinicalFormulation[key].trim().length >= minLength
+  ).length + (selectedPracticeScale ? 1 : 0);
+  const formulationComplete = completedFormulationFields === FORMULATION_REQUIREMENTS.length + 1;
   const latestUserText = [...conversation].reverse().find((turn) => turn.role === "user")?.content ?? "";
   const latestAssistantText = [...conversation].reverse().find((turn) => turn.role === "assistant")?.content ?? "";
   const voiceStatus = realtimeStatus === "live"
@@ -359,6 +399,10 @@ function SimulationWorkspace() {
     setUploadedAvatarName("");
   };
 
+  const updateFormulationField = (field: keyof ClinicalFormulation, value: string) => {
+    setClinicalFormulation((current) => ({ ...current, [field]: value }));
+  };
+
   const changeCase = (id: string) => {
     recognitionRef.current?.abort();
     shouldSendSpeechRef.current = false;
@@ -372,6 +416,8 @@ function SimulationWorkspace() {
     setFeedback("");
     setCompleted(false);
     setSavedScore(null);
+    setSavedActivityId(null);
+    setClinicalFormulation({ ...EMPTY_CLINICAL_FORMULATION });
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
     setVrHandMetrics(null);
@@ -401,7 +447,7 @@ function SimulationWorkspace() {
   };
 
   const finish = async () => {
-    if (answeredCount !== activeCase.steps.length || saving || listening || agentBusy) return;
+    if (answeredCount !== activeCase.steps.length || !formulationComplete || saving || listening || agentBusy) return;
     setSaving(true);
     setError("");
     const completionEvent: RoomEvent = {
@@ -419,6 +465,7 @@ function SimulationWorkspace() {
         body: JSON.stringify({
           caseId: activeCase.id,
           answers: activeCase.steps.map((step) => ({ stepId: step.id, choiceId: answers[step.id] })),
+          clinicalFormulation,
           roomEvents: finalRoomEvents,
           conversationTurns: conversationRef.current,
           experienceMode: immersiveMode ? "webxr-immersive-vr" : "browser-3d-room",
@@ -428,6 +475,7 @@ function SimulationWorkspace() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "تعذر حفظ نتيجة التدريب.");
       setSavedScore(result.score);
+      setSavedActivityId(typeof result.activityId === "string" ? result.activityId : null);
       setVrHeadTrackingSamples(Number(result.vrHeadTrackingSamples) || 0);
       setVrHeadMetrics(result.vrHeadMetrics ?? null);
       setVrHandMetrics(result.vrHandMetrics ?? null);
@@ -445,6 +493,8 @@ function SimulationWorkspace() {
     setFeedback("");
     setCompleted(false);
     setSavedScore(null);
+    setSavedActivityId(null);
+    setClinicalFormulation({ ...EMPTY_CLINICAL_FORMULATION });
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
     setVrHandMetrics(null);
@@ -553,7 +603,7 @@ function SimulationWorkspace() {
               completed={completed}
               score={savedScore}
               saving={saving}
-              canFinish={answeredCount === activeCase.steps.length}
+              canFinish={answeredCount === activeCase.steps.length && formulationComplete}
               onChoose={choose}
               onPrevious={() => moveToStep(stepIndex - 1)}
               onNext={() => moveToStep(stepIndex + 1)}
@@ -661,7 +711,7 @@ function SimulationWorkspace() {
                 {stepIndex < activeCase.steps.length - 1 ? (
                   <button className="simulation-next" onClick={() => moveToStep(stepIndex + 1)}>المرحلة التالية <ArrowRight size={14} /></button>
                 ) : (
-                  <button className="simulation-next" onClick={finish} disabled={saving || listening || agentBusy || answeredCount !== activeCase.steps.length}>
+                  <button className="simulation-next" onClick={finish} disabled={saving || listening || agentBusy || answeredCount !== activeCase.steps.length || !formulationComplete}>
                     {saving ? "جارٍ حساب وحفظ التقييم..." : <><ClipboardCheck size={15} /> إنهاء وحفظ الجلسة</>}
                   </button>
                 )}
@@ -673,6 +723,21 @@ function SimulationWorkspace() {
               <span>اكتملت المحاكاة</span>
               <strong>{savedScore}<small> / 100</small></strong>
               <p>{savedScore !== null && savedScore >= 80 ? "أداء تدريبي متقدم. راجع الملاحظات لتعزيز المهارات." : savedScore !== null && savedScore >= 60 ? "أداء جيد مع فرص لتحسين بعض خطوات الممارسة." : "راجع التغذية الراجعة وأعد المحاكاة لتعزيز المهارات."}</p>
+              {savedActivityId && <section className="simulation-saved-report">
+                <div className="simulation-saved-report-head">
+                  <div><b>تقرير دراسة الحالة المحفوظ</b><small>رقم الجلسة: {savedActivityId}</small></div>
+                  <button type="button" onClick={() => window.print()}><Printer size={14} /> طباعة التقرير</button>
+                </div>
+                <p><strong>المقياس التدريبي المختار:</strong> {selectedPracticeScale?.title || "غير محدد"}</p>
+                <div><strong>المشكلة كما عرضتها الحالة</strong><p>{clinicalFormulation.presentingConcern}</p></div>
+                <div><strong>التاريخ والسياق</strong><p>{clinicalFormulation.historyAndContext}</p></div>
+                <div><strong>الملاحظات القابلة للوصف</strong><p>{clinicalFormulation.observations}</p></div>
+                <div><strong>نقاط القوة وعوامل الحماية</strong><p>{clinicalFormulation.strengths}</p></div>
+                <div><strong>الفرضيات التعليمية والأدلة</strong><p>{clinicalFormulation.hypotheses}</p></div>
+                <div><strong>المعلومات التي ما زالت ناقصة</strong><p>{clinicalFormulation.missingInformation}</p></div>
+                <div><strong>الخطوات التالية والإحالة</strong><p>{clinicalFormulation.nextSteps}</p></div>
+                <small className="simulation-report-footnote">تم حفظ التقرير لأغراض التعلم والمراجعة. اكتمال الحقول لا يثبت صحة الفرضيات ولا ينتج تشخيصاً رسمياً.</small>
+              </section>}
               {immersiveMode && <div className="simulation-vr-evidence"><b>بيانات النظارة المسجلة</b><span>{vrHeadTrackingSamples} عينة لاتجاه الرأس والمسافة من موضع الحالة</span>{vrHeadMetrics && <><span>متوسط زاوية اتجاه الرأس: {vrHeadMetrics.averageHeadAngleDegrees ?? "—"}°</span><span>متوسط المسافة من الحالة: {vrHeadMetrics.averageDistanceCm ?? "—"} سم</span><span>نسبة العينات ضمن زاوية 30°: {vrHeadMetrics.orientedWithin30DegreesPercent ?? "—"}%</span></>}<span>رصد اليدين: {vrHandMetrics?.samples ?? 0} عينة؛ تفاعلات القرص: {vrHandMetrics?.pinchInteractions ?? 0}</span><span>اليد المرصودة: {vrHandMetrics?.handsObserved?.map((hand) => hand === "left" ? "اليسرى" : "اليمنى").join("، ") || "لم تُرصد يد خلال الجلسة"}</span><small>مؤشرات وضع الرأس والإيماءات المكانية لا تقيس حركة العين أو التواصل البصري ولا تمثل حكماً سريرياً. قد لا تظهر بيانات اليدين إذا لم يدعم الجهاز أو المتصفح تتبع اليد.</small></div>}
               <div className="simulation-result-breakdown">
                 {activeCase.steps.map((step) => {
@@ -687,6 +752,49 @@ function SimulationWorkspace() {
           <div className="simulation-safety-note"><ShieldCheck size={15} /><p>{activeCase.safetyNote}</p></div>
         </aside>
       </div>
+
+      <section className="portal-card simulation-formulation-card">
+        <div className="simulation-formulation-heading">
+          <div><span>CASE FORMULATION WORKSPACE</span><h2>دراسة الحالة وصياغة الفرضيات</h2><p>استكمل التقرير اعتماداً على مقابلتك وملاحظتك للحالة الافتراضية. افصل بين ما ورد في السيناريو وما لاحظته وما تفترضه مهنياً.</p></div>
+          <div className="simulation-formulation-count">{completedFormulationFields}<small> / 8 حقول</small></div>
+        </div>
+        <div className="simulation-formulation-progress"><i style={{ width: (completedFormulationFields / 8 * 100) + "%" }} /></div>
+        <div className="simulation-formulation-grid">
+          <label>1. المشكلة أو الاحتياج كما عرضته الحالة
+            <textarea value={clinicalFormulation.presentingConcern} onChange={(event) => updateFormulationField("presentingConcern", event.target.value)} minLength={12} maxLength={1200} rows={3} placeholder="اكتب وصفاً محايداً للمشكلة من منظور الحالة أو الأسرة، دون إضافة استنتاج تشخيصي." />
+          </label>
+          <label>2. التاريخ والسياق الاجتماعي والنمائي
+            <textarea value={clinicalFormulation.historyAndContext} onChange={(event) => updateFormulationField("historyAndContext", event.target.value)} minLength={20} maxLength={1200} rows={4} placeholder="ما المعلومات المعروفة عن الأسرة، النمو، المدرسة، البيئة، بداية الصعوبة وتطورها؟" />
+          </label>
+          <label>3. الملاحظات السلوكية القابلة للوصف
+            <textarea value={clinicalFormulation.observations} onChange={(event) => updateFormulationField("observations", event.target.value)} minLength={20} maxLength={1200} rows={4} placeholder="سجل أمثلة محددة شاهدتها أو وردت في الحوار، وحدد مصدر كل ملاحظة." />
+          </label>
+          <label>4. نقاط القوة وعوامل الحماية
+            <textarea value={clinicalFormulation.strengths} onChange={(event) => updateFormulationField("strengths", event.target.value)} minLength={12} maxLength={1200} rows={3} placeholder="ما المهارات والاهتمامات والموارد والعلاقات الداعمة؟" />
+          </label>
+          <label>5. الفرضيات التعليمية والأدلة والبدائل
+            <textarea value={clinicalFormulation.hypotheses} onChange={(event) => updateFormulationField("hypotheses", event.target.value)} minLength={20} maxLength={1200} rows={4} placeholder="اكتب فرضية أو أكثر، وما الذي يدعمها وما الذي قد يفسر الموقف بطريقة أخرى. لا تكتب تشخيصاً نهائياً." />
+          </label>
+          <label>6. المعلومات التي تحتاج إلى استكمال
+            <textarea value={clinicalFormulation.missingInformation} onChange={(event) => updateFormulationField("missingInformation", event.target.value)} minLength={12} maxLength={1200} rows={3} placeholder="ما المصادر أو المقابلات أو الفحوصات أو السياقات التي لم تُستكشف بعد؟" />
+          </label>
+          <label>7. الخطوات التالية وخطة الدعم أو الإحالة
+            <textarea value={clinicalFormulation.nextSteps} onChange={(event) => updateFormulationField("nextSteps", event.target.value)} minLength={20} maxLength={1200} rows={4} placeholder="حدد خطوة عملية آمنة، ومن ينبغي إشراكه، وما الذي يتطلب إحالة إلى مختص مخول." />
+          </label>
+          <label>8. المقياس أو النموذج التدريبي الذي ستستخدمه
+            <select value={clinicalFormulation.selectedScaleId} onChange={(event) => updateFormulationField("selectedScaleId", event.target.value)}>
+              <option value="">اختر أداة تدريبية مناسبة</option>
+              {practiceScales.map((scale) => <option key={scale.id} value={scale.id}>{scale.title}</option>)}
+            </select>
+            <small>{selectedPracticeScale?.purpose || "اختر أداة من المكتبة. جميع النماذج الحالية تدريبية وغير مقننة."}</small>
+          </label>
+        </div>
+        <div className="simulation-formulation-footer">
+          <span>{formulationComplete ? "اكتملت الحقول المطلوبة. يمكنك إنهاء الجلسة وحفظ التقرير." : "أكمل الحقول الثمانية للانتقال إلى حفظ نتيجة المحاكاة."}</span>
+          <small>المؤشر يقيس اكتمال الحقول فقط، ولا يقيم صحة التشخيص أو دقة الفرضيات. استخدم حالات خيالية ولا تكتب بيانات تعريفية لمستفيد حقيقي.</small>
+        </div>
+        {error && !formulationComplete && <p className="simulation-error" role="alert">{error}</p>}
+      </section>
 
       <div className="simulation-bottom-links">
         <Link href="/posture">تقييم لغة الجسد <ArrowRight size={14} /></Link>
