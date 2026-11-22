@@ -241,11 +241,11 @@ function RealisticDoctor({
     morphTargetInfluences: number[];
   }>>([]);
   const headBoneRef = useRef<THREE.Bone | null>(null);
-  const jawObjectRef = useRef<THREE.Object3D | null>(null);
+  const jawObjectRef = useRef<{ rotation: THREE.Euler } | null>(null);
   const mouthObjectRef = useRef<THREE.Mesh | null>(null);
-  const eyeObjectsRef = useRef<Array<{ object: THREE.Object3D; baseScale: THREE.Vector3; base: THREE.Euler }>>([]);
-  const gestureArmsRef = useRef<Array<{ object: THREE.Object3D; base: THREE.Euler; side: number }>>([]);
-  const headObjectRef = useRef<THREE.Object3D | null>(null);
+  const eyeObjectsRef = useRef<Array<{ object: { scale: THREE.Vector3; rotation: THREE.Euler }; baseScale: THREE.Vector3; base: THREE.Euler }>>([]);
+  const gestureArmsRef = useRef<Array<{ object: { rotation: THREE.Euler }; base: THREE.Euler; side: number }>>([]);
+  const headObjectRef = useRef<{ rotation: THREE.Euler } | null>(null);
   const headBaseRef = useRef<THREE.Euler | null>(null);
   const eyeBonesRef = useRef<Array<{ bone: THREE.Bone; base: THREE.Euler }>>([]);
   const gazeRef = useRef({ nextAt: 0.8, x: 0, y: 0, targetX: 0, targetY: 0 });
@@ -273,23 +273,23 @@ function RealisticDoctor({
           morphTargetInfluences: mesh.morphTargetInfluences,
         });
       }
-      const sceneObject = object as unknown as THREE.Object3D;
-      if (/^jaw$/i.test(object.name)) jawObjectRef.current = sceneObject;
+      const animatedNode = object as unknown as { scale: THREE.Vector3; rotation: THREE.Euler };
+      if (/^jaw$/i.test(object.name)) jawObjectRef.current = animatedNode;
       if (/^(left|right)_eye$/i.test(object.name)) {
         eyeObjectsRef.current.push({
-          object: sceneObject,
-          baseScale: sceneObject.scale.clone(),
-          base: new THREE.Euler(sceneObject.rotation.x, sceneObject.rotation.y, sceneObject.rotation.z),
+          object: animatedNode,
+          baseScale: animatedNode.scale.clone(),
+          base: new THREE.Euler(animatedNode.rotation.x, animatedNode.rotation.y, animatedNode.rotation.z),
         });
       }
-      if (/^(left|right)_arm$/i.test(object.name)) gestureArmsRef.current.push({ object: sceneObject, base: new THREE.Euler(sceneObject.rotation.x, sceneObject.rotation.y, sceneObject.rotation.z), side: /^left/i.test(object.name) ? -1 : 1 });
-      if (/^head$/i.test(object.name)) headObjectRef.current = sceneObject;
+      if (/^(left|right)_arm$/i.test(object.name)) gestureArmsRef.current.push({ object: animatedNode, base: new THREE.Euler(animatedNode.rotation.x, animatedNode.rotation.y, animatedNode.rotation.z), side: /^left/i.test(object.name) ? -1 : 1 });
+      if (/^head$/i.test(object.name)) headObjectRef.current = animatedNode;
       const bone = object as unknown as THREE.Bone;
       if (bone.isBone && /left.?eye|right.?eye/i.test(bone.name)) bones.push(bone);
       if (bone.isBone && /mixamorig:head|head$/i.test(bone.name)) headBoneRef.current = bone;
     });
     faceMeshesRef.current = faces;
-    const head = headBoneRef.current;
+    const head = headBoneRef.current as THREE.Bone | null;
     headBaseRef.current = head ? new THREE.Euler(head.rotation.x, head.rotation.y, head.rotation.z) : null;
     eyeBonesRef.current = bones.map((bone) => ({
       bone,
