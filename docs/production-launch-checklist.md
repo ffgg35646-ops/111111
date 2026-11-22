@@ -5,6 +5,8 @@ This document distinguishes code already present from services and hardware that
 ## Implemented in the repository
 - Arabic RTL Next.js learning platform and specialist learning pathways.
 - Case-study worksheets, assessment guidance, diagnostic-reasoning exercises, and competency reports.
+- Required structured case formulation inside the simulation (concern, context, observations, strengths, hypotheses, missing evidence, next steps, and a training scale choice), persisted with each completed activity.
+- Supervisor review queue for saved simulation records, including transcript review, a seven-domain rubric, and written feedback linked to the original activity.
 - Browser-based 3D clinical room with WebXR entry where supported.
 - Turn-based spoken interaction: browser speech recognition, server-side AI text generation, and browser speech synthesis. This is not full-duplex streaming audio.
 - LiveKit room creation, participant tokens, shared supervision UI, and VR telemetry/data-channel bridge.
@@ -20,6 +22,7 @@ Copy .env.example to .env.local locally and configure the same values in the pro
 - SUPERVISION_ACCESS_CODE (32+ characters; share only with authorized supervisors).
 - PLATFORM_ADMIN_API_KEY (32+ characters).
 - AI_GATEWAY_API_KEY; optional CLINICAL_AI_MODEL.
+- OPENAI_API_KEY for the direct Realtime voice-session endpoint; optional CLINICAL_REALTIME_MODEL. The AI Gateway key does not replace this credential in that endpoint.
 Generate independent random values for each secret. Do not reuse database, Zoom, or LiveKit credentials as application secrets.
 
 ## Supervision room access

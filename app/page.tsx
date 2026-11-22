@@ -30,6 +30,8 @@ const routeByLabel: Record<string,string> = {
   "دراسة الحالة والمقاييس": "/specialties?section=case-study",
   "مكتبة الحالات التدريبية": "/cases",
   "قاعة محاكاة الحالة": "/simulation",
+  "غرف الواقع الافتراضي": "/simulation",
+  "جلسات الإشراف": "/supervision",
   "الشخصيات الافتراضية": "/characters",
   "تقييم لغة الجسد": "/posture",
   "الغرف المشتركة": "/supervision",
@@ -43,10 +45,10 @@ const routeByLabel: Record<string,string> = {
 };
 
 const stats = [
-  {label:"إجمالي المتدربين",value:"—",note:"سيظهر بعد ربط قاعدة البيانات",icon:Users,tone:"blue"},
-  {label:"البرامج التدريبية",value:"—",note:"بانتظار إضافة البرامج",icon:GraduationCap,tone:"teal"},
-  {label:"سيناريوهات المحاكاة",value:"—",note:"بانتظار إعداد الحالات",icon:Brain,tone:"violet"},
-  {label:"جلسات هذا الأسبوع",value:"—",note:"بانتظار إعداد الحجوزات",icon:CalendarDays,tone:"amber"},
+  {label:"إجمالي المتدربين",value:"—",note:"يتطلب تفعيل حسابات المتدربين الفردية",icon:Users,tone:"blue"},
+  {label:"البرامج التدريبية",value:"7",note:"برامج مدرجة في الكتالوج التدريبي",icon:GraduationCap,tone:"teal"},
+  {label:"سيناريوهات المحاكاة",value:"5",note:"حالات افتراضية متاحة للتدريب",icon:Brain,tone:"violet"},
+  {label:"جلسات هذا الأسبوع",value:"—",note:"تظهر بعد إعداد الجدولة وربط حساب Zoom",icon:CalendarDays,tone:"amber"},
 ];
 
 const modules = [
