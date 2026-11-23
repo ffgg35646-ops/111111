@@ -24,6 +24,7 @@ export async function POST(request:NextRequest){
   if(type==="payment_paid"&&payment.status==="paid"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{status:"approved",paymentStatus:"paid",paymentId,paidAt:new Date(),paymentProvider:"moyasar"}});
+   await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"reserved"},{$set:{status:"booked",bookedAt:new Date(),paymentId}});
    await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled",paymentId,paymentStatus:"paid"}});
   }else if(type==="payment_refunded"&&payment.status==="refunded"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{status:"refunded",refundedAt:new Date()}});
