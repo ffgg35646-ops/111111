@@ -30,8 +30,8 @@ This document separates implemented application behavior from integrations that 
 
 ## Not yet production-ready / requires external commercial setup
 
-- Payment collection, Mada, Apple Pay, bank cards, refunds, recurring subscriptions, coupon settlement, and invoicing: no Saudi payment merchant/provider credentials are configured. Do not enable checkout or represent orders as paid until a provider is selected and webhook signature verification, idempotency, refunds, and reconciliation are tested.
-- Membership billing: plans are displayed but checkout and recurring billing are not active.
+- Payment collection: a Moyasar integration path is implemented for server-created Payment Intents, card/Mada checkout, server-side payment verification, request payment state changes, and shared-secret authenticated/idempotent webhooks. It is NOT live until the merchant supplies `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, and `MOYASAR_WEBHOOK_SECRET`, configures the webhook URL, and completes test transactions. Apple Pay requires merchant activation and domain verification; recurring subscriptions, refund initiation UI, settlement reconciliation, and electronic invoicing remain incomplete. Never mark a request paid based only on the browser redirect.
+- Membership billing: plans are displayed but recurring billing, saved-card renewal, cancellation, proration, and dunning are not active.
 - Books: the current book catalog/request flow is not a connected digital storefront, payment, stock, or shipping system.
 - Consultations: the current workflow collects requests; a live provider calendar, confirmed slot locking, prepayment, reminders, rescheduling, cancellation, and video provider integration still need setup.
 - Certificates: serial verification exists; QR generation, course completion rules, attendance linkage, revocation UI, and automated issuance after verified completion remain to be completed.
@@ -49,7 +49,7 @@ Use hosting environment variables only. Never commit real credentials.
 - Live rooms: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `SUPERVISION_TOKEN_SECRET`.
 - Zoom: `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_HOST_USER_ID`.
 - VR avatar: `NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL` (public asset URL only; never place secrets in a NEXT_PUBLIC variable).
-- Payments: provider-specific merchant ID, public key, secret key, webhook secret, and test/live environment values must be added only after provider selection.
+- Payments (Moyasar): `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_WEBHOOK_SECRET`. Start with test keys; move to live keys only after merchant approval, HTTPS, allowed-IP configuration where required, and end-to-end acceptance tests.
 
 ## Release gates
 
@@ -65,4 +65,4 @@ Use hosting environment variables only. Never commit real credentials.
 9. Complete Saudi privacy/security review before production personal or clinical data is entered.
 10. Only after acceptance should the production domain be connected and deployment enabled.
 
-No Vercel production deployment is performed by this implementation branch.
+No Vercel production deployment is performed by this implementation branch. The Moyasar checkout remains disabled until all three environment variables above are configured and test-mode payments are verified.
