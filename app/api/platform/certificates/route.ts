@@ -22,6 +22,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "تعذر تحميل سجل الشهادات." }, { status: 503 });
     }
   }
+  if (request.nextUrl.searchParams.get("mine") === "1") {
+    const actor = await requirePlatformRole(request, ["admin","platform_manager","supervisor","trainer","trainee","consultant","accountant","support","content_manager","quality_manager"]);
+    if (!actor) return NextResponse.json({ error: "سجل الدخول لعرض شهاداتك." }, { status: 401 });
+    try { const db = await getClinicalDatabase(); const certificates = await db.collection("platform_certificates").find({ userId: actor.userId }, { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1, status: 1 } }).sort({ issuedAt: -1 }).limit(100).toArray(); return NextResponse.json({ certificates }, { headers: { "Cache-Control": "no-store" } }); } catch (error) { console.error("My certificates lookup failed", error); return NextResponse.json({ error: "تعذر تحميل شهاداتك." }, { status: 503 }); }
+  }
   const serial = clean(request.nextUrl.searchParams.get("code"), 60).toUpperCase();
   if (!/^[A-F0-9-]{20,60}$/.test(serial)) {
     return NextResponse.json({ error: "أدخل رمز تحقق صالحاً." }, { status: 400 });
