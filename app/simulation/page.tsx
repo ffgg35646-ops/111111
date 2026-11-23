@@ -529,6 +529,7 @@ function SimulationWorkspace() {
           clinicalFormulation,
           roomEvents: finalRoomEvents,
           conversationTurns: conversationRef.current,
+          personaMode,
           experienceMode: immersiveMode ? "webxr-immersive-vr" : "browser-3d-room",
           avatarModelSource: uploadedAvatarUrl ? "custom-glb" : defaultAvatarModelUrl ? "library-avatar" : "doctor-model-not-configured",
         }),
