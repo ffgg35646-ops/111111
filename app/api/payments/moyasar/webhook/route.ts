@@ -10,7 +10,7 @@ export async function POST(request:NextRequest){
  const event=body as Record<string,unknown>,token=typeof event.secret_token==="string"?event.secret_token:request.headers.get("x-event-secret")||"";
  if(!safeEqual(token,secret))return NextResponse.json({error:"Unauthorized webhook."},{status:401});
  const eventId=typeof event.id==="string"?event.id:"",type=typeof event.type==="string"?event.type:"",data=event.data&&typeof event.data==="object"?event.data as Record<string,unknown>:{};
- if(type==="webhook_verification")return NextResponse.json({received:true});
+ if(type==="webhook_verification"){const verification=event.data&&typeof event.data==="object"?event.data as Record<string,unknown>:{};const code=typeof verification.verification_code==="string"?verification.verification_code:"";if(!/^\\d{6}$/.test(code))return NextResponse.json({error:"Webhook verification code is missing."},{status:400});try{const db=await getClinicalDatabase();await db.collection("platform_webhook_verifications").updateOne({provider:"moyasar"},{$set:{provider:"moyasar",webhookId:typeof verification.webhook_id==="string"?verification.webhook_id:"",verificationCode:code,receivedAt:new Date(),expiresAt:new Date(Date.now()+30*60*1000)}},{upsert:true});return NextResponse.json({received:true})}catch(error){console.error("Moyasar webhook verification event",error);return NextResponse.json({error:"Unable to save webhook verification code."},{status:503})}}
  const paymentId=typeof data.id==="string"?data.id:"";if(!eventId||!paymentId)return NextResponse.json({error:"Missing event/payment ID."},{status:400});
  const apiSecret=process.env.MOYASAR_SECRET_KEY;if(!apiSecret)return NextResponse.json({error:"Payment verification is not configured."},{status:503});
  try{
@@ -31,6 +31,7 @@ export async function POST(request:NextRequest){
   }else if(type==="payment_refunded"&&payment.status==="refunded"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{status:"refunded",refundedAt:new Date()}});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email},{$set:{status:"refunded",paymentStatus:"refunded",refundedAt:new Date()}});
+   await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"booked"},{$set:{status:"cancelled",cancelledAt:new Date(),cancellationReason:"payment_refunded"}});
   }else if((type==="payment_failed"||type==="payment_faild")&&payment.status==="failed"){
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{paymentStatus:"failed",paymentFailureAt:new Date()}});
    await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"failed",paymentStatus:"failed",paymentId}});
