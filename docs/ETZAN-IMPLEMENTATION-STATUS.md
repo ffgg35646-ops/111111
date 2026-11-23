@@ -33,12 +33,12 @@ This document separates implemented application behavior from integrations that 
 - Payment collection: a Moyasar integration path is implemented for server-created Payment Intents, card/Mada checkout, server-side payment verification, request payment state changes, and shared-secret authenticated/idempotent webhooks. It is NOT live until the merchant supplies `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, and `MOYASAR_WEBHOOK_SECRET`, configures the webhook URL, and completes test transactions. Apple Pay requires merchant activation and domain verification; recurring subscriptions, refund initiation UI, settlement reconciliation, and electronic invoicing remain incomplete. Never mark a request paid based only on the browser redirect.
 - Membership billing: plans are displayed but recurring billing, saved-card renewal, cancellation, proration, and dunning are not active.
 - Books: the current book catalog/request flow is not a connected digital storefront, payment, stock, or shipping system.
-- Consultations: the current workflow collects requests; a live provider calendar, confirmed slot locking, prepayment, reminders, rescheduling, cancellation, and video provider integration still need setup.
+- Consultations: consultant-managed availability slots, public slot discovery, atomic reservation to prevent double booking, SAR quote approval, and payment-gated booking confirmation are implemented. Automatic reminders, rescheduling/cancellation policies and workflows, calendar sync (Google/Outlook), and video-session provider integration still need setup and credentials.
 - Certificates: serial verification exists; QR generation, course completion rules, attendance linkage, revocation UI, and automated issuance after verified completion remain to be completed.
 - Licensed psychometric scales: no copyrighted/proprietary instrument should be published until the owner grants the required digital administration and scoring rights.
 - Full-text/vector knowledge assistant: current model context is bounded to explicitly supplied course/case context; a complete indexed knowledge base and retrieval evaluation are still required.
 - Saudi PDPL operational review, retention schedules, consent records, data-subject workflows, security testing, incident response, and processor agreements require legal/security review before handling real clinical data.
-- Role-based dashboards for all ten roles, device/session limits, dynamic watermarking, secure video delivery, and complete audit coverage require additional implementation and verification.
+- Role-aware dashboard entry points and account roles are implemented, including attendance and consultant availability workspaces. Detailed separate operational dashboards for every role, device/session limits, dynamic watermarking, secure video delivery, and complete audit coverage require additional implementation and verification.
 
 ## Required secrets and external accounts
 
