@@ -6,10 +6,11 @@ import {courses} from "@/lib/platform-catalog";
 export const runtime="nodejs";
 const allowed=["admin","platform_manager","supervisor","trainer","trainee"] as const;
 function clean(v:unknown,n:number){return typeof v==="string"?v.trim().slice(0,n):"";}
+async function hasCourseAccess(db:Awaited<ReturnType<typeof getClinicalDatabase>>,actor:Awaited<ReturnType<typeof requirePlatformRole>> extends infer T?NonNullable<T>:never,courseId:string){if(actor.role!=="trainee")return true;const enrollment=await db.collection("platform_requests").findOne({kind:"course_enrollment",courseId,email:actor.email,status:"approved",paymentStatus:"paid"},{projection:{_id:1}});return Boolean(enrollment)}
 export async function GET(request:NextRequest){
  const actor=await requirePlatformRole(request,[...allowed]);if(!actor)return NextResponse.json({error:"سجل الدخول لحفظ تقدم التعلم."},{status:401});
  const courseId=clean(request.nextUrl.searchParams.get("courseId"),80);if(!courses.some(c=>c.id===courseId))return NextResponse.json({error:"الدورة غير موجودة."},{status:404});
- try{const db=await getClinicalDatabase();const record=await db.collection("platform_course_progress").findOne({userId:actor.userId,courseId},{projection:{_id:0,completedLessons:1,reflection:1,quizAnswers:1,quizChecked:1,updatedAt:1}});return NextResponse.json(record||{completedLessons:[],reflection:"",quizAnswers:{},quizChecked:false},{headers:{"Cache-Control":"no-store"}});}
+ try{const db=await getClinicalDatabase();if(!(await hasCourseAccess(db,actor,courseId)))return NextResponse.json({error:"يلزم اعتماد الالتحاق وسداد رسوم الدورة قبل فتح محتواها.",code:"payment_required"},{status:402});const record=await db.collection("platform_course_progress").findOne({userId:actor.userId,courseId},{projection:{_id:0,completedLessons:1,reflection:1,quizAnswers:1,quizChecked:1,updatedAt:1}});return NextResponse.json(record||{completedLessons:[],reflection:"",quizAnswers:{},quizChecked:false},{headers:{"Cache-Control":"no-store"}});}
  catch(error){console.error("course progress GET",error);return NextResponse.json({error:"تعذر تحميل تقدم التعلم."},{status:503});}
 }
 export async function POST(request:NextRequest){
@@ -26,6 +27,7 @@ export async function POST(request:NextRequest){
  const now=new Date();
  try{
  const db=await getClinicalDatabase();
+ if(!(await hasCourseAccess(db,actor,courseId)))return NextResponse.json({error:"يلزم اعتماد الالتحاق وسداد رسوم الدورة قبل حفظ تقدمها.",code:"payment_required"},{status:402});
  await db.collection("platform_course_progress").updateOne({userId:actor.userId,courseId},{$set:{userId:actor.userId,courseId,courseTitle:course.title,completedLessons:completed,reflection,quizAnswers,quizChecked,updatedAt:now},$setOnInsert:{createdAt:now}},{upsert:true});
  const correctByTrack:Record<string,number[]>={"social-work":[1,0,1],"cbt":[0,1,1],"autism":[1,0,1],"developmental":[1,0,0],"mental-health":[0,1,1]};
  const correct=correctByTrack[course.trackId]||correctByTrack["mental-health"];
