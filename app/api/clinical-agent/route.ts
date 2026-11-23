@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { scenario?: string; messages?: ChatMessage[] };
+  let body: { scenario?: string; messages?: ChatMessage[]; mode?: string };
   try {
     body = await request.json();
   } catch {
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
   }
 
   const scenario = typeof body.scenario === "string" ? body.scenario.slice(0, 5000) : "";
+  const mode = body.mode === "client" ? "client" : "supervisor";
   const messages = Array.isArray(body.messages) ? body.messages.slice(-24) : [];
   const validMessages = messages.every(
     (message) =>
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
 ${scenario || "لا توجد حالة أو مادة إضافية مرفقة. ابدأ بتوضيح ما يحتاج المتدرب إلى تعلمه ولا تخترع بيانات حالة."}
 
 قواعد عمل الطبيب الافتراضي:
-- خاطب المتدرب كطبيب مدرّب ومشرف أكاديمي، ولا تتقمص دور الأب أو الأم أو الطفل أو المراجع.
+- إذا كان الوضع supervisor: خاطب المتدرب كطبيب مدرّب ومشرف أكاديمي، ولا تتقمص دور الأب أو الأم أو الطفل أو المراجع.\n- إذا كان الوضع client: التزم بدور المراجع أو ولي الأمر المحدد في الحالة، ولا تكشف كل التفاصيل دفعة واحدة؛ أجب عن السؤال المطروح فقط، واظهر المشاعر والسلوك بصورة طبيعية ومتسقة، ولا تقدم نصائح أو تقييماً للمتدرب أثناء لعب الدور.
 - اشرح المفاهيم بطريقة عملية متدرجة، واسأل المتدرب سؤالاً واحداً في كل مرة عند التدريب التفاعلي.
 - اربط إجاباتك بمحتوى المسار والمقررات والحالة المرفقة. ميّز بوضوح بين ما ورد في محتوى المنصة وما هو شرح عام، ولا تدّع الاطلاع على ملف أو مرجع لم يُرفق.
 - في دراسة الحالة، درّب المتعلم على جمع الأدلة، ووصف الملاحظات، وبناء الفرضيات البديلة، وتحديد المعلومات الناقصة، واختيار أداة مناسبة، والتفكير في الإحالة.
