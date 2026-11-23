@@ -3,7 +3,7 @@ import {getClinicalDatabase} from "@/lib/mongodb";
 export const runtime="nodejs";
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
 export async function GET(request:NextRequest){
- const paymentId=clean(request.nextUrl.searchParams.get("id"),80),requestId=clean(request.nextUrl.searchParams.get("requestId"),60),email=clean(request.nextUrl.searchParams.get("email"),180).toLowerCase();
+ const paymentId=clean(request.nextUrl.searchParams.get("id"),80),requestId=clean(request.nextUrl.searchParams.get("requestId"),60);
  if(!/^[0-9a-f-]{36}$/i.test(paymentId)||!/^[0-9a-f-]{36}$/i.test(requestId)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return NextResponse.json({error:"بيانات التحقق غير مكتملة."},{status:400});
  const secret=process.env.MOYASAR_SECRET_KEY;if(!secret)return NextResponse.json({error:"التحقق من الدفع غير مهيأ."},{status:503});
  try{
@@ -19,7 +19,7 @@ export async function GET(request:NextRequest){
   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{paymentId,paymentStatus:payment.status,verifiedAt:new Date()}});
   if(payment.status!=="paid")return NextResponse.json({success:true,paid:false,paymentStatus:payment.status,message:payment.status==="initiated"?"العملية تنتظر إكمال التحقق البنكي.":"لم يتم تأكيد الدفع."});
   await db.collection("platform_payments").createIndex({providerPaymentId:1},{unique:true});
-  await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email,amount:payment.amount,currency:payment.currency,status:"paid",fee:payment.fee??null,paymentMethod:payment.source?.company||payment.source?.type||"unknown",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
+  await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",fee:payment.fee??null,paymentMethod:payment.source?.company||payment.source?.type||"unknown",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
   await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{status:"approved",paymentStatus:"paid",paymentId,paidAt:new Date(),paymentProvider:"moyasar"}});
   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled"}});
   await db.collection("platform_audit_logs").insertOne({action:"moyasar_payment_verified",requestId,paymentId,amount:payment.amount,currency:payment.currency,createdAt:new Date()});
