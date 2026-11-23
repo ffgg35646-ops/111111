@@ -14,7 +14,7 @@ export async function POST(request:NextRequest){
   const db=await getClinicalDatabase(),order=await db.collection("platform_requests").findOne({requestId,email});
   if(!order)return NextResponse.json({error:"الطلب غير موجود."},{status:404});
   if(order.paymentStatus==="paid")return NextResponse.json({error:"تم دفع هذا الطلب بالفعل."},{status:409});
-  if(order.status!=="awaiting_payment"||!["payment_due","payment_initiated"].includes(String(order.paymentStatus))||order.currency!=="SAR"||typeof order.quotedAmount!=="number")return NextResponse.json({error:"الطلب لم يعتمد بعد أو لا يحتوي على سعر قابل للدفع."},{status:409});
+  if(order.status!=="awaiting_payment"||!["payment_due","payment_initiated","failed"].includes(String(order.paymentStatus))||order.currency!=="SAR"||typeof order.quotedAmount!=="number")return NextResponse.json({error:"الطلب لم يعتمد بعد أو لا يحتوي على سعر قابل للدفع."},{status:409});
   if(order.kind==="consultation"){const slot=await db.collection("platform_consultant_slots").findOne({reservationId:requestId,status:"reserved",reservedUntil:{$gt:new Date()}});if(!slot)return NextResponse.json({error:"انتهت مهلة حجز الموعد. أرسل طلب موعد جديداً لاختيار وقت متاح."},{status:409});}
   const amount=Math.round(order.quotedAmount*100);if(amount<100||amount>100000000)return NextResponse.json({error:"قيمة الطلب خارج حدود الدفع."},{status:400});
   const intents=db.collection("platform_payment_intents");
