@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { courses, trainingCases } from "@/lib/platform-catalog";
 import {
   Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
   FileText, GraduationCap, LayoutDashboard, MessageCircle, Settings,
@@ -15,7 +16,7 @@ const sections = [
   { title:"المسارات التخصصية", items:[["منظومة التدريب التخصصي",Brain],["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
   { title:"المحاكاة السريرية", items:[["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
   { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
-  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["الإعدادات والصلاحيات",Settings]] },
+  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["إدارة الشهادات",ShieldCheck],["مراجعة المجتمع المهني",MessageCircle],["الإعدادات والصلاحيات",Settings]] },
 ] as const;
 
 const routeByLabel: Record<string,string> = {
@@ -23,6 +24,8 @@ const routeByLabel: Record<string,string> = {
   "الدورات والبرامج": "/academy",
   "الفصول المباشرة عبر Zoom": "/classrooms",
   "الشهادات": "/certificates",
+  "إدارة الشهادات": "/platform-admin/certificates",
+  "الإعدادات والصلاحيات": "/platform-admin/users",
   "الخدمة الاجتماعية": "/specialties?track=social-work",
   "العلاج المعرفي السلوكي CBT": "/specialties?track=psychotherapy",
   "اضطراب طيف التوحد": "/specialties?track=autism",
@@ -50,8 +53,8 @@ const routeByLabel: Record<string,string> = {
 
 const stats = [
   {label:"إجمالي المتدربين",value:"—",note:"يتطلب تفعيل حسابات المتدربين الفردية",icon:Users,tone:"blue"},
-  {label:"البرامج التدريبية",value:"7",note:"برامج مدرجة في الكتالوج التدريبي",icon:GraduationCap,tone:"teal"},
-  {label:"سيناريوهات المحاكاة",value:"5",note:"حالات افتراضية متاحة للتدريب",icon:Brain,tone:"violet"},
+  {label:"البرامج التدريبية",value:String(courses.length),note:"برامج مدرجة في الكتالوج التدريبي",icon:GraduationCap,tone:"teal"},
+  {label:"سيناريوهات المحاكاة",value:String(trainingCases.length),note:"حالات افتراضية متاحة للتدريب",icon:Brain,tone:"violet"},
   {label:"جلسات هذا الأسبوع",value:"—",note:"تظهر بعد إعداد الجدولة وربط حساب Zoom",icon:CalendarDays,tone:"amber"},
 ];
 
