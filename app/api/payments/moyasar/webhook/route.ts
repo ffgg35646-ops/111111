@@ -21,6 +21,8 @@ export async function POST(request:NextRequest){
   const match=payment.description?.match(/^ETZAN Request ([0-9a-f-]{36})$/i);if(!match)return NextResponse.json({received:true,ignored:true});
   const requestId=match[1],intent=await db.collection("platform_payment_intents").findOne({requestId,intentId:{$exists:true}},{sort:{createdAt:-1}});
   if(!intent||payment.amount!==intent.amount||payment.currency!=="SAR")return NextResponse.json({error:"Payment does not match an approved intent."},{status:409});
+  await db.collection("platform_payments").createIndex({providerPaymentId:1},{unique:true});
+  await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:payment.status,lastWebhookAt:new Date()},$setOnInsert:{createdAt:new Date()}},{upsert:true});
   if(type==="payment_paid"&&payment.status==="paid"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{status:"approved",paymentStatus:"paid",paymentId,paidAt:new Date(),paymentProvider:"moyasar"}});
