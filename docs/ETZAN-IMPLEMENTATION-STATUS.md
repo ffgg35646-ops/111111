@@ -5,11 +5,13 @@ This document separates implemented application behavior from integrations that 
 ## Implemented in the application repository
 
 - Arabic RTL public landing page and ETZAN identity (navy, gold, turquoise), with the scientific supervision name shown on the home page.
+- Homepage sections now include catalog-backed program/case/tool counts, featured courses linked to their learning pages, a live latest-published-articles feed from MongoDB, knowledge-library entry points, and a professional-community call to action. Empty article states are shown instead of fabricated content or testimonials.
+- Subtle account-specific visible watermark (name and email) is displayed across the signed-in learning portal as a deterrent to casual content sharing; it is not DRM and cannot prevent screenshots.
 - Existing Next.js application retained; existing admin dashboard preserved at `/platform-admin`.
 - Existing authentication foundation retained: scrypt password hashes, signed HttpOnly session cookie, forced password change for temporary credentials, disabled-account checks, and administrative audit events.
 - Account roles expanded to the ten requested role labels: system admin, platform manager, supervisor, trainer, trainee, consultant, accountant, support, content manager, and quality manager.
 - Existing academy catalog, specialty learning tracks, course learning pages, simulated cases, clinical avatar/voice workflow, VR room, competencies, and supervision modules retained.
-- Article publishing API backed by MongoDB, public article reader, and admin article management screen.
+- Article publishing API backed by MongoDB, public article reader, and admin article management screen. The platform manager, supervisor, and content manager roles can create and update article publication status; content-manager access matches the moderation read permissions.
 - Professional community posting backed by MongoDB, pending-review moderation, public approved feed, and report submission endpoint.
 - Community moderation workspace for authorized supervisory roles, including review and resolution of member reports.
 - Authenticated MongoDB course-progress persistence for completed lessons, reflections, and quiz responses. Trainee access to course content is now gated on an approved, verified paid enrollment (recorded or live/hybrid).
