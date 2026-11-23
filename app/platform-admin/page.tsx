@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
@@ -62,10 +62,15 @@ const modules = [
 
 export default function HomePage() {
   const router = useRouter();
+  const [authorized,setAuthorized] = useState(false);
+  const [checking,setChecking] = useState(true);
+  useEffect(()=>{let active=true;fetch("/api/auth/session",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok||!data.authenticated||!["admin","platform_manager"].includes(data.user?.role)){router.replace("/login?next=/platform-admin");return;}if(active)setAuthorized(true)}).catch(()=>router.replace("/login?next=/platform-admin")).finally(()=>{if(active)setChecking(false)});return()=>{active=false}},[router]);
   const [active,setActive] = useState("نظرة عامة");
   const [query,setQuery] = useState("");
   const [sidebarOpen,setSidebarOpen] = useState(true);
 
+  if(checking)return <main className="app-shell" dir="rtl"><div className="portal-empty">جارٍ التحقق من صلاحية الإدارة...</div></main>;
+  if(!authorized)return null;
   return <main className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
       <div className="brand-block">
