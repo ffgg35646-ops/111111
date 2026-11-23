@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { BadgeCheck, FileBadge, Printer, Search, ShieldCheck, Award, LockKeyhole } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -20,7 +21,14 @@ export default function CertificatesPage(){
   const [issueSuccess,setIssueSuccess]=useState("");
   const [issuing,setIssuing]=useState(false);
 
-  useEffect(()=>{\n    const value=new URLSearchParams(window.location.search).get("code");\n    if(!value)return;\n    setCode(value);setLoading(true);\n    fetch(`/api/platform/certificates?code=${encodeURIComponent(value.trim().toUpperCase())}`,{cache:"no-store"}).then(async response=>{const result=await response.json();if(!response.ok||!result.valid)throw new Error(result.error||"الشهادة غير موجودة.");setCertificate(result.certificate)}).catch(cause=>setError(cause instanceof Error?cause.message:"تعذر التحقق من الشهادة.")).finally(()=>setLoading(false));\n  },[]);\n\n  const issueCertificate=async(event:React.FormEvent<HTMLFormElement>)=>{
+  useEffect(()=>{
+    const value=new URLSearchParams(window.location.search).get("code");
+    if(!value)return;
+    setCode(value);setLoading(true);
+    fetch(`/api/platform/certificates?code=${encodeURIComponent(value.trim().toUpperCase())}`,{cache:"no-store"}).then(async response=>{const result=await response.json();if(!response.ok||!result.valid)throw new Error(result.error||"الشهادة غير موجودة.");setCertificate(result.certificate)}).catch(cause=>setError(cause instanceof Error?cause.message:"تعذر التحقق من الشهادة.")).finally(()=>setLoading(false));
+  },[]);
+
+  const issueCertificate=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault();setIssuing(true);setIssueError("");setIssueSuccess("");
     try{
       const response=await fetch("/api/platform/certificates",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({learnerName,courseTitle,certificateType:"appreciation",completionVerified})});
@@ -44,7 +52,9 @@ export default function CertificatesPage(){
     }catch(cause){setError(cause instanceof Error?cause.message:"تعذر التحقق من الشهادة.");}
     finally{setLoading(false);}
   };
-  useEffect(()=>{if(certificate&&typeof window!=="undefined")setVerificationUrl(`${window.location.origin}/certificates?code=${encodeURIComponent(certificate.serial)}`)},[certificate]);\n\n  return <PlatformLayout title="شهادات الشكر والتقدير والتحقق" description="تتيح المنصة إصدار شهادة شكر بعد اعتماد إكمال المتطلبات التدريبية من الإدارة، والتحقق من صحة الشهادة باستخدام رمزها.">
+  useEffect(()=>{if(certificate&&typeof window!=="undefined")setVerificationUrl(`${window.location.origin}/certificates?code=${encodeURIComponent(certificate.serial)}`)},[certificate]);
+
+  return <PlatformLayout title="شهادات الشكر والتقدير والتحقق" description="تتيح المنصة إصدار شهادة شكر بعد اعتماد إكمال المتطلبات التدريبية من الإدارة، والتحقق من صحة الشهادة باستخدام رمزها.">
     <div className="portal-callout"><ShieldCheck size={16}/> لا تُصدر شهادة لمجرد التسجيل. يجب أن تعتمد الإدارة حضور المتدرب وإكمال المتطلبات أولاً، والشهادة التدريبية لا تعني ترخيصاً مهنياً أو مؤهلاً أكاديمياً ما لم تصرح الجهة بذلك.</div>
     <section className="portal-card certificate-issue-card">
       <div className="portal-section-title"><div><h2><Award size={18}/> إصدار شهادة شكر وتقدير</h2><p>إصدار إداري بعد مراجعة الحضور وإكمال المتطلبات.</p></div><LockKeyhole size={20}/></div>
