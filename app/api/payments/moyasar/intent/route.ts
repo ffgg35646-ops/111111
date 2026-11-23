@@ -1,4 +1,5 @@
 import {encryptPlatformSecret,decryptPlatformSecret} from "@/lib/platform-crypto";
+import {randomUUID} from "node:crypto";
 import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
 export const runtime="nodejs";
@@ -22,7 +23,7 @@ export async function POST(request:NextRequest){
   const pending=await intents.findOne({requestId,email,status:"fulfilled",paymentStatus:"initiated"});if(pending)return NextResponse.json({error:"عملية الدفع السابقة ما زالت بانتظار إكمال التحقق البنكي. حدّث حالة الطلب بعد العودة من البنك."},{status:409});
   const existing=await intents.findOne({requestId,email,status:"created",expiresAt:{$gt:new Date()}},{sort:{createdAt:-1}});
   if(existing&&typeof existing.clientSecretEncrypted==="string"){try{return NextResponse.json({id:existing.intentId,clientSecret:decryptPlatformSecret(existing.clientSecretEncrypted),amount,currency:"SAR",description:existing.description,publishableApiKey:publishable,callbackUrl:existing.callbackUrl})}catch(error){console.error("Moyasar client secret decryption failed",error);return NextResponse.json({error:"تعذر استعادة جلسة الدفع الآمنة. تواصل مع الدعم."},{status:503})}}
-  const description="ETZAN Request "+requestId;
+  const description="ETZAN Request "+requestId+" "+randomUUID().toUpperCase();
   const callback=new URL("/payment-result",request.nextUrl.origin);callback.searchParams.set("requestId",requestId);
   const response=await fetch("https://api.moyasar.com/v1/payment_intents",{method:"POST",headers:{Authorization:"Basic "+Buffer.from(secret+":").toString("base64"),"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({amount,currency:"SAR",description,callback_url:callback.toString()}),cache:"no-store"});
   const payload=await response.json().catch(()=>({})) as {id?:string;client_secret?:string;expires_at?:string;message?:string};
