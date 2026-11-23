@@ -13,6 +13,9 @@ This document separates implemented application behavior from integrations that 
 - Professional community posting backed by MongoDB, pending-review moderation, public approved feed, and report submission endpoint.
 - Community moderation workspace for authorized supervisory roles, including review and resolution of member reports.
 - Authenticated MongoDB course-progress persistence for completed lessons, reflections, and quiz responses, with local browser fallback.
+- Automatic completion certificates for trainee accounts after all lessons are completed and the server independently verifies a passing quiz; live and hybrid courses additionally require a trainer-recorded attendance mark.
+- Trainer/supervisor attendance workspace for approved live-class registrations, with role-protected attendance updates and audit events.
+- Authenticated personal certificate wallet at `/certificates/mine`; public QR verification remains available.
 - Downloadable starter templates for intake, case study, follow-up, and referral forms. These are generic training templates, not licensed psychometric instruments.
 - Membership overview page with explicit payment-not-enabled notice.
 
@@ -56,6 +59,7 @@ Use hosting environment variables only. Never commit real credentials.
 4. Test AI text and realtime voice with consent, rate limits, and cost logging.
 5. Test Zoom and LiveKit using real host and attendee accounts.
 6. Test browser WebXR on the exact target headsets; commission and test a native Unreal/OpenXR client separately if it is required.
+7. Test recorded-course auto certificate issuance, live-course attendance gating, personal certificate wallet, QR scan, and revocation.
 7. Complete payment-provider onboarding and run successful, failed, duplicate-webhook, refund, and subscription-renewal tests.
 8. Verify certificate issue, QR scan, public verification, and revocation.
 9. Complete Saudi privacy/security review before production personal or clinical data is entered.
