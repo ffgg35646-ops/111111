@@ -10,6 +10,7 @@ type Certificate={serial:string;learnerName:string;courseTitle:string;issuedAt:s
 
 export default function CertificatesPage(){
   const [code,setCode]=useState("");
+  const [canIssue,setCanIssue]=useState(false);
   const [certificate,setCertificate]=useState<Certificate|null>(null);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
@@ -20,6 +21,8 @@ export default function CertificatesPage(){
   const [issueError,setIssueError]=useState("");
   const [issueSuccess,setIssueSuccess]=useState("");
   const [issuing,setIssuing]=useState(false);
+
+  useEffect(()=>{fetch("/api/auth/session",{cache:"no-store"}).then(r=>r.json()).then(d=>setCanIssue(Boolean(d.authenticated&&d.user?.role==="admin"&&!d.user?.mustChangePassword))).catch(()=>setCanIssue(false));},[]);
 
   useEffect(()=>{
     const value=new URLSearchParams(window.location.search).get("code");
@@ -55,7 +58,7 @@ export default function CertificatesPage(){
 
   return <PlatformLayout title="شهادات الشكر والتقدير والتحقق" description="تتيح المنصة إصدار شهادة شكر بعد اعتماد إكمال المتطلبات التدريبية من الإدارة، والتحقق من صحة الشهادة باستخدام رمزها.">
     <div className="portal-callout"><ShieldCheck size={16}/> لا تُصدر شهادة لمجرد التسجيل. يجب أن تعتمد الإدارة حضور المتدرب وإكمال المتطلبات أولاً، والشهادة التدريبية لا تعني ترخيصاً مهنياً أو مؤهلاً أكاديمياً ما لم تصرح الجهة بذلك.</div>
-    <section className="portal-card certificate-issue-card">
+    {canIssue&&<section className="portal-card certificate-issue-card">
       <div className="portal-section-title"><div><h2><Award size={18}/> إصدار شهادة شكر وتقدير</h2><p>إصدار إداري بعد مراجعة الحضور وإكمال المتطلبات.</p></div><LockKeyhole size={20}/></div>
       <form onSubmit={issueCertificate} className="certificate-issue-form">
         <label>اسم المتدرب<input required maxLength={100} value={learnerName} onChange={event=>setLearnerName(event.target.value)} placeholder="الاسم كما سيظهر على الشهادة"/></label>
@@ -66,7 +69,7 @@ export default function CertificatesPage(){
         <button className="portal-button" disabled={issuing||!completionVerified}>{issuing?"جارٍ إصدار الشهادة...":"إصدار الشهادة"}</button>
       </form>
       <small className="certificate-admin-note">إصدار الشهادات وإلغاؤها متاحان لحساب مدير النظام بعد تسجيل الدخول. لا تستخدم هذه الشهادة كترخيص مهني.</small>
-    </section>
+    </section>}
     <section className="certificate-verify-card">
       <div><FileBadge size={24}/><h2>التحقق من شهادة</h2><p>أدخل رمز التحقق الموجود على الشهادة.</p></div>
       <form onSubmit={verify}><input required value={code} onChange={event=>setCode(event.target.value)} placeholder="رمز الشهادة"/><button disabled={loading}>{loading?"جارٍ التحقق...":<><Search size={15}/> تحقق</>}</button></form>
