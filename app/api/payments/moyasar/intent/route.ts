@@ -18,6 +18,7 @@ export async function POST(request:NextRequest){
   if(order.kind==="consultation"){const slot=await db.collection("platform_consultant_slots").findOne({reservationId:requestId,status:"reserved",reservedUntil:{$gt:new Date()}});if(!slot)return NextResponse.json({error:"انتهت مهلة حجز الموعد. أرسل طلب موعد جديداً لاختيار وقت متاح."},{status:409});}
   const amount=Math.round(order.quotedAmount*100);if(amount<100||amount>100000000)return NextResponse.json({error:"قيمة الطلب خارج حدود الدفع."},{status:400});
   const intents=db.collection("platform_payment_intents");
+  const pending=await intents.findOne({requestId,email,status:"fulfilled",paymentStatus:"initiated"});if(pending)return NextResponse.json({error:"عملية الدفع السابقة ما زالت بانتظار إكمال التحقق البنكي. حدّث حالة الطلب بعد العودة من البنك."},{status:409});
   const existing=await intents.findOne({requestId,email,status:"created",expiresAt:{$gt:new Date()}},{sort:{createdAt:-1}});
   if(existing&&typeof existing.clientSecret==="string")return NextResponse.json({id:existing.intentId,clientSecret:existing.clientSecret,amount,currency:"SAR",description:existing.description,publishableApiKey:publishable,callbackUrl:existing.callbackUrl});
   const description="ETZAN Request "+requestId;
