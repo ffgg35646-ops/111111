@@ -24,7 +24,7 @@ export async function POST(request:NextRequest){
   await db.collection("platform_payments").createIndex({providerPaymentId:1},{unique:true});
   await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:payment.status,lastWebhookAt:new Date()},$setOnInsert:{createdAt:new Date()}},{upsert:true});
   if(type==="payment_paid"&&payment.status==="paid"){
-   await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
+   await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{status:"paid",paidAt:new Date()}},{upsert:true});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{status:"approved",paymentStatus:"paid",paymentId,paidAt:new Date(),paymentProvider:"moyasar"}});
    await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"reserved"},{$set:{status:"booked",bookedAt:new Date(),paymentId}});
    await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled",paymentId,paymentStatus:"paid"}});
