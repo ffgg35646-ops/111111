@@ -35,6 +35,8 @@ export default function PlatformUsersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
+  const [savingRole, setSavingRole] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -117,6 +119,28 @@ export default function PlatformUsersPage() {
     }
   }
 
+  async function updateRole(user: UserRecord) {
+    const nextRole = selectedRoles[user.userId] || user.role;
+    if (nextRole === user.role) return;
+    if (!window.confirm("تأكيد تغيير صلاحية هذا الحساب؟")) return;
+    setSavingRole(user.userId); setError(""); setSuccess("");
+    try {
+      const response = await fetch("/api/platform/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.userId, role: nextRole }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر تغيير الصلاحية.");
+      setSuccess("تم تحديث صلاحية الحساب.");
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر تغيير الصلاحية.");
+    } finally {
+      setSavingRole("");
+    }
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
@@ -149,8 +173,12 @@ export default function PlatformUsersPage() {
       <div style={{ display: "grid", gap: 10 }}>
         {users.map((user) => <article className="portal-card" key={user.userId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <div><strong>{user.name}</strong><div style={{ color: "#71808d", fontSize: 12, marginTop: 4 }}>{user.email}</div><small style={{ color: "#8a98a4" }}>{roles.find(([value]) => value === user.role)?.[1] || user.role} · آخر دخول: {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString("ar-EG") : "لم يسجل الدخول بعد"}</small></div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="portal-chip">{user.status === "active" ? "نشط" : "معطل"}</span>
+            <select aria-label={"صلاحية "+user.name} value={selectedRoles[user.userId] ?? user.role} onChange={(event) => setSelectedRoles((current) => ({ ...current, [user.userId]: event.target.value }))} style={{ padding: 8, border: "1px solid #dce5e9", borderRadius: 8, background: "#fff", fontSize: 11 }}>
+              {roles.map(([value,label]) => <option value={value} key={value}>{label}</option>)}
+            </select>
+            <button className="portal-button secondary" type="button" disabled={savingRole===user.userId || (selectedRoles[user.userId] ?? user.role)===user.role} onClick={() => void updateRole(user)}>{savingRole===user.userId ? "جارٍ الحفظ..." : "حفظ الصلاحية"}</button>
             <button className="portal-button secondary" type="button" onClick={() => void toggleStatus(user)}>{user.status === "active" ? <UserX size={14}/> : <UserCheck size={14}/>} {user.status === "active" ? "تعطيل" : "تفعيل"}</button>
           </div>
         </article>)}
