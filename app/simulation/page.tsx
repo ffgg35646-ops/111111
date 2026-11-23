@@ -656,7 +656,8 @@ function SimulationWorkspace() {
           </div>
 
           <div className="simulation-avatar-toolbar">
-            <div><b>الطبيب الافتراضي:</b> {avatarModelLabel}</div>
+            <div><b>{personaMode==="client"?"المراجع الافتراضي:":"الطبيب الافتراضي:"}</b> {avatarModelLabel}</div>
+            <label style={{display:"grid",gap:4,fontSize:11}}>دور الشخصية<select value={personaMode} onChange={event=>{setPersonaMode(event.target.value as "supervisor"|"client");realtimeControlsRef.current?.stop();setConversation([]);conversationRef.current=[];}} style={{padding:8,border:"1px solid #dce5e9",borderRadius:8}}><option value="supervisor">طبيب افتراضي مشرف</option><option value="client">مراجع افتراضي للحالة</option></select></label>
             <label className="simulation-avatar-upload">
               <Upload size={14} /> تحميل موديل الشخصية البشرية
               <input type="file" accept=".glb,model/gltf-binary" onChange={(event) => handleAvatarUpload(event.target.files?.[0])} />
