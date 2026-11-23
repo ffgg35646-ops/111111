@@ -31,6 +31,7 @@ export async function POST(request:NextRequest){
    await db.collection("platform_requests").updateOne({requestId,email:intent.email},{$set:{status:"refunded",paymentStatus:"refunded",refundedAt:new Date()}});
   }else if((type==="payment_failed"||type==="payment_faild")&&payment.status==="failed"){
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{paymentStatus:"failed",paymentFailureAt:new Date()}});
+   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"failed",paymentStatus:"failed",paymentId}});
   }
   try{await events.insertOne({eventId,type,paymentId,receivedAt:new Date()})}catch(error){if((error as {code?:number}).code===11000)return NextResponse.json({received:true,duplicate:true});throw error}
   return NextResponse.json({received:true});
