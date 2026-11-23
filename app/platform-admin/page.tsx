@@ -68,7 +68,7 @@ export default function HomePage() {
   return <main className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
       <div className="brand-block">
-        <div className="brand-copy"><strong>منصة التدريب السريري</strong><span>الإدارة والتشغيل</span></div>
+        <div className="brand-copy"><strong>اتزان | ETZAN</strong><span>الإدارة والتشغيل</span></div>
         <button className="icon-button sidebar-toggle" onClick={()=>setSidebarOpen(false)} aria-label="إخفاء القائمة"><PanelRightClose size={18}/></button>
       </div>
       <div className="workspace-label">مساحة العمل</div>
@@ -138,7 +138,7 @@ export default function HomePage() {
           <div className="panel-heading"><div><h2>وحدات المنظومة</h2><p>الوصول إلى وحدات التعلم والتدريب والخدمات والمحاكاة</p></div></div>
           <div className="module-chips">{modules.map(([Icon,label])=><span key={label}><Icon size={16}/>{label}</span>)}</div>
         </section>
-        <footer className="page-footer">منصة التدريب والمحاكاة السريرية <span>•</span> مساحة الإدارة <span>•</span> <a href="/platform-admin/users">إدارة الحسابات</a></footer>
+        <footer className="page-footer">اتزان | ETZAN <span>•</span> مساحة الإدارة <span>•</span> <a href="/platform-admin/users">إدارة الحسابات</a></footer>
       </div>
     </section>
   </main>;
