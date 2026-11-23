@@ -15,7 +15,7 @@ export async function GET(request:NextRequest){
   const response=await fetch("https://api.moyasar.com/v1/payments/"+encodeURIComponent(paymentId),{headers:{Authorization:"Basic "+Buffer.from(secret+":").toString("base64"),Accept:"application/json"},cache:"no-store"});
   const payment=await response.json().catch(()=>({})) as {id?:string;status?:string;amount?:number;currency?:string;description?:string;fee?:number;source?:{company?:string;type?:string;number?:string}};
   if(!response.ok||payment.id!==paymentId)return NextResponse.json({error:"لم يمكن التحقق من العملية لدى مزود الدفع."},{status:502});
-  if(payment.description!=="ETZAN Request "+requestId||payment.amount!==intent.amount||payment.currency!=="SAR")return NextResponse.json({error:"بيانات العملية لا تطابق قيمة الطلب المعتمدة."},{status:409});
+  if(payment.description!==intent.description||payment.amount!==intent.amount||payment.currency!=="SAR")return NextResponse.json({error:"بيانات العملية لا تطابق قيمة الطلب المعتمدة."},{status:409});
   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{paymentId,paymentStatus:payment.status,status:payment.status==="failed"?"failed":"fulfilled",verifiedAt:new Date()},$unset:{clientSecretEncrypted:""}});
   await db.collection("platform_payments").createIndex({providerPaymentId:1},{unique:true});
   await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:payment.status,fee:payment.fee??null,paymentMethod:payment.source?.company||payment.source?.type||"unknown",lastVerifiedAt:new Date()},$setOnInsert:{createdAt:new Date()}},{upsert:true});
