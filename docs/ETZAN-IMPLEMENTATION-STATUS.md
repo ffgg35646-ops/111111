@@ -9,7 +9,7 @@ This document separates implemented application behavior from integrations that 
 - Subtle account-specific visible watermark (name and email) is displayed across the signed-in learning portal as a deterrent to casual content sharing; it is not DRM and cannot prevent screenshots.
 - Existing Next.js application retained; existing admin dashboard preserved at `/platform-admin`.
 - Existing authentication foundation retained: scrypt password hashes, signed HttpOnly session cookie, forced password change for temporary credentials, disabled-account checks, and administrative audit events.
-- Account roles expanded to the ten requested role labels: system admin, platform manager, supervisor, trainer, trainee, consultant, accountant, support, content manager, and quality manager.
+- Account roles expanded to the ten requested role labels: system admin, platform manager, supervisor, trainer, trainee, consultant, accountant, support, content manager, and quality manager. User administration now supports role changes and activation/deactivation; platform managers can manage operational accounts but cannot create, promote, or alter system-admin accounts.
 - Existing academy catalog, specialty learning tracks, course learning pages, simulated cases, clinical avatar/voice workflow, VR room, competencies, and supervision modules retained.
 - Article publishing API backed by MongoDB, public article reader, and admin article management screen. The platform manager, supervisor, and content manager roles can create and update article publication status; content-manager access matches the moderation read permissions.
 - Professional community posting backed by MongoDB, pending-review moderation, public approved feed, and report submission endpoint.
@@ -22,7 +22,7 @@ This document separates implemented application behavior from integrations that 
 - Authenticated personal certificate wallet at `/certificates/mine`; public QR verification remains available.
 - Downloadable starter templates for intake, case study, follow-up, and referral forms. These are generic training templates, not licensed psychometric instruments.
 - Membership overview page with explicit payment-not-enabled notice.
-- Finance workspace for the Moyasar transaction ledger and authorized full-refund requests.
+- Finance workspace for the Moyasar transaction ledger and authorized full-refund requests. Request queue access is read-only for accountant/support roles; approval/rejection and price authorization are restricted to system/platform managers.
 
 ## Existing integrations that are implemented in code but need live configuration and acceptance tests
 
@@ -39,7 +39,7 @@ This document separates implemented application behavior from integrations that 
 - Membership billing: plans are displayed but recurring billing, saved-card renewal, cancellation, proration, and dunning are not active.
 - Books: the current book catalog/request flow is not a connected digital storefront, payment, stock, or shipping system.
 - Consultations: consultant-managed availability slots, public slot discovery, atomic reservation to prevent double booking, SAR quote approval, and payment-gated booking confirmation are implemented. Automatic reminders, customer self-service rescheduling/cancellation, calendar sync (Google/Outlook), and video-session provider integration still need setup and credentials. Zoom meetings are created during approval when Zoom OAuth is configured; join URLs are exposed only after verified payment.
-- Certificates: serial and QR verification, admin issuance/revocation, personal certificate wallet, and automatic recorded-course issuance after verified completion are implemented. Live/hybrid issuance requires recorded attendance. Downloadable branded PDF output and course-specific attendance thresholds remain to be completed.
+- Certificates: serial and QR verification, manager/admin issuance and revocation, personal certificate wallet, and automatic recorded-course issuance after verified completion are implemented. Live/hybrid issuance requires recorded attendance. Downloadable branded PDF output and course-specific attendance thresholds remain to be completed.
 - Licensed psychometric scales: no copyrighted/proprietary instrument should be published until the owner grants the required digital administration and scoring rights.
 - Full-text/vector knowledge assistant: current model context is bounded to explicitly supplied course/case context; a complete indexed knowledge base and retrieval evaluation are still required.
 - Saudi PDPL operational review, retention schedules, consent records, data-subject workflows, security testing, incident response, and processor agreements require legal/security review before handling real clinical data.
