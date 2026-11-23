@@ -11,7 +11,7 @@ Set secrets in the hosting provider's encrypted environment settings. Do not com
 | AI text and simulation evaluation | `AI_GATEWAY_API_KEY`, `CLINICAL_AI_MODEL` |
 | Realtime voice | `OPENAI_API_KEY`, `CLINICAL_REALTIME_MODEL`, `CLINICAL_REALTIME_VOICE` |
 | Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_HOST_USER_ID` |
-| Moyasar payments | `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_WEBHOOK_SECRET` |
+| Moyasar payments | `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_WEBHOOK_SECRET`, `PLATFORM_TOKEN_ENCRYPTION_KEY` (32 random bytes, hex or base64) |
 | Avatar | `NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL` (public GLB asset URL only) |
 
 Use Moyasar test keys first. Configure the webhook in the Moyasar merchant dashboard to point to:
