@@ -44,6 +44,7 @@ const routeByLabel: Record<string,string> = {
   "مراجعة تقارير المحاكاة": "/platform-admin/activities",
   "المتدربون والمختصون": "/platform-admin/users",
   "إدارة المحتوى العلمي": "/platform-admin/content",
+  "إدارة الشهادات": "/platform-admin/certificates",
   "مراجعة المجتمع المهني": "/platform-admin/community",
 };
 
