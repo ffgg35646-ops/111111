@@ -12,11 +12,16 @@ type UserRecord = {
 };
 
 const roles = [
-  ["admin", "مدير المنصة"],
-  ["supervisor", "مشرف أكاديمي"],
+  ["admin", "مدير النظام"],
+  ["platform_manager", "مدير المنصة"],
+  ["supervisor", "المشرف"],
   ["trainer", "مدرب"],
   ["trainee", "متدرب"],
-  ["consultant", "مستشار"],
+  ["consultant", "مقدم الاستشارة"],
+  ["accountant", "المحاسب"],
+  ["support", "فريق الدعم"],
+  ["content_manager", "مسؤول المحتوى"],
+  ["quality_manager", "مسؤول الجودة"],
 ] as const;
 
 export default function PlatformUsersPage() {
