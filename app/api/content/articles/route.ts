@@ -14,7 +14,7 @@ export async function GET(request:NextRequest){
  }catch(error){console.error("articles GET",error);return NextResponse.json({error:"تعذر تحميل المقالات. تحقق من إعداد قاعدة البيانات."},{status:503});}
 }
 export async function POST(request:NextRequest){
- const actor=await requirePlatformRole(request,["admin","supervisor"]);if(!actor)return NextResponse.json({error:"إدارة المقالات متاحة لمسؤول المحتوى أو الإدارة."},{status:403});
+ const actor=await requirePlatformRole(request,["admin","platform_manager","supervisor","content_manager"]);if(!actor)return NextResponse.json({error:"إدارة المقالات متاحة لمسؤول المحتوى أو الإدارة."},{status:403});
  let body:unknown;try{body=await request.json()}catch{return NextResponse.json({error:"بيانات غير صالحة."},{status:400})}
  if(!body||typeof body!=="object"||Array.isArray(body))return NextResponse.json({error:"بيانات المقال مطلوبة."},{status:400});
  const d=body as Record<string,unknown>,title=clean(d.title,180),summary=clean(d.summary,500),content=clean(d.content,12000),category=clean(d.category,80);
@@ -24,7 +24,7 @@ export async function POST(request:NextRequest){
  catch(error){console.error("articles POST",error);return NextResponse.json({error:"تعذر حفظ المقال."},{status:503});}
 }
 export async function PATCH(request:NextRequest){
- const actor=await requirePlatformRole(request,["admin","supervisor"]);if(!actor)return NextResponse.json({error:"غير مصرح."},{status:403});
+ const actor=await requirePlatformRole(request,["admin","platform_manager","supervisor","content_manager"]);if(!actor)return NextResponse.json({error:"غير مصرح."},{status:403});
  let body:unknown;try{body=await request.json()}catch{return NextResponse.json({error:"بيانات غير صالحة."},{status:400})}
  if(!body||typeof body!=="object"||Array.isArray(body))return NextResponse.json({error:"بيانات غير مكتملة."},{status:400});
  const d=body as Record<string,unknown>,articleId=clean(d.articleId,80),status=clean(d.status,20);
