@@ -24,6 +24,9 @@ type Activity = {
     hypotheses: string; missingInformation: string; nextSteps: string; selectedScaleTitle: string; reviewStatus: string;
   };
   conversationTurns: { role: "user" | "assistant"; content: string }[];
+  simulationMode?: string;
+  aiReview?: { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string } | null;
+  aiReviewStatus?: string;
   experienceMode: string;
   vrHeadTrackingSamples?: number;
   vrHandMetrics?: { samples: number; pinchInteractions: number };
@@ -156,6 +159,11 @@ export default function SimulationActivityReviewPage() {
                 {(activity.conversationTurns || []).map((turn, index) => <p key={index} style={{ margin: 0, padding: 9, borderRadius: 7, background: turn.role === "user" ? "#f0f7f5" : "#f7f8f9", fontSize: 10, color: "#60777c", lineHeight: 1.8 }}><b>{turn.role === "user" ? "المتدرب" : "الشخصية"}: </b>{turn.content}</p>)}
               </div>
             </details>
+            <section style={{ marginTop: 14, padding: 13, borderRadius: 10, background: "#f5f8f7" }}>
+              <strong style={{ fontSize: 12, color: "#276f68" }}>مراجعة الذكاء الاصطناعي المساعدة</strong>
+              {activity.aiReview ? <><p style={{ fontSize: 11, lineHeight: 1.9 }}>{activity.aiReview.summary}</p><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10 }}>{[["نقاط القوة",activity.aiReview.strengths],["جوانب التحسين",activity.aiReview.improvements],["ملاحظات السلامة",activity.aiReview.safetyObservations]].map(([label,items])=><div key={String(label)}><b style={{ fontSize: 10 }}>{label}</b><ul style={{ paddingRight: 18, fontSize: 10, lineHeight: 1.8 }}>{(items as string[]).map((item,index)=><li key={index}>{item}</li>)}</ul></div>)}</div><p style={{ fontSize: 10 }}>التدريب التالي المقترح: {activity.aiReview.nextPractice}</p></> : <p style={{ fontSize: 10 }}>لم يتوفر تحليل آلي لهذه الجلسة ({activity.aiReviewStatus||"غير مسجل"}). يمكن للمشرف مراجعة الحوار يدوياً.</p>}
+              <small style={{ color: "#82918f", fontSize: 9 }}>تحليل تعليمي آلي مساعد، وليس تشخيصاً أو حكماً مهنياً نهائياً.</small>
+            </section>
             <section style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid #edf1f1" }}>
               <strong style={{ fontSize: 12, color: "#46666a" }}>تقييم المشرف (0 إلى 5 لكل محور)</strong>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10, marginTop: 10 }}>
