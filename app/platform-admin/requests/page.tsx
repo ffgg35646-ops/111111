@@ -60,7 +60,7 @@ export default function PlatformRequestManagementPage() {
     fetch("/api/auth/session",{cache:"no-store"}).then(async response=>{
       const data=await response.json();
       if(!active)return;
-      if(response.ok&&data.user?.role==="admin"&&!data.user?.mustChangePassword)void load();
+      if(response.ok&&["admin","platform_manager","accountant","support"].includes(data.user?.role)&&!data.user?.mustChangePassword)void load();
       else if(response.ok&&data.user?.mustChangePassword)router.replace("/account/change-password");
       else router.replace("/login?next=/platform-admin/requests");
     }).catch(()=>{if(active)router.replace("/login?next=/platform-admin/requests");});
@@ -74,8 +74,8 @@ export default function PlatformRequestManagementPage() {
   }
 
   async function review(item:RequestRecord,action:"approve"|"reject") {
-    if(action==="approve"&&item.kind==="book_order"&&!(Number(prices[item.requestId])>0)){
-      setError("أدخل إجمالي سعر طلب الكتاب بالجنيه المصري أولاً.");return;
+    if(action==="approve"&&!(Number(prices[item.requestId])>0)){
+      setError("أدخل إجمالي السعر بالريال السعودي قبل اعتماد الطلب.");return;
     }
     if(!window.confirm(action==="approve"?"تأكيد اعتماد الطلب؟ سيتم إنشاء اجتماع Zoom تلقائياً للطلبات التي تحتاج جلسة.":"تأكيد رفض الطلب؟"))return;
     setBusy(item.requestId);setError("");
@@ -109,7 +109,7 @@ export default function PlatformRequestManagementPage() {
       {requests.map(item=><article className="portal-card" key={item.requestId} style={{padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",alignItems:"center"}}>
           <div><span className="portal-chip">{kindNames[item.kind]||item.kind}</span><h3 style={{margin:"9px 0 4px"}}>{item.name}</h3><small style={{color:"#71808d"}}>{item.email}{item.phone?" · "+item.phone:""}</small></div>
-          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"?"تمت الموافقة":item.status==="rejected"?"مرفوض":item.status==="provisioning"?"جارٍ تجهيز الاجتماع":"بانتظار الدفع"}</strong>
+          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"?"تم الدفع والاعتماد":item.status==="awaiting_payment"?"بانتظار الدفع":item.status==="rejected"?"مرفوض":item.status==="provisioning"?"جارٍ تجهيز الاجتماع":"بانتظار المراجعة"}</strong>
         </div>
         <div style={{display:"grid",gap:5,fontSize:12,color:"#536a75",marginTop:12}}>
           {item.courseTitle&&<div>الدورة: {item.courseTitle}</div>}
@@ -121,12 +121,12 @@ export default function PlatformRequestManagementPage() {
           {item.deliveryRegion&&<div>منطقة التسليم: {item.deliveryRegion}</div>}
           {item.requestNote&&<div>ملاحظات: {item.requestNote}</div>}
           {item.orderNote&&<div>ملاحظة الطلب: {item.orderNote}</div>}
-          {item.quotedAmount&&<div>الإجمالي: {item.quotedAmount} {item.currency||"EGP"} · حالة الدفع: {item.paymentStatus==="payment_due"?"بانتظار الدفع":item.paymentStatus||"غير محدد"}</div>}
+          {item.quotedAmount&&<div>الإجمالي: {item.quotedAmount} {item.currency||"SAR"} · حالة الدفع: {item.paymentStatus==="payment_due"?"بانتظار الدفع":item.paymentStatus||"غير محدد"}</div>}
           {item.adminNote&&<div>ملاحظة الإدارة: {item.adminNote}</div>}
           {item.zoomMeeting?.joinUrl&&<a href={item.zoomMeeting.joinUrl} target="_blank" rel="noreferrer">رابط اجتماع Zoom</a>}
         </div>
         {item.status==="pending_review"&&<div style={{display:"grid",gap:9,marginTop:14}}>
-          {item.kind==="book_order"&&<label style={{fontSize:11,color:"#536a75"}}>إجمالي السعر بالجنيه المصري<input type="number" min="1" step="0.01" value={prices[item.requestId]||""} onChange={e=>setPrices(v=>({...v,[item.requestId]:e.target.value}))} style={{display:"block",width:"100%",padding:10,border:"1px solid #dce5e9",borderRadius:8,marginTop:5}}/></label>}
+          <label style={{fontSize:11,color:"#536a75"}}>السعر النهائي بالريال السعودي (SAR)<input type="number" min="1" step="0.01" value={prices[item.requestId]||""} onChange={e=>setPrices(v=>({...v,[item.requestId]:e.target.value}))} style={{display:"block",width:"100%",padding:10,border:"1px solid #dce5e9",borderRadius:8,marginTop:5}}/></label>
           <textarea rows={2} maxLength={1000} value={notes[item.requestId]||""} onChange={e=>setNotes(v=>({...v,[item.requestId]:e.target.value}))} placeholder="ملاحظة إدارية أو تعليمات للعميل..." style={{width:"100%",padding:10,border:"1px solid #dce5e9",borderRadius:8}}/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             <button className="portal-button" disabled={busy===item.requestId} onClick={()=>review(item,"approve")}><Check size={15}/> اعتماد الطلب</button>
@@ -137,6 +137,6 @@ export default function PlatformRequestManagementPage() {
         </div>}
       </article>)}
     </div>
-    <div className="portal-callout" style={{marginTop:18}}>إنشاء روابط Zoom يتطلب إعداد Server-to-Server OAuth على الخادم. طلبات الكتب تعتمد السعر المدخل إدارياً وتظل بانتظار الدفع حتى ربط بوابة دفع معتمدة.</div>
+    <div className="portal-callout" style={{marginTop:18}}>إنشاء روابط Zoom يتطلب إعداد Server-to-Server OAuth على الخادم. لا يُكشف رابط الاجتماع لصاحب الطلب إلا بعد تأكيد الدفع من Moyasar والتحقق منه على الخادم.</div>
   </PlatformLayout>;
 }
