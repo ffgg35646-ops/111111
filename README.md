@@ -82,6 +82,9 @@ The shared web avatar now renders a three-dimensional Saudi attire layer over th
 
 ## ETZAN application entry points
 
+- Certificate management and revocation: `/platform-admin/certificates`
+- Community reports review: available from `/platform-admin/community`
+
 - Public Arabic landing page: `/`
 - Member login: `/login`
 - Role-based member workspace: `/dashboard`
