@@ -8,7 +8,7 @@ export async function GET(request:NextRequest){
  try{
   const db=await getClinicalDatabase();const moderation=request.nextUrl.searchParams.get("moderation")==="1";
   let filter:Record<string,unknown>={status:"published"};
-  if(moderation){const actor=await requirePlatformRole(request,["admin","supervisor"]);if(!actor)return NextResponse.json({error:"غير مصرح."},{status:403});filter={};}
+  if(moderation){const actor=await requirePlatformRole(request,["admin","platform_manager","supervisor","content_manager"]);if(!actor)return NextResponse.json({error:"غير مصرح."},{status:403});filter={};}
   const articles=await db.collection("etzan_articles").find(filter,{projection:{_id:0}}).sort({updatedAt:-1,createdAt:-1}).limit(100).toArray();
   return NextResponse.json({articles},{headers:{"Cache-Control":"no-store"}});
  }catch(error){console.error("articles GET",error);return NextResponse.json({error:"تعذر تحميل المقالات. تحقق من إعداد قاعدة البيانات."},{status:503});}
