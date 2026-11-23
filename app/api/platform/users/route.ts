@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
   const password = typeof data.password === "string" ? data.password : "";
   const role = clean(data.role, 30) as PlatformRole;
   if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 12 || !PLATFORM_ROLES.includes(role)) {
+    if (actor.role === "platform_manager" && role === "admin") return NextResponse.json({ error: "لا يملك مدير المنصة صلاحية إنشاء حساب مدير النظام." }, { status: 403 });
     return NextResponse.json({ error: "تحقق من الاسم والبريد والدور، واجعل كلمة المرور 12 حرفاً على الأقل." }, { status: 400 });
   }
 
@@ -124,6 +125,7 @@ export async function PATCH(request: NextRequest) {
     const users = db.collection("platform_users");
     const target = await users.findOne({ userId });
     if (!target) return NextResponse.json({ error: "الحساب غير موجود." }, { status: 404 });
+    if (actor.role === "platform_manager" && (target.role === "admin" || role === "admin")) return NextResponse.json({ error: "لا يملك مدير المنصة صلاحية تعديل حساب مدير النظام أو منح صلاحية مدير النظام." }, { status: 403 });
 
     if (target.role === "admin" && target.status === "active" && (status === "disabled" || (role && role !== "admin"))) {
       const activeAdmins = await users.countDocuments({ role: "admin", status: "active" });
