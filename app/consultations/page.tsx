@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { HeartHandshake, ShieldCheck, UserRoundCheck } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
-import PlatformRequestForm from "@/components/platform-request-form";
+import ConsultationBookingForm from "@/components/consultation-booking-form";
 
 const services=[
  {id:"social-consultation",title:"استشارة في الخدمة الاجتماعية",description:"فهم الاحتياج الاجتماعي والموارد والإحالات وخيارات الدعم المجتمعي."},
@@ -23,11 +23,7 @@ export default function ConsultationsPage(){
     </div>
     <section className="consultation-form-panel">
       <div className="portal-section-title"><div><h2>{active.title}</h2><p>{active.description}</p></div><UserRoundCheck size={21}/></div>
-      <PlatformRequestForm key={active.id} kind="consultation" title="طلب موعد تواصل أولي" description="لا تكتب أسماء مرضى أو تشخيصات أو تفاصيل صحية حساسة في هذا النموذج." initialData={{serviceId:active.id}} fields={[
-        {name:"preferredAt",label:"الموعد المفضل للتواصل",type:"datetime-local",required:true},
-        {name:"requestNote",label:"معلومات تنظيمية مختصرة (اختياري)",type:"textarea",placeholder:"اكتب المجال العام الذي ترغب مناقشته، دون تفاصيل تعريفية أو بيانات مرضى."},
-        {name:"consent",label:"أوافق على استخدام بيانات التواصل لمراجعة الطلب والتنسيق معي.",type:"checkbox",required:true},
-      ]} submitLabel="إرسال طلب الاستشارة"/>
+      <ConsultationBookingForm key={active.id} serviceId={active.id} title="حجز موعد تواصل أولي"/>
     </section>
   </PlatformLayout>;
 }
