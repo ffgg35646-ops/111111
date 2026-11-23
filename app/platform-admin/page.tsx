@@ -67,7 +67,7 @@ export default function HomePage() {
   const router = useRouter();
   const [authorized,setAuthorized] = useState(false);
   const [checking,setChecking] = useState(true);
-  useEffect(()=>{let active=true;fetch("/api/auth/session",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok||!data.authenticated||!["admin","platform_manager"].includes(data.user?.role)){router.replace("/login?next=/platform-admin");return;}if(active)setAuthorized(true)}).catch(()=>router.replace("/login?next=/platform-admin")).finally(()=>{if(active)setChecking(false)});return()=>{active=false}},[router]);
+  useEffect(()=>{let active=true;fetch("/api/auth/session",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok||!data.authenticated||!["admin","platform_manager"].includes(data.user?.role)){router.replace("/login?next=/platform-admin");return;}if(data.user?.mustChangePassword){router.replace("/account/change-password");return;}if(active)setAuthorized(true)}).catch(()=>router.replace("/login?next=/platform-admin")).finally(()=>{if(active)setChecking(false)});return()=>{active=false}},[router]);
   const [active,setActive] = useState("نظرة عامة");
   const [query,setQuery] = useState("");
   const [sidebarOpen,setSidebarOpen] = useState(true);
