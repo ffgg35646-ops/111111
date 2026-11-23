@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 
 export const PLATFORM_SESSION_COOKIE = "clinical_platform_session";
-export const PLATFORM_ROLES = ["admin", "supervisor", "trainer", "trainee", "consultant"] as const;
+export const PLATFORM_ROLES = ["admin", "platform_manager", "supervisor", "trainer", "trainee", "consultant", "accountant", "support", "content_manager", "quality_manager"] as const;
 export type PlatformRole = (typeof PLATFORM_ROLES)[number];
 
 export type PlatformSession = {
