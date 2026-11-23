@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, ChevronLeft, CirclePlay, ClipboardCheck, GraduationCap, LockKeyhole, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
+import PlatformRequestForm from "@/components/platform-request-form";
 import { courses } from "@/lib/platform-catalog";
 import "./learning.css";
 
