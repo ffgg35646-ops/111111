@@ -15,7 +15,7 @@ export async function POST(request:NextRequest){
   const db=await getClinicalDatabase(),order=await db.collection("platform_requests").findOne({requestId,email});
   if(!order)return NextResponse.json({error:"الطلب غير موجود."},{status:404});
   if(order.paymentStatus==="paid")return NextResponse.json({error:"تم دفع هذا الطلب بالفعل."},{status:409});
-  if(order.status!=="awaiting_payment"||order.paymentStatus!=="payment_due"||order.currency!=="SAR"||typeof order.quotedAmount!=="number")return NextResponse.json({error:"الطلب لم يعتمد بعد أو لا يحتوي على سعر قابل للدفع."},{status:409});
+  if(order.status!=="awaiting_payment"||!["payment_due","payment_initiated"].includes(String(order.paymentStatus))||order.currency!=="SAR"||typeof order.quotedAmount!=="number")return NextResponse.json({error:"الطلب لم يعتمد بعد أو لا يحتوي على سعر قابل للدفع."},{status:409});
   const amount=Math.round(order.quotedAmount*100);if(amount<100||amount>100000000)return NextResponse.json({error:"قيمة الطلب خارج حدود الدفع."},{status:400});
   const intents=db.collection("platform_payment_intents");
   const existing=await intents.findOne({requestId,email,status:"created",expiresAt:{$gt:new Date()}},{sort:{createdAt:-1}});
