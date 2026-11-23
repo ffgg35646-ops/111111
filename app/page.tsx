@@ -8,15 +8,15 @@ const tracks=[
 ["الاضطرابات النمائية وطيف التوحد","الفهم النمائي والتواصل الداعم والشراكة مع الأسرة.","/specialties?track=autism"],
 ["التقييم والقياس النفسي","اختيار الأدوات المرخصة وفهم النتائج وحدود استخدامها.","/assessments"]
 ];
-const services=[
-[GraduationCap,"الأكاديمية والدورات","برامج ومسارات تعليمية مسجلة ومباشرة.","/academy"],
-[Brain,"مختبر المحاكاة AI","مقابلات تدريبية تفاعلية وتغذية راجعة مهنية.","/cases"],
-[Video,"الواقع الافتراضي VR","بيئة سريرية ثلاثية الأبعاد قابلة للتوسعة.","/simulation"],
-[ClipboardList,"المقاييس والأدوات","مكتبة تعليمية للمقاييس والنماذج المهنية.","/assessments"],
-[Library,"المكتبة العلمية","كتب ومراجع ومواد معرفية متخصصة.","/books"],
-[HeartHandshake,"الاستشارات","طلبات تواصل وحجز مع مقدم الخدمة.","/consultations"],
-[Users,"المجتمع المهني","مساحة مهنية للنقاش والتعلم التعاوني.","/community"],
-[Award,"الشهادات","إصدار الشهادات والتحقق من صحتها.","/certificates"]
+const services:{icon:typeof BookOpen;title:string;desc:string;href:string}[]=[
+{icon:GraduationCap,title:"الأكاديمية والدورات",desc:"برامج ومسارات تعليمية مسجلة ومباشرة.",href:"/academy"},
+{icon:Brain,title:"مختبر المحاكاة AI",desc:"مقابلات تدريبية تفاعلية وتغذية راجعة مهنية.",href:"/cases"},
+{icon:Video,title:"الواقع الافتراضي VR",desc:"بيئة سريرية ثلاثية الأبعاد قابلة للتوسعة.",href:"/simulation"},
+{icon:ClipboardList,title:"المقاييس والأدوات",desc:"مكتبة تعليمية للمقاييس والنماذج المهنية.",href:"/assessments"},
+{icon:Library,title:"المكتبة العلمية",desc:"كتب ومراجع ومواد معرفية متخصصة.",href:"/books"},
+{icon:HeartHandshake,title:"الاستشارات",desc:"طلبات تواصل وحجز مع مقدم الخدمة.",href:"/consultations"},
+{icon:Users,title:"المجتمع المهني",desc:"مساحة مهنية للنقاش والتعلم التعاوني.",href:"/community"},
+{icon:Award,title:"الشهادات",desc:"إصدار الشهادات والتحقق من صحتها.",href:"/certificates"}
 ];
 export default function HomePage(){return <main className="etzan-home" dir="rtl">
 <header className="etzan-nav"><Link href="/" className="etzan-logo"><span className="etzan-mark">ات</span><span><b>اتزان</b><small>ETZAN · من المعرفة إلى الممارسة</small></span></Link><nav><a href="#about">عن اتزان</a><a href="#tracks">المسارات</a><a href="#services">الخدمات</a><Link href="/academy">الأكاديمية</Link><Link href="/certificates">التحقق من شهادة</Link></nav><div className="etzan-nav-actions"><Link href="/login" className="etzan-login">دخول الأعضاء</Link><Link href="/academy" className="etzan-cta">اكتشف البرامج <ArrowLeft size={15}/></Link></div></header>
@@ -24,7 +24,7 @@ export default function HomePage(){return <main className="etzan-home" dir="rtl"
 <div className="etzan-trust"><span>تعلم متخصص</span><i/> <span>محاكاة عملية</span><i/> <span>إشراف مهني</span><i/> <span>معرفة موثوقة</span></div>
 <section className="etzan-section" id="about"><div className="etzan-section-head"><div><span className="etzan-kicker">عن المنصة</span><h2>مساحة واحدة لتطوير الممارسة المهنية</h2></div><p>اتزان منصة للتعلم والتدريب والتطوير المهني في الخدمة الاجتماعية وعلم النفس والإرشاد الأسري والاضطرابات النمائية والسلوكية.</p></div><div className="etzan-supervisor"><div className="etzan-supervisor-icon">د.ص</div><div><span>الإشراف العلمي</span><h3>د. صالح بن حسن آل زبيد</h3><p>إشراف وتوجيه علمي للمحتوى والمسارات المهنية.</p></div><div className="etzan-supervisor-seal"><ShieldCheck size={25}/><span>منهجية مهنية</span></div></div></section>
 <section className="etzan-section etzan-dark-section" id="tracks"><div className="etzan-section-head"><div><span className="etzan-kicker">المسارات المهنية</span><h2>تخصص أعمق. ممارسة أكثر ثقة.</h2></div><Link href="/specialties" className="etzan-text-link">كل المسارات <ArrowLeft size={15}/></Link></div><div className="etzan-track-grid">{tracks.map(([title,desc,href],i)=><Link href={href} className="etzan-track" key={title}><small>0{i+1}</small><h3>{title}</h3><p>{desc}</p><ArrowLeft size={17}/></Link>)}</div></section>
-<section className="etzan-section" id="services"><div className="etzan-section-head"><div><span className="etzan-kicker">منظومة اتزان</span><h2>كل ما تحتاجه لرحلة تعلم متكاملة</h2></div><p>من اكتساب المعرفة إلى تطبيق المهارات ومراجعة الأداء وتوثيق الإنجاز.</p></div><div className="etzan-service-grid">{services.map(([Icon,title,desc,href])=><Link href={href} className="etzan-service" key={title}><span><Icon size={21}/></span><h3>{title}</h3><p>{desc}</p><b>استكشف القسم <ArrowLeft size={14}/></b></Link>)}</div></section>
+<section className="etzan-section" id="services"><div className="etzan-section-head"><div><span className="etzan-kicker">منظومة اتزان</span><h2>كل ما تحتاجه لرحلة تعلم متكاملة</h2></div><p>من اكتساب المعرفة إلى تطبيق المهارات ومراجعة الأداء وتوثيق الإنجاز.</p></div><div className="etzan-service-grid">{services.map(({icon:Icon,title,desc,href})=><Link href={href} className="etzan-service" key={title}><span><Icon size={21}/></span><h3>{title}</h3><p>{desc}</p><b>استكشف القسم <ArrowLeft size={14}/></b></Link>)}</div></section>
 <section className="etzan-simulation"><div><span className="etzan-kicker">مختبر اتزان · AI + VR</span><h2>تدرّب على المواقف المهنية<br/>في بيئة آمنة وتفاعلية.</h2><p>حالات افتراضية، محادثة نصية وصوتية عند تفعيل مفاتيح الخدمة، وشخصية ثلاثية الأبعاد، ثم تقرير تدريبي يساعدك على تطوير مهارات المقابلة والتعاطف وجمع المعلومات.</p><Link href="/cases" className="etzan-cta">ادخل مختبر المحاكاة <ArrowLeft size={15}/></Link></div><img src="/clinic/doctor-front.jpg" alt="الشخصية الافتراضية للتدريب السريري"/></section>
 <section className="etzan-membership"><div><span className="etzan-kicker">عضويات اتزان</span><h2>استمر في تطوير مهاراتك.</h2><p>استكشف البرامج والمواد المتاحة، وتعرّف على خيارات العضوية عند إتاحة باقات الاشتراك والدفع.</p></div><Link href="/membership" className="etzan-outline">استكشف العضويات <ArrowLeft size={15}/></Link></section>
 <footer className="etzan-footer"><div className="etzan-logo"><span className="etzan-mark">ات</span><span><b>اتزان | ETZAN</b><small>من المعرفة إلى الممارسة</small></span></div><p>منصة تعلم وتدريب مهني. المحاكاة تعليمية ولا تقدم تشخيصاً أو علاجاً مستقلاً.</p><div><Link href="/login">دخول الأعضاء</Link><Link href="/certificates">التحقق من الشهادات</Link><Link href="/platform-admin">الإدارة</Link></div><small>© {new Date().getFullYear()} اتزان. جميع الحقوق محفوظة.</small></footer>
