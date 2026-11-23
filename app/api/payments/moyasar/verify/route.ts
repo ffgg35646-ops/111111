@@ -16,7 +16,7 @@ export async function GET(request:NextRequest){
   const payment=await response.json().catch(()=>({})) as {id?:string;status?:string;amount?:number;currency?:string;description?:string;fee?:number;source?:{company?:string;type?:string;number?:string}};
   if(!response.ok||payment.id!==paymentId)return NextResponse.json({error:"لم يمكن التحقق من العملية لدى مزود الدفع."},{status:502});
   if(payment.description!=="ETZAN Request "+requestId||payment.amount!==intent.amount||payment.currency!=="SAR")return NextResponse.json({error:"بيانات العملية لا تطابق قيمة الطلب المعتمدة."},{status:409});
-  await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{paymentId,paymentStatus:payment.status,verifiedAt:new Date()}});
+  await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{paymentId,paymentStatus:payment.status,status:payment.status==="failed"?"failed":intent.status,verifiedAt:new Date()}});
   if(payment.status!=="paid")return NextResponse.json({success:true,paid:false,paymentStatus:payment.status,message:payment.status==="initiated"?"العملية تنتظر إكمال التحقق البنكي.":"لم يتم تأكيد الدفع."});
   await db.collection("platform_payments").createIndex({providerPaymentId:1},{unique:true});
   await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",fee:payment.fee??null,paymentMethod:payment.source?.company||payment.source?.type||"unknown",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
