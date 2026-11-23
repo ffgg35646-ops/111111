@@ -43,6 +43,8 @@ const routeByLabel: Record<string,string> = {
   "إدارة الطلبات والحجوزات": "/platform-admin/requests",
   "مراجعة تقارير المحاكاة": "/platform-admin/activities",
   "المتدربون والمختصون": "/platform-admin/users",
+  "إدارة المحتوى العلمي": "/platform-admin/content",
+  "مراجعة المجتمع المهني": "/platform-admin/community",
 };
 
 const stats = [
