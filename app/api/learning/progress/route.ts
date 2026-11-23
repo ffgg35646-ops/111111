@@ -6,7 +6,7 @@ import {courses} from "@/lib/platform-catalog";
 export const runtime="nodejs";
 const allowed=["admin","platform_manager","supervisor","trainer","trainee"] as const;
 function clean(v:unknown,n:number){return typeof v==="string"?v.trim().slice(0,n):"";}
-async function hasCourseAccess(db:Awaited<ReturnType<typeof getClinicalDatabase>>,actor:Awaited<ReturnType<typeof requirePlatformRole>> extends infer T?NonNullable<T>:never,courseId:string){if(actor.role!=="trainee")return true;const enrollment=await db.collection("platform_requests").findOne({kind:"course_enrollment",courseId,email:actor.email,status:"approved",paymentStatus:"paid"},{projection:{_id:1}});return Boolean(enrollment)}
+async function hasCourseAccess(db:Awaited<ReturnType<typeof getClinicalDatabase>>,actor:Awaited<ReturnType<typeof requirePlatformRole>> extends infer T?NonNullable<T>:never,courseId:string){if(actor.role!=="trainee")return true;const enrollment=await db.collection("platform_requests").findOne({kind:{$in:["course_enrollment","classroom_registration"]},courseId,email:actor.email,status:"approved",paymentStatus:"paid"},{projection:{_id:1}});return Boolean(enrollment)}
 export async function GET(request:NextRequest){
  const actor=await requirePlatformRole(request,[...allowed]);if(!actor)return NextResponse.json({error:"سجل الدخول لحفظ تقدم التعلم."},{status:401});
  const courseId=clean(request.nextUrl.searchParams.get("courseId"),80);if(!courses.some(c=>c.id===courseId))return NextResponse.json({error:"الدورة غير موجودة."},{status:404});
