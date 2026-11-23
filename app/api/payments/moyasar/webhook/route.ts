@@ -27,14 +27,14 @@ export async function POST(request:NextRequest){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{status:"paid",paidAt:new Date()}},{upsert:true});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{status:"approved",paymentStatus:"paid",paymentId,paidAt:new Date(),paymentProvider:"moyasar"}});
    await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"reserved"},{$set:{status:"booked",bookedAt:new Date(),paymentId}});
-   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled",paymentId,paymentStatus:"paid"}});
+   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled",paymentId,paymentStatus:"paid"},$unset:{clientSecretEncrypted:""}});
   }else if(type==="payment_refunded"&&payment.status==="refunded"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{status:"refunded",refundedAt:new Date()}});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email},{$set:{status:"refunded",paymentStatus:"refunded",refundedAt:new Date()}});
    await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"booked"},{$set:{status:"cancelled",cancelledAt:new Date(),cancellationReason:"payment_refunded"}});
   }else if((type==="payment_failed"||type==="payment_faild")&&payment.status==="failed"){
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{paymentStatus:"failed",paymentFailureAt:new Date()}});
-   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"failed",paymentStatus:"failed",paymentId}});
+   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"failed",paymentStatus:"failed",paymentId},$unset:{clientSecretEncrypted:""}});
   }
   try{await events.insertOne({eventId,type,paymentId,receivedAt:new Date()})}catch(error){if((error as {code?:number}).code===11000)return NextResponse.json({received:true,duplicate:true});throw error}
   return NextResponse.json({received:true});
