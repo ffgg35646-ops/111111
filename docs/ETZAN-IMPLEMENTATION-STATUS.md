@@ -11,7 +11,8 @@ This document separates implemented application behavior from integrations that 
 - Existing academy catalog, specialty learning tracks, course learning pages, simulated cases, clinical avatar/voice workflow, VR room, competencies, and supervision modules retained.
 - Article publishing API backed by MongoDB, public article reader, and admin article management screen.
 - Professional community posting backed by MongoDB, pending-review moderation, public approved feed, and report submission endpoint.
-- Community moderation workspace for authorized supervisory roles.
+- Community moderation workspace for authorized supervisory roles, including review and resolution of member reports.
+- Authenticated MongoDB course-progress persistence for completed lessons, reflections, and quiz responses, with local browser fallback.
 - Downloadable starter templates for intake, case study, follow-up, and referral forms. These are generic training templates, not licensed psychometric instruments.
 - Membership overview page with explicit payment-not-enabled notice.
 
@@ -54,7 +55,7 @@ Use hosting environment variables only. Never commit real credentials.
 3. Test all ten roles and deny-by-default access for each protected API.
 4. Test AI text and realtime voice with consent, rate limits, and cost logging.
 5. Test Zoom and LiveKit using real host and attendee accounts.
-6. Test browser WebXR and the packaged Unreal/OpenXR client on the exact target headsets.
+6. Test browser WebXR on the exact target headsets; commission and test a native Unreal/OpenXR client separately if it is required.
 7. Complete payment-provider onboarding and run successful, failed, duplicate-webhook, refund, and subscription-renewal tests.
 8. Verify certificate issue, QR scan, public verification, and revocation.
 9. Complete Saudi privacy/security review before production personal or clinical data is entered.
