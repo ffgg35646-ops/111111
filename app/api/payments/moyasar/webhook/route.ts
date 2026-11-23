@@ -15,13 +15,13 @@ export async function POST(request:NextRequest){
  const apiSecret=process.env.MOYASAR_SECRET_KEY;if(!apiSecret)return NextResponse.json({error:"Payment verification is not configured."},{status:503});
  try{
   const db=await getClinicalDatabase(),events=db.collection("platform_payment_events");await events.createIndex({eventId:1},{unique:true});
-  try{await events.insertOne({eventId,type,paymentId,receivedAt:new Date()})}catch(error){if((error as {code?:number}).code===11000)return NextResponse.json({received:true,duplicate:true});throw error}
   const response=await fetch("https://api.moyasar.com/v1/payments/"+encodeURIComponent(paymentId),{headers:{Authorization:"Basic "+Buffer.from(apiSecret+":").toString("base64"),Accept:"application/json"},cache:"no-store"});
   const payment=await response.json().catch(()=>({})) as {id?:string;status?:string;amount?:number;currency?:string;description?:string};
   if(!response.ok||payment.id!==paymentId)return NextResponse.json({error:"Provider verification failed."},{status:502});
   const match=payment.description?.match(/^ETZAN Request ([0-9a-f-]{36})$/i);if(!match)return NextResponse.json({received:true,ignored:true});
   const requestId=match[1],intent=await db.collection("platform_payment_intents").findOne({requestId,intentId:{$exists:true}});
   if(!intent||payment.amount!==intent.amount||payment.currency!=="SAR")return NextResponse.json({error:"Payment does not match an approved intent."},{status:409});
+  try{await events.insertOne({eventId,type,paymentId,receivedAt:new Date()})}catch(error){if((error as {code?:number}).code===11000)return NextResponse.json({received:true,duplicate:true});throw error}
   if(type==="payment_paid"&&payment.status==="paid"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{status:"approved",paymentStatus:"paid",paymentId,paidAt:new Date(),paymentProvider:"moyasar"}});
