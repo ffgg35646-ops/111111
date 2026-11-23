@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
   const email = clean(data.email, 180).toLowerCase();
   const password = typeof data.password === "string" ? data.password : "";
   const role = clean(data.role, 30) as PlatformRole;
+  if (actor.role === "platform_manager" && role === "admin") return NextResponse.json({ error: "لا يملك مدير المنصة صلاحية إنشاء حساب مدير النظام." }, { status: 403 });
   if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 12 || !PLATFORM_ROLES.includes(role)) {
-    if (actor.role === "platform_manager" && role === "admin") return NextResponse.json({ error: "لا يملك مدير المنصة صلاحية إنشاء حساب مدير النظام." }, { status: 403 });
     return NextResponse.json({ error: "تحقق من الاسم والبريد والدور، واجعل كلمة المرور 12 حرفاً على الأقل." }, { status: 400 });
   }
 
