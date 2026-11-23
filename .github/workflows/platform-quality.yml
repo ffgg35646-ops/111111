@@ -8,6 +8,7 @@ on:
       - feature/immersive-vr-case-assessment
       - feature/immersive-vr-live-avatar
       - feature/vr-live-avatar-main-integration
+      - feature/etzan-platform-buildout-20261123
   pull_request:
     branches:
       - main
