@@ -3,7 +3,7 @@ import { NextRequest,NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 export const runtime="nodejs";
-const roles=["admin","supervisor","trainer","trainee","consultant"] as const;
+const roles=["admin","platform_manager","supervisor","trainer","trainee","consultant","accountant","support","content_manager","quality_manager"] as const;
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
 export async function GET(request:NextRequest){
  const moderation=request.nextUrl.searchParams.get("moderation")==="1";let actor=null;
