@@ -88,24 +88,40 @@ export default function CourseLearningPage() {
 
   useEffect(()=>{
     if(!course)return;
-    const frame=window.requestAnimationFrame(()=>{
+    let active=true;
+    const hydrate=async()=>{
       try{
-        const saved=JSON.parse(localStorage.getItem("clinical-course-progress:"+course.id)||"{}") as {completed?:number[];reflection?:string};
+        const response=await fetch("/api/learning/progress?courseId="+encodeURIComponent(course.id),{cache:"no-store"});
+        if(response.ok){
+          const saved=await response.json();
+          if(!active)return;
+          const done=Array.isArray(saved.completedLessons)?saved.completedLessons.filter((n:number)=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[];
+          const note=typeof saved.reflection==="string"?saved.reflection:"";
+          setCompleted(done);setReflection(note);setAnswers(saved.quizAnswers&&typeof saved.quizAnswers==="object"?saved.quizAnswers:{});setChecked(saved.quizChecked===true);
+          localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed:done,reflection:note,updatedAt:new Date().toISOString()}));
+          setProgressHydrated(true);return;
+        }
+      }catch{}
+      try{
+        const saved=JSON.parse(localStorage.getItem("clinical-course-progress:"+course.id)||"{}") as {completed?:number[];reflection?:string;answers?:Record<number,number>;checked?:boolean};
+        if(!active)return;
         setCompleted(Array.isArray(saved.completed)?saved.completed.filter(n=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[]);
         setReflection(typeof saved.reflection==="string"?saved.reflection:"");
-      }catch{
-        setCompleted([]);
-        setReflection("");
-      }
-      setProgressHydrated(true);
-    });
-    return ()=>window.cancelAnimationFrame(frame);
+        setAnswers(saved.answers&&typeof saved.answers==="object"?saved.answers:{});setChecked(saved.checked===true);
+      }catch{setCompleted([]);setReflection("");}
+      if(active)setProgressHydrated(true);
+    };
+    void hydrate();
+    return ()=>{active=false};
   },[course]);
 
   useEffect(()=>{
     if(!course||!progressHydrated)return;
-    localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed,reflection,updatedAt:new Date().toISOString()}));
-  },[course,completed,reflection,progressHydrated]);
+    const payload={completedLessons:completed,reflection,quizAnswers:answers,quizChecked:checked,updatedAt:new Date().toISOString()};
+    localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed,reflection,answers,checked,updatedAt:payload.updatedAt}));
+    const timer=window.setTimeout(()=>{void fetch("/api/learning/progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({courseId:course.id,...payload})}).catch(()=>{});},650);
+    return ()=>window.clearTimeout(timer);
+  },[course,completed,reflection,answers,checked,progressHydrated]);
 
   if(!course) return <PlatformLayout title="الدورة غير موجودة" description="لم نعثر على هذه الدورة في الكتالوج."><div className="portal-card"><Link href="/academy">العودة إلى الأكاديمية</Link></div></PlatformLayout>;
 

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./platform.css";
+import "./etzan.css";
 
 export const metadata: Metadata = {
-  title: "منصة التدريب والمحاكاة السريرية",
-  description: "منصة تعليمية وتدريبية واستشارية مع محاكاة سريرية تفاعلية",
+  title: "اتزان | ETZAN",
+  description: "من المعرفة إلى الممارسة — منصة مهنية للتعلم والتدريب والمحاكاة",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

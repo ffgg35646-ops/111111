@@ -1,4 +1,4 @@
-# منصة التدريب والمحاكاة السريرية
+# اتزان | ETZAN — من المعرفة إلى الممارسة
 
 منصة عربية RTL للتعليم والتدريب والاستشارات المهنية، مع مسار مستقل لمحاكاة الحالات السريرية باستخدام الذكاء الاصطناعي والواقع الافتراضي.
 
@@ -78,3 +78,22 @@ npm run dev
 ## SCD-01 Saudi attire
 
 The shared web avatar now renders a three-dimensional Saudi attire layer over the same male rig: white thobe, red-and-white shemagh and black agal, plus a white clinical coat, badge and stethoscope. This is a procedural geometry overlay in the browser, not a replacement commercial character mesh. Validate fit and animation on the deployed model/device before production approval.
+
+
+## ETZAN application entry points
+
+- Certificate management and revocation: `/platform-admin/certificates`
+- Community reports review: available from `/platform-admin/community`
+
+- Public Arabic landing page: `/`
+- Member login: `/login`
+- Role-based member workspace: `/dashboard`
+- Preserved administration dashboard: `/platform-admin`
+- Article publishing workspace: `/platform-admin/content`
+- Community moderation workspace: `/platform-admin/community`
+- Public articles: `/articles`
+- Professional community: `/community`
+- Membership overview: `/membership`
+- Downloadable professional templates: `/tools`
+
+See [ETZAN platform requirements](docs/ETZAN-PLATFORM-REQUIREMENTS.md) and [implementation status / release blockers](docs/ETZAN-IMPLEMENTATION-STATUS.md).
