@@ -1,5 +1,4 @@
 import {NextRequest,NextResponse} from "next/server";
-import {randomUUID} from "node:crypto";
 import {getClinicalDatabase} from "@/lib/mongodb";
 export const runtime="nodejs";
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
