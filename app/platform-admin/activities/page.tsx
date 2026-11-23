@@ -83,7 +83,7 @@ export default function SimulationActivityReviewPage() {
       if (!active) return;
       if (!response.ok) { router.replace("/login?next=/platform-admin/activities"); return; }
       if (result.user?.mustChangePassword) { router.replace("/account/change-password"); return; }
-      if (!["admin", "supervisor"].includes(result.user?.role)) { router.replace("/"); return; }
+      if (!["admin", "platform_manager", "supervisor", "quality_manager"].includes(result.user?.role)) { router.replace("/"); return; }
       void loadActivities();
     }).catch(() => { if (active) router.replace("/login?next=/platform-admin/activities"); });
     return () => { active = false; };
@@ -121,7 +121,7 @@ export default function SimulationActivityReviewPage() {
     <PlatformLayout title="مراجعة تقارير المحاكاة السريرية" description="افتح دراسة الحالة والحوار الذي أجراه المتدرب، ثم قيّم الأداء وفق محاور موحدة واحفظ التغذية الراجعة في سجل الجلسة.">
       <div className="portal-callout"><ShieldCheck size={16} /> لا تعرض هذه الصفحة إلا سجلات التدريب الخيالية. الدرجات تقدير إشرافي تعليمي وليست تشخيصاً أو ترخيصاً مهنياً.</div>
       <section className="portal-card" style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <strong>{authenticated ? "جلسة مراجعة بصلاحية مشرف أو مدير" : "جارٍ التحقق من الصلاحية..."}</strong>
+        <strong>{authenticated ? "جلسة مراجعة بصلاحية المشرف أو مدير المنصة أو مسؤول الجودة" : "جارٍ التحقق من الصلاحية..."}</strong>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="portal-button secondary" disabled={loading || !authenticated} onClick={() => void loadActivities()}>{loading ? <LoaderCircle size={15} /> : <RefreshCw size={15} />} تحديث التقارير</button>
           <button className="portal-button secondary" onClick={() => void logout()}><LogOut size={15} /> تسجيل الخروج</button>
