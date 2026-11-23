@@ -41,6 +41,7 @@ export default function PlatformRequestManagementPage() {
   const [busy,setBusy]=useState("");
   const [error,setError]=useState("");
   const [authenticated,setAuthenticated]=useState(false);
+  const [canReview,setCanReview]=useState(false);
 
   const load=useCallback(async()=>{
     setLoading(true);setError("");
@@ -60,7 +61,7 @@ export default function PlatformRequestManagementPage() {
     fetch("/api/auth/session",{cache:"no-store"}).then(async response=>{
       const data=await response.json();
       if(!active)return;
-      if(response.ok&&["admin","platform_manager","accountant","support"].includes(data.user?.role)&&!data.user?.mustChangePassword)void load();
+      if(response.ok&&["admin","platform_manager","accountant","support"].includes(data.user?.role)&&!data.user?.mustChangePassword){setCanReview(["admin","platform_manager"].includes(data.user?.role));void load();}
       else if(response.ok&&data.user?.mustChangePassword)router.replace("/account/change-password");
       else router.replace("/login?next=/platform-admin/requests");
     }).catch(()=>{if(active)router.replace("/login?next=/platform-admin/requests");});
@@ -125,7 +126,7 @@ export default function PlatformRequestManagementPage() {
           {item.adminNote&&<div>ملاحظة الإدارة: {item.adminNote}</div>}
           {item.zoomMeeting?.joinUrl&&<a href={item.zoomMeeting.joinUrl} target="_blank" rel="noreferrer">رابط اجتماع Zoom</a>}
         </div>
-        {item.status==="pending_review"&&<div style={{display:"grid",gap:9,marginTop:14}}>
+        {item.status==="pending_review"&&canReview&&<div style={{display:"grid",gap:9,marginTop:14}}>
           <label style={{fontSize:11,color:"#536a75"}}>السعر النهائي بالريال السعودي (SAR)<input type="number" min="1" step="0.01" value={prices[item.requestId]||""} onChange={e=>setPrices(v=>({...v,[item.requestId]:e.target.value}))} style={{display:"block",width:"100%",padding:10,border:"1px solid #dce5e9",borderRadius:8,marginTop:5}}/></label>
           <textarea rows={2} maxLength={1000} value={notes[item.requestId]||""} onChange={e=>setNotes(v=>({...v,[item.requestId]:e.target.value}))} placeholder="ملاحظة إدارية أو تعليمات للعميل..." style={{width:"100%",padding:10,border:"1px solid #dce5e9",borderRadius:8}}/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
