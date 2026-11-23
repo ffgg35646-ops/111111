@@ -4,7 +4,7 @@ export const runtime="nodejs";
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
 export async function GET(request:NextRequest){
  const paymentId=clean(request.nextUrl.searchParams.get("id"),80),requestId=clean(request.nextUrl.searchParams.get("requestId"),60);
- if(!/^[0-9a-f-]{36}$/i.test(paymentId)||!/^[0-9a-f-]{36}$/i.test(requestId)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return NextResponse.json({error:"بيانات التحقق غير مكتملة."},{status:400});
+ if(!/^[0-9a-f-]{36}$/i.test(paymentId)||!/^[0-9a-f-]{36}$/i.test(requestId))return NextResponse.json({error:"بيانات التحقق غير مكتملة."},{status:400});
  const secret=process.env.MOYASAR_SECRET_KEY;if(!secret)return NextResponse.json({error:"التحقق من الدفع غير مهيأ."},{status:503});
  try{
   const db=await getClinicalDatabase(),order=await db.collection("platform_requests").findOne({requestId});
