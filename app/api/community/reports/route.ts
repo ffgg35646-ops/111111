@@ -4,7 +4,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 export const runtime="nodejs";
 export async function POST(request:NextRequest){
- const actor=await requirePlatformRole(request,["admin","supervisor","trainer","trainee","consultant"]);if(!actor)return NextResponse.json({error:"سجل الدخول أولاً."},{status:401});
+ const actor=await requirePlatformRole(request,["admin","platform_manager","supervisor","trainer","trainee","consultant","accountant","support","content_manager","quality_manager"]);if(!actor)return NextResponse.json({error:"سجل الدخول أولاً."},{status:401});
  let body:unknown;try{body=await request.json()}catch{return NextResponse.json({error:"بيانات غير صالحة."},{status:400})}
  if(!body||typeof body!=="object"||Array.isArray(body))return NextResponse.json({error:"بيانات البلاغ مطلوبة."},{status:400});
  const d=body as Record<string,unknown>,postId=typeof d.postId==="string"?d.postId.trim().slice(0,80):"",reason=typeof d.reason==="string"?d.reason.trim().slice(0,500):"";
