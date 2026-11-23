@@ -81,6 +81,7 @@ export default function CourseLearningPage() {
   const [reflection,setReflection] = useState("");
   const [savedReflection,setSavedReflection] = useState(false);
   const [progressHydrated,setProgressHydrated] = useState(false);
+  const [accessStatus,setAccessStatus] = useState<"checking"|"allowed"|"payment_required"|"login_required"|"error">("checking");
   const quiz = useMemo(()=>course?quizByTrack[course.trackId]??quizByTrack["mental-health"]:[],[course]);
   const score = quiz.reduce((sum,item,index)=>sum+(answers[index]===item.correct?1:0),0);
   const guides = course ? guideByTrack[course.trackId] ?? guideByTrack["mental-health"] : [];
@@ -92,6 +93,9 @@ export default function CourseLearningPage() {
     const hydrate=async()=>{
       try{
         const response=await fetch("/api/learning/progress?courseId="+encodeURIComponent(course.id),{cache:"no-store"});
+        if(response.status===401){if(active){setAccessStatus("login_required");setProgressHydrated(false)}return;}
+        if(response.status===402){if(active){setAccessStatus("payment_required");setProgressHydrated(false)}return;}
+        if(!response.ok){if(active){setAccessStatus("error");setProgressHydrated(false)}return;}
         if(response.ok){
           const saved=await response.json();
           if(!active)return;
@@ -99,9 +103,9 @@ export default function CourseLearningPage() {
           const note=typeof saved.reflection==="string"?saved.reflection:"";
           setCompleted(done);setReflection(note);setAnswers(saved.quizAnswers&&typeof saved.quizAnswers==="object"?saved.quizAnswers:{});setChecked(saved.quizChecked===true);
           localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed:done,reflection:note,updatedAt:new Date().toISOString()}));
-          setProgressHydrated(true);return;
+          setAccessStatus("allowed");setProgressHydrated(true);return;
         }
-      }catch{}
+      }catch{if(active){setAccessStatus("error");setProgressHydrated(false)}return;}
       try{
         const saved=JSON.parse(localStorage.getItem("clinical-course-progress:"+course.id)||"{}") as {completed?:number[];reflection?:string;answers?:Record<number,number>;checked?:boolean};
         if(!active)return;
@@ -109,7 +113,7 @@ export default function CourseLearningPage() {
         setReflection(typeof saved.reflection==="string"?saved.reflection:"");
         setAnswers(saved.answers&&typeof saved.answers==="object"?saved.answers:{});setChecked(saved.checked===true);
       }catch{setCompleted([]);setReflection("");}
-      if(active)setProgressHydrated(true);
+      if(active){setAccessStatus("allowed");setProgressHydrated(true)}
     };
     void hydrate();
     return ()=>{active=false};
@@ -124,6 +128,12 @@ export default function CourseLearningPage() {
   },[course,completed,reflection,answers,checked,progressHydrated]);
 
   if(!course) return <PlatformLayout title="الدورة غير موجودة" description="لم نعثر على هذه الدورة في الكتالوج."><div className="portal-card"><Link href="/academy">العودة إلى الأكاديمية</Link></div></PlatformLayout>;
+  if(accessStatus!=="allowed") return <PlatformLayout title={course.title} description="تتطلب هذه الدورة حساباً نشطاً واعتماد الالتحاق قبل فتح المحتوى.">
+    {accessStatus==="checking"&&<div className="portal-empty">جارٍ التحقق من صلاحية الالتحاق...</div>}
+    {accessStatus==="login_required"&&<div className="portal-card"><p>سجل الدخول إلى حساب المتدرب أولاً.</p><Link className="portal-button" href={"/login?next="+encodeURIComponent("/academy/"+course.id)}>تسجيل الدخول</Link></div>}
+    {accessStatus==="payment_required"&&<section className="portal-card"><h2>الالتحاق بالدورة</h2><p>أرسل طلب الالتحاق باستخدام البريد الإلكتروني نفسه المرتبط بحسابك. بعد مراجعة الطلب وتحديد السعر، ستظهر لك وسيلة الدفع. لا يفتح المحتوى إلا بعد تأكيد الدفع.</p><PlatformRequestForm kind={course.mode==="recorded"?"course_enrollment":"classroom_registration"} title="طلب الالتحاق" initialData={{courseId:course.id}} fields={course.mode==="recorded"?[]:[{name:"preferredAt",label:"الموعد المناسب للفصل المباشر",type:"datetime-local",required:true},{name:"requestNote",label:"ملاحظات تنظيمية",type:"textarea"}]}/></section>}
+    {accessStatus==="error"&&<div className="portal-card"><p>تعذر التحقق من صلاحية الدورة حالياً. أعد تحميل الصفحة بعد التأكد من اتصال الحساب.</p><button className="portal-button secondary" onClick={()=>window.location.reload()}>إعادة المحاولة</button></div>}
+  </PlatformLayout>;
 
   const toggleLesson=()=>{
     setCompleted(current=>current.includes(activeLesson)?current.filter(n=>n!==activeLesson):[...current,activeLesson]);
