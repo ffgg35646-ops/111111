@@ -27,7 +27,7 @@ function publicUser(user: Record<string, unknown>) {
 }
 
 export async function GET(request: NextRequest) {
-  const actor = await requirePlatformRole(request, ["admin"]);
+  const actor = await requirePlatformRole(request, ["admin","platform_manager"]);
   if (!actor) return NextResponse.json({ error: "إدارة الحسابات متاحة لمدير المنصة فقط." }, { status: 403 });
   try {
     const db = await getClinicalDatabase();
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = await requirePlatformRole(request, ["admin"]);
+  const actor = await requirePlatformRole(request, ["admin","platform_manager"]);
   if (!actor) return NextResponse.json({ error: "إنشاء الحسابات متاح لمدير المنصة فقط." }, { status: 403 });
 
   let body: unknown;
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const actor = await requirePlatformRole(request, ["admin"]);
+  const actor = await requirePlatformRole(request, ["admin","platform_manager"]);
   if (!actor) return NextResponse.json({ error: "تعديل الحسابات متاح لمدير المنصة فقط." }, { status: 403 });
 
   let body: unknown;
