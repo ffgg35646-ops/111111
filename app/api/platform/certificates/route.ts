@@ -11,7 +11,7 @@ function clean(value: unknown, max: number) {
 
 export async function GET(request: NextRequest) {
   if (request.nextUrl.searchParams.get("admin") === "1") {
-    const actor = await requirePlatformRole(request, ["admin"]);
+    const actor = await requirePlatformRole(request, ["admin","platform_manager"]);
     if (!actor) return NextResponse.json({ error: "إدارة الشهادات متاحة لمدير النظام فقط." }, { status: 403 });
     try {
       const db = await getClinicalDatabase();
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = await requirePlatformRole(request, ["admin"]);
+  const actor = await requirePlatformRole(request, ["admin","platform_manager"]);
   if (!actor) return NextResponse.json({ error: "إصدار الشهادات متاح لمدير النظام فقط." }, { status: 403 });
   let body: unknown;
   try {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const actor = await requirePlatformRole(request, ["admin"]);
+  const actor = await requirePlatformRole(request, ["admin","platform_manager"]);
   if (!actor) return NextResponse.json({ error: "إلغاء الشهادات متاح لمدير النظام فقط." }, { status: 403 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "بيانات الإلغاء غير صالحة." }, { status: 400 }); }
