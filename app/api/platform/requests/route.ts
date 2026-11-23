@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       const availabilityFilter = { slotId, serviceIds: String(record.serviceId), startsAt: { $gt: now }, $or: [{ status: "open" }, { status: "reserved", reservedUntil: { $lt: now } }] };
       const slot = await db.collection("platform_consultant_slots").findOne(availabilityFilter);
       if (!slot) return NextResponse.json({ error: "هذا الموعد لم يعد متاحاً. حدّث قائمة المواعيد واختر وقتاً آخر." }, { status: 409 });
-      const reserve = await db.collection("platform_consultant_slots").updateOne({ _id: slot._id, ...availabilityFilter }, { $set: { status: "reserved", reservationId: record.requestId, reservedUntil: new Date(now.getTime() + 60 * 60 * 1000) } });
+      const reserve = await db.collection("platform_consultant_slots").updateOne({ _id: slot._id, ...availabilityFilter }, { $set: { status: "reserved", reservationId: record.requestId, reservedUntil: new Date(now.getTime() + 90 * 60 * 1000) } });
       if (!reserve.modifiedCount) return NextResponse.json({ error: "سبق حجز هذا الموعد. اختر موعداً آخر." }, { status: 409 });
       reservedSlotId = slotId;
       record.preferredAt = slot.startsAt;
