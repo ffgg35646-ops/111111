@@ -13,7 +13,7 @@ export default function CertificatesPage(){
   const [certificate,setCertificate]=useState<Certificate|null>(null);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
-  const [verificationUrl,setVerificationUrl]=useState("");
+
   const [learnerName,setLearnerName]=useState("");
   const [courseTitle,setCourseTitle]=useState("");
   const [completionVerified,setCompletionVerified]=useState(false);
@@ -24,8 +24,7 @@ export default function CertificatesPage(){
   useEffect(()=>{
     const value=new URLSearchParams(window.location.search).get("code");
     if(!value)return;
-    setCode(value);setLoading(true);
-    fetch(`/api/platform/certificates?code=${encodeURIComponent(value.trim().toUpperCase())}`,{cache:"no-store"}).then(async response=>{const result=await response.json();if(!response.ok||!result.valid)throw new Error(result.error||"الشهادة غير موجودة.");setCertificate(result.certificate)}).catch(cause=>setError(cause instanceof Error?cause.message:"تعذر التحقق من الشهادة.")).finally(()=>setLoading(false));
+    fetch(`/api/platform/certificates?code=${encodeURIComponent(value.trim().toUpperCase())}`,{cache:"no-store"}).then(async response=>{const result=await response.json();if(!response.ok||!result.valid)throw new Error(result.error||"الشهادة غير موجودة.");setCode(value);setCertificate(result.certificate)}).catch(cause=>setError(cause instanceof Error?cause.message:"تعذر التحقق من الشهادة."));
   },[]);
 
   const issueCertificate=async(event:FormEvent<HTMLFormElement>)=>{
@@ -52,7 +51,7 @@ export default function CertificatesPage(){
     }catch(cause){setError(cause instanceof Error?cause.message:"تعذر التحقق من الشهادة.");}
     finally{setLoading(false);}
   };
-  useEffect(()=>{if(certificate&&typeof window!=="undefined")setVerificationUrl(`${window.location.origin}/certificates?code=${encodeURIComponent(certificate.serial)}`)},[certificate]);
+  const verificationUrl=typeof window!=="undefined"&&certificate?`${window.location.origin}/certificates?code=${encodeURIComponent(certificate.serial)}`:"";
 
   return <PlatformLayout title="شهادات الشكر والتقدير والتحقق" description="تتيح المنصة إصدار شهادة شكر بعد اعتماد إكمال المتطلبات التدريبية من الإدارة، والتحقق من صحة الشهادة باستخدام رمزها.">
     <div className="portal-callout"><ShieldCheck size={16}/> لا تُصدر شهادة لمجرد التسجيل. يجب أن تعتمد الإدارة حضور المتدرب وإكمال المتطلبات أولاً، والشهادة التدريبية لا تعني ترخيصاً مهنياً أو مؤهلاً أكاديمياً ما لم تصرح الجهة بذلك.</div>
