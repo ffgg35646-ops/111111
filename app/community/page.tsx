@@ -1,5 +1,6 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
+import type { FormEvent } from "react";
 import {Users,Flag,Send,ShieldCheck} from "lucide-react";
 import {PlatformLayout} from "@/components/platform-layout";
 type Post={postId:string;authorName:string;category:string;title:string;body:string;createdAt:string};
