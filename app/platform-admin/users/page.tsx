@@ -37,6 +37,7 @@ export default function PlatformUsersPage() {
   const [success, setSuccess] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
   const [savingRole, setSavingRole] = useState("");
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -57,6 +58,7 @@ export default function PlatformUsersPage() {
 
   useEffect(() => {
     let active = true;
+    fetch("/api/auth/session", { cache: "no-store" }).then((response) => response.json()).then((data) => { if (active) setIsSystemAdmin(data.user?.role === "admin"); }).catch(() => {});
     fetch("/api/platform/users", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
@@ -160,7 +162,7 @@ export default function PlatformUsersPage() {
           <label style={{ display: "grid", gap: 5, fontSize: 11 }}>الاسم الكامل<input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8 }}/></label>
           <label style={{ display: "grid", gap: 5, fontSize: 11 }}>البريد الإلكتروني<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8 }}/></label>
           <label style={{ display: "grid", gap: 5, fontSize: 11 }}>كلمة مرور مؤقتة<input required minLength={12} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8 }}/></label>
-          <label style={{ display: "grid", gap: 5, fontSize: 11 }}>الدور<select value={role} onChange={(event) => setRole(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8, background: "#fff" }}>{roles.map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+          <label style={{ display: "grid", gap: 5, fontSize: 11 }}>الدور<select value={role} onChange={(event) => setRole(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8, background: "#fff" }}>{roles.filter(([value]) => value !== "admin" || isSystemAdmin).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></label>
           <button className="portal-button" type="submit" disabled={saving} style={{ alignSelf: "end", justifyContent: "center" }}><UserPlus size={15}/>{saving ? "جارٍ الإنشاء..." : "إنشاء الحساب"}</button>
         </form>
         <p style={{ margin: "10px 0 0", color: "#8a98a4", fontSize: 11, lineHeight: 1.7 }}>تُنشأ الحسابات بكلمة مرور مؤقتة، ويُطلب من صاحب الحساب تغييرها فور تسجيل الدخول الأول. شارك بيانات الدخول عبر قناة آمنة؛ لا يرسل النظام كلمات المرور بالبريد.</p>
