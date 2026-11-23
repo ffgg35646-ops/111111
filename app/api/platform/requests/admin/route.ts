@@ -47,6 +47,7 @@ export async function PATCH(request: NextRequest) {
 
     if (action === "reject") {
       await collection.updateOne({ requestId, status: "pending_review" }, { $set: { status: "rejected", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin" } });
+      if (record.kind === "consultation" && typeof record.slotId === "string") await db.collection("platform_consultant_slots").updateOne({ slotId: record.slotId, reservationId: requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
       return NextResponse.json({ success: true, status: "rejected" });
     }
 
