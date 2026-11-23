@@ -135,6 +135,7 @@ function SimulationWorkspace() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
   const [selectedTarget, setSelectedTarget] = useState("الطبيب النفسي السعودي");
+  const [personaMode, setPersonaMode] = useState<"supervisor"|"client">("supervisor");
   const [completed, setCompleted] = useState(false);
   const [savedScore, setSavedScore] = useState<number | null>(null);
   const [savedActivityId, setSavedActivityId] = useState<string | null>(null);
@@ -200,22 +201,26 @@ function SimulationWorkspace() {
       : activeRoomId === "developmental"
         ? "غرفة التقييم النمائي: ركّز على التاريخ النمائي والمهارات التكيفية والملاحظة متعددة المصادر وحدود المقاييس والإحالة."
         : "غرفة الخدمة الاجتماعية: ركّز على المقابلة المهنية والتقدير البيئي والأسري ونقاط القوة والموارد وخطة التدخل.";
-  const voiceScenario = useMemo(() => [
-    "الغرفة الحالية: " + activeRoom.title + ". " + roomTrainingFocus,
-    "الجلسة فردية وخاصة: المتدرب وحده مع الطبيب الافتراضي داخل الغرفة، ولا يوجد متدربون أو أصوات مشاركين آخرين.",
-    "ابدأ بتحية طبيعية موجزة ثم اسأل المتدرب عما يريد البدء به. لا تلقِ محاضرة طويلة؛ تحاور معه وجهاً لوجه بالصوت، وانتظر إجابته، واسأل سؤالاً واحداً في كل مرة.",
-    "الهوية الثابتة للمتحدث: الطبيب النفسي الافتراضي السعودي. أنت الطبيب والمدرب والمشرف، ولست المريض أو أحد أفراد أسرته.",
-    "مهمتك: تعليم المتدرب مهارات المقابلة ودراسة الحالة وفهم المقاييس والتفكير الإكلينيكي المسؤول، مع شرح عملي وتغذية راجعة.",
-    "عنوان الحالة التدريبية: " + activeCase.title,
-    "المجال: " + activeCase.track,
-    "الفئة العمرية للحالة (سياق الحالة فقط وليست هوية الطبيب): " + activeCase.ageGroup,
-    "بيئة الحالة: " + activeCase.setting,
-    "ملخص الحالة: " + activeCase.briefing,
-    "أهداف التدريب: " + activeCase.learningGoals.join("، "),
-    "المحتوى العلمي الموجود في فهرس المنصة لهذا المجال:",
-    platformKnowledge,
-    "قواعد مهمة: استخدم محتوى المنصة المرفق، ولا تدّع الاطلاع على مواد أخرى غير مرفقة. لا تخترع تفاصيل حالة أو نتائج مقاييس أو مراجع. ميّز بين الملاحظة والفرضية والدليل، ولا تصدر تشخيصاً رسمياً أو علاجاً لحالة حقيقية. اسأل المتدرب سؤالاً واحداً في كل خطوة عند التدريب التفاعلي.",
-  ].join("\n").slice(0, 4800), [activeCase, platformKnowledge, activeRoom, activeRoomId, roomTrainingFocus]);
+  const voiceScenario = useMemo(() => {
+    const shared = [
+      "الغرفة الحالية: " + activeRoom.title + ". " + roomTrainingFocus,
+      "عنوان الحالة التدريبية: " + activeCase.title,
+      "المجال: " + activeCase.track,
+      "الفئة العمرية: " + activeCase.ageGroup,
+      "بيئة الحالة: " + activeCase.setting,
+      "ملخص الحالة: " + activeCase.briefing,
+      "أهداف التدريب: " + activeCase.learningGoals.join("، "),
+      "ملاحظة السلامة: " + activeCase.safetyNote,
+    ];
+    const persona = personaMode === "client"
+      ? ["أنت مراجع افتراضي في مقابلة تدريبية. تقمص الدور المحدد في ملخص الحالة فقط، وتحدث بضمير المتكلم. لا تكشف جميع المعلومات من البداية؛ أجب على السؤال المطروح بمقدار مناسب، واظهر التردد أو الانفعال أو القلق بصورة واقعية ومتسقة. لا تقيم المتدرب ولا تقدم نصائح أو تشخيصاً. إذا سئلت عن معلومة غير موجودة في السيناريو فقل إنك لا تتذكر أو لا تعرف بدلاً من اختراعها."]
+      : ["أنت الطبيب الافتراضي المشرف والمدرب السريري. علّم المتدرب مهارات المقابلة ودراسة الحالة وفهم المقاييس والتفكير المهني المسؤول. اشرح عملياً واسأل سؤالاً واحداً في كل مرة."];
+    return [...persona,...shared,
+      "المحتوى العلمي الموجود في فهرس المنصة لهذا المجال:",
+      platformKnowledge,
+      "لا تخترع تفاصيل حالة أو نتائج مقاييس أو مراجع. لا تصدر تشخيصاً رسمياً أو علاجاً لحالة حقيقية. عند ظهور خطر واقعي أو حديث عن إيذاء النفس أو الآخرين، أوقف المحاكاة واطلب تدخّل المشرف البشري فوراً."
+    ].join("\n").slice(0,4800);
+  }, [activeCase, platformKnowledge, activeRoom, roomTrainingFocus, personaMode]);
 
   const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || DEFAULT_DOCTOR_AVATAR_MODEL_URL;
   const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
@@ -315,6 +320,7 @@ function SimulationWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scenario: voiceScenario,
+          mode: personaMode,
           messages: nextMessages.map(({ role, content }) => ({ role, content })),
         }),
         signal: controller.signal,
@@ -523,6 +529,7 @@ function SimulationWorkspace() {
           clinicalFormulation,
           roomEvents: finalRoomEvents,
           conversationTurns: conversationRef.current,
+          personaMode,
           experienceMode: immersiveMode ? "webxr-immersive-vr" : "browser-3d-room",
           avatarModelSource: uploadedAvatarUrl ? "custom-glb" : defaultAvatarModelUrl ? "library-avatar" : "doctor-model-not-configured",
         }),
@@ -650,9 +657,10 @@ function SimulationWorkspace() {
           </div>
 
           <div className="simulation-avatar-toolbar">
-            <div><b>الطبيب الافتراضي:</b> {avatarModelLabel}</div>
+            <div><b>{personaMode==="client"?"المراجع الافتراضي:":"الطبيب الافتراضي:"}</b> {avatarModelLabel}</div>
+            <label style={{display:"grid",gap:4,fontSize:11}}>دور الشخصية<select value={personaMode} onChange={event=>{setPersonaMode(event.target.value as "supervisor"|"client");realtimeControlsRef.current?.stop();setConversation([]);conversationRef.current=[];}} style={{padding:8,border:"1px solid #dce5e9",borderRadius:8}}><option value="supervisor">طبيب افتراضي مشرف</option><option value="client">مراجع افتراضي للحالة</option></select></label>
             <label className="simulation-avatar-upload">
-              <Upload size={14} /> تحميل موديل الطبيب السعودي
+              <Upload size={14} /> تحميل موديل الشخصية البشرية
               <input type="file" accept=".glb,model/gltf-binary" onChange={(event) => handleAvatarUpload(event.target.files?.[0])} />
             </label>
             {uploadedAvatarUrl && <button type="button" className="simulation-remove-avatar" onClick={removeCustomAvatar}>العودة إلى الموديل المرتبط</button>}
@@ -717,6 +725,7 @@ function SimulationWorkspace() {
 
           <RealtimeClinicalVoice
             scenario={voiceScenario}
+          mode={personaMode}
             onConnecting={() => {
               recognitionRef.current?.abort();
               shouldSendSpeechRef.current = false;

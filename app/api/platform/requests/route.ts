@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
+import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 
 export const runtime = "nodejs";
@@ -77,6 +78,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "أدخل الاسم والبريد الإلكتروني بصورة صحيحة." }, { status: 400 });
   }
 
+  if (kind === "course_enrollment" || kind === "classroom_registration") {
+    const learner = await requirePlatformRole(request, ["trainee", "admin", "platform_manager"]);
+    if (!learner) return NextResponse.json({ error: "سجّل الدخول بحساب متدرب قبل طلب الالتحاق." }, { status: 401 });
+    if (learner.email.toLowerCase() !== email) return NextResponse.json({ error: "استخدم البريد الإلكتروني نفسه المسجل في حساب المتدرب حتى يُفتح محتوى الدورة بعد الدفع." }, { status: 403 });
+  }
+
   const record: Record<string, unknown> = {
     requestId: randomUUID(),
     kind,
@@ -111,15 +118,10 @@ export async function POST(request: NextRequest) {
 
   if (kind === "consultation") {
     const serviceId = cleanText(data.serviceId, 80);
-    const preferredAt = cleanText(data.preferredAt, 50);
-    if (!consultationServices.has(serviceId) || !Number.isFinite(Date.parse(preferredAt))) {
-      return NextResponse.json({ error: "اختر نوع الاستشارة وموعداً مفضلاً صحيحاً." }, { status: 400 });
-    }
+    const slotId = cleanText(data.slotId, 80);
+    if (!consultationServices.has(serviceId) || !/^[0-9a-f-]{36}$/i.test(slotId)) return NextResponse.json({ error: "اختر مجال الاستشارة وموعداً منشوراً من مقدم الخدمة." }, { status: 400 });
     record.serviceId = serviceId;
-    if (Date.parse(preferredAt) < Date.now() + 5 * 60 * 1000) {
-      return NextResponse.json({ error: "اختر موعداً مستقبلياً بعد خمس دقائق على الأقل." }, { status: 400 });
-    }
-    record.preferredAt = new Date(preferredAt);
+    record.slotId = slotId;
     record.consent = data.consent === true;
     record.requestNote = cleanText(data.requestNote, 500);
     if (!record.consent) return NextResponse.json({ error: "يلزم تأكيد الموافقة على التواصل وحماية الخصوصية." }, { status: 400 });
@@ -157,9 +159,28 @@ export async function POST(request: NextRequest) {
     record.orderNote = cleanText(data.orderNote, 300);
   }
 
+  let reservedSlotId = "";
   try {
     const db = await getClinicalDatabase();
-    const result = await db.collection("platform_requests").insertOne(record);
+    if (kind === "consultation") {
+      const slotId = String(record.slotId), now = new Date();
+      const availabilityFilter = { slotId, serviceIds: String(record.serviceId), startsAt: { $gt: now }, $or: [{ status: "open" }, { status: "reserved", reservedUntil: { $lt: now } }] };
+      const slot = await db.collection("platform_consultant_slots").findOne(availabilityFilter);
+      if (!slot) return NextResponse.json({ error: "هذا الموعد لم يعد متاحاً. حدّث قائمة المواعيد واختر وقتاً آخر." }, { status: 409 });
+      const reserve = await db.collection("platform_consultant_slots").updateOne({ _id: slot._id, ...availabilityFilter }, { $set: { status: "reserved", reservationId: record.requestId, reservedUntil: new Date(now.getTime() + 90 * 60 * 1000) } });
+      if (!reserve.modifiedCount) return NextResponse.json({ error: "سبق حجز هذا الموعد. اختر موعداً آخر." }, { status: 409 });
+      reservedSlotId = slotId;
+      record.preferredAt = slot.startsAt;
+      record.providerUserId = slot.providerUserId;
+      record.providerName = slot.providerName;
+      record.durationMinutes = slot.durationMinutes;
+    }
+    let result;
+    try { result = await db.collection("platform_requests").insertOne(record); }
+    catch (error) {
+      if (reservedSlotId) await db.collection("platform_consultant_slots").updateOne({ slotId: reservedSlotId, reservationId: record.requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
+      throw error;
+    }
     return NextResponse.json({
       success: true,
       requestId: record.requestId,

@@ -100,10 +100,10 @@ export default function PlatformRequestForm({
     <CheckCircle2 size={25}/>
     <strong>تم استلام طلبك</strong>
     <p>رقم المتابعة: <b>{success}</b></p>
-    <small>الحالة الحالية: {requestStatus==="approved"?"تمت الموافقة":requestStatus==="rejected"?"تم رفض الطلب":requestStatus==="provisioning"?"جارٍ تجهيز اجتماع Zoom":"قيد المراجعة"}</small>
+    <small>الحالة الحالية: {requestStatus==="approved"?"تم الدفع واعتماد الطلب":requestStatus==="awaiting_payment"?"بانتظار الدفع":requestStatus==="rejected"?"تم رفض الطلب":requestStatus==="provisioning"?"جارٍ تجهيز اجتماع Zoom":"قيد المراجعة"}</small>
     {requestJoinUrl&&<a className="request-join-link" href={requestJoinUrl} target="_blank" rel="noreferrer">دخول الفصل عبر Zoom</a>}
     {requestStatus==="approved"&&!requestJoinUrl&&<small>تمت الموافقة على الطلب. سيتواصل معك الفريق لتأكيد التفاصيل.</small>}
-    {requestStatus==="approved"&&quote&&<small>إجمالي الطلب: {quote.amount} {quote.currency} — بانتظار استكمال الدفع والتسليم من فريق المتجر.</small>}
+    {requestStatus==="awaiting_payment"&&quote&&<div><small>إجمالي الطلب: {quote.amount} {quote.currency}.</small><p><a className="request-join-link" href={`/pay-request?requestId=${encodeURIComponent(success)}&email=${encodeURIComponent(email)}`}>الانتقال إلى الدفع الآمن</a></p></div>}{requestStatus==="approved"&&quote&&<small>تم تأكيد الدفع بنجاح. إجمالي الطلب: {quote.amount} {quote.currency}.</small>}
     {statusError&&<p className="request-error" role="alert">{statusError}</p>}
     <button onClick={checkStatus} disabled={statusChecking}>{statusChecking?"جارٍ التحقق...":"تحديث حالة الطلب"}</button>
     <button onClick={()=>{setSuccess("");setRequestStatus("");setRequestJoinUrl("");setQuote(null);setStatusError("");}}>إرسال طلب آخر</button>

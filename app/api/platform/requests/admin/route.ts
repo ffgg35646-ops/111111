@@ -10,7 +10,7 @@ function clean(value: unknown, max: number) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!(await requirePlatformRole(request, ["admin", "platform_manager", "support"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
+  if (!(await requirePlatformRole(request, ["admin", "platform_manager", "accountant", "support"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
   try {
     const db = await getClinicalDatabase();
     const records = await db.collection("platform_requests")
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!(await requirePlatformRole(request, ["admin", "platform_manager", "support"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
+  if (!(await requirePlatformRole(request, ["admin", "platform_manager", "accountant", "support"]))) return NextResponse.json({ error: "تسجيل الدخول بصلاحية مدير المنصة مطلوب." }, { status: 403 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "بيانات التحديث غير صالحة." }, { status: 400 }); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "بيانات التحديث غير مكتملة." }, { status: 400 });
@@ -47,18 +47,12 @@ export async function PATCH(request: NextRequest) {
 
     if (action === "reject") {
       await collection.updateOne({ requestId, status: "pending_review" }, { $set: { status: "rejected", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin" } });
+      if (record.kind === "consultation" && typeof record.slotId === "string") await db.collection("platform_consultant_slots").updateOne({ slotId: record.slotId, reservationId: requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
       return NextResponse.json({ success: true, status: "rejected" });
     }
 
-    if (record.kind === "book_order") {
-      if (!Number.isFinite(quotedAmount) || quotedAmount <= 0 || quotedAmount > 10000000) {
-        return NextResponse.json({ error: "أدخل إجمالي سعر الطلب بالجنيه المصري قبل اعتماده." }, { status: 400 });
-      }
-      await collection.updateOne({ requestId, status: "pending_review" }, { $set: {
-        status: "approved", paymentStatus: "payment_due", quotedAmount: Math.round(quotedAmount * 100) / 100,
-        currency: "EGP", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin",
-      } });
-      return NextResponse.json({ success: true, status: "approved", paymentStatus: "payment_due", quotedAmount });
+    if (!Number.isFinite(quotedAmount) || quotedAmount <= 0 || quotedAmount > 10000000) {
+      return NextResponse.json({ error: "أدخل إجمالي السعر بالريال السعودي قبل اعتماد الطلب." }, { status: 400 });
     }
 
     let zoomMeeting: Awaited<ReturnType<typeof createZoomMeeting>> | undefined;
@@ -83,10 +77,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     await collection.updateOne({ requestId, status: "pending_review" }, { $set: {
-      status: "approved", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin",
+      status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: Math.round(quotedAmount * 100) / 100, currency: "SAR", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin",
       ...(zoomMeeting ? { zoomMeeting, meetingProvisionedAt: new Date() } : {}),
     } });
-    return NextResponse.json({ success: true, status: "approved", zoomMeeting: zoomMeeting ? { joinUrl: zoomMeeting.joinUrl, startTime: zoomMeeting.startTime } : undefined });
+    return NextResponse.json({ success: true, status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: Math.round(quotedAmount * 100) / 100, currency: "SAR", zoomMeeting: zoomMeeting ? { joinUrl: zoomMeeting.joinUrl, startTime: zoomMeeting.startTime } : undefined });
   } catch (error) {
     console.error("Unable to review platform request", error);
     return NextResponse.json({ error: "تعذر تحديث الطلب حالياً." }, { status: 503 });

@@ -7,6 +7,7 @@ type TranscriptTurn = { role: "user" | "assistant"; content: string };
 
 type RealtimeClinicalVoiceProps = {
   scenario: string;
+  mode?: "supervisor" | "client";
   onTranscript: (turn: TranscriptTurn) => void;
   onSpeakingChange?: (speaking: boolean) => void;
   onSpeechLevelChange?: (level: number) => void;
@@ -26,6 +27,7 @@ type RealtimeEvent = {
 
 export function RealtimeClinicalVoice({
   scenario,
+  mode = "supervisor",
   onTranscript,
   onSpeakingChange,
   onSpeechLevelChange,
@@ -126,7 +128,7 @@ export function RealtimeClinicalVoice({
       const tokenResponse = await fetch("/api/clinical-agent/realtime-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario }),
+        body: JSON.stringify({ scenario, mode }),
         cache: "no-store",
       });
       const tokenPayload = await tokenResponse.json().catch(() => ({})) as {
@@ -211,7 +213,7 @@ export function RealtimeClinicalVoice({
             type: "response.create",
             response: {
               modalities: ["audio", "text"],
-              instructions: "ابدأ الآن بتحية قصيرة وطبيعية للمتدرب بلهجة سعودية بيضاء. عرّف بنفسك باختصار كطبيب افتراضي ومدرب سريري، ورحّب به في الغرفة الحالية، ثم اسأله سؤالاً واحداً فقط: هل نبدأ بالتعرف على الحالة أم بمراجعة مهارة سريرية؟ انتظر إجابته ولا تقدم محاضرة.",
+              instructions: mode === "client" ? "ابدأ الآن من داخل الشخصية الافتراضية في الحالة. لا تعرّف بنفسك كطبيب أو مشرف. قل جملة افتتاحية طبيعية قصيرة تعكس سبب حضورك أو شعورك، ثم انتظر سؤال المتدرب. لا تكشف معلومات الحالة دفعة واحدة ولا تقدم له إجابات نموذجية." : "ابدأ الآن بتحية قصيرة وطبيعية للمتدرب بلهجة سعودية بيضاء. عرّف بنفسك باختصار كطبيب افتراضي ومدرب سريري، ورحّب به في الغرفة الحالية، ثم اسأله سؤالاً واحداً فقط: هل نبدأ بالتعرف على الحالة أم بمراجعة مهارة سريرية؟ انتظر إجابته ولا تقدم محاضرة.",
             },
           }));
           onEvent?.("doctor_welcome_started", "بدأ الطبيب الافتراضي ترحيبه الصوتي عند دخول المتدرب للغرفة.");
@@ -290,7 +292,7 @@ export function RealtimeClinicalVoice({
       setError(cause instanceof Error ? cause.message : "تعذر تشغيل الصوت الحي.");
       onEvent?.("realtime_voice_failed", "فشل إنشاء الاتصال الصوتي الحي.");
     }
-  }, [cleanup, onConnecting, onEvent, onSpeakingChange, onSpeechLevelChange, onTranscript, scenario, status]);
+  }, [cleanup, onConnecting, onEvent, onSpeakingChange, onSpeechLevelChange, onTranscript, scenario, status, mode]);
 
   const toggleMute = useCallback(() => {
     const nextMuted = !muted;

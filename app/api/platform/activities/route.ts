@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { generateText } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { getCaseById, practiceScales } from "@/lib/platform-catalog";
 import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
+export const maxDuration = 45;
 
 const supervisorScoreKeys = [
   "communication",
@@ -39,6 +41,8 @@ export async function GET(request: NextRequest) {
         vrHeadTrackingSamples: 1,
         vrHandMetrics: 1,
         supervisorReview: 1,
+        aiReview: 1,
+        aiReviewUsage: 1,
       } })
       .sort({ completedAt: -1 })
       .limit(100)
@@ -276,6 +280,43 @@ export async function POST(request: NextRequest) {
     pinchInteractions: handPinchInteractions.length,
     handsObserved: Array.from(observedHands),
   };
+  const conversationTurns = normaliseConversationTurns(data.conversationTurns);
+  const personaMode = data.personaMode === "client" ? "client" : "supervisor";
+  let aiReview: { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string } | null = null;
+  let aiReviewUsage: { model: string; inputTokens: number; outputTokens: number; generatedAt: Date } | null = null;
+  if (conversationTurns.length > 0 && (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1")) {
+    try {
+      const model = process.env.CLINICAL_AI_MODEL || "openai/gpt-6-astra";
+      const review = await generateText({
+        model,
+        temperature: 0.2,
+        maxOutputTokens: 650,
+        system: "أنت مقيم تعليمي لمهارات المقابلة المهنية في محاكاة خيالية. لا تشخص ولا تقترح علاجاً لحالة حقيقية. قيّم فقط ما يظهر في الحوار والحقول المقدمة، ولا تفترض معلومات غير موجودة. فرّق بين جودة أسئلة المتدرب وسلوك الشخصية الافتراضية. أعد JSON صالحاً فقط بالمفاتيح summary (string), strengths (string[]), improvements (string[]), safetyObservations (string[]), nextPractice (string). لا تمنح ترخيصاً أو درجة نهائية، ولا تعتبر هذا التقييم بديلاً عن المشرف البشري.",
+        prompt: JSON.stringify({
+          caseTitle: item.title,
+          caseTrack: item.track,
+          simulationMode: personaMode,
+          choices: answers.map((answer) => ({ stepId: answer.stepId, earned: answer.earned, maximum: answer.max })),
+          formulation: clinicalFormulation,
+          conversation: conversationTurns,
+        }),
+      });
+      const raw = review.text.trim();
+      const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+      const parsed = JSON.parse(json) as Record<string, unknown>;
+      const list = (value: unknown) => Array.isArray(value) ? value.filter((x): x is string => typeof x === "string").slice(0, 5).map(x => x.slice(0, 320)) : [];
+      aiReview = {
+        summary: typeof parsed.summary === "string" ? parsed.summary.slice(0, 900) : "اكتمل التحليل التعليمي.",
+        strengths: list(parsed.strengths),
+        improvements: list(parsed.improvements),
+        safetyObservations: list(parsed.safetyObservations),
+        nextPractice: typeof parsed.nextPractice === "string" ? parsed.nextPractice.slice(0, 500) : "",
+      };
+      aiReviewUsage = { model, inputTokens: Number(review.usage.inputTokens)||0, outputTokens: Number(review.usage.outputTokens)||0, generatedAt: new Date() };
+    } catch (error) {
+      console.warn("AI simulation review unavailable; saving session without automated review", error);
+    }
+  }
   const record = {
     activityId: randomUUID(),
     trainee: { userId: actor.userId, name: actor.name, email: actor.email, role: actor.role },
@@ -295,7 +336,11 @@ export async function POST(request: NextRequest) {
     vrHeadTrackingSamples,
     vrHeadMetrics,
     vrHandMetrics,
-    conversationTurns: normaliseConversationTurns(data.conversationTurns),
+    conversationTurns,
+    simulationMode: personaMode,
+    aiReview,
+    aiReviewStatus: aiReview ? "completed" : conversationTurns.length ? "unavailable" : "no_conversation",
+    aiReviewUsage,
     avatarModelSource: data.avatarModelSource === "custom-glb"
       ? "custom-glb"
       : data.avatarModelSource === "library-avatar"
@@ -329,6 +374,8 @@ export async function POST(request: NextRequest) {
       vrHeadMetrics,
       vrHandMetrics,
       conversationTurnCount: record.conversationTurns.length,
+      aiReview: record.aiReview,
+      aiReviewStatus: record.aiReviewStatus,
       avatarModelSource: record.avatarModelSource,
       recordId: String(result.insertedId),
     }, { status: 201, headers: { "Cache-Control": "no-store" } });
