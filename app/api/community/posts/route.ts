@@ -22,7 +22,7 @@ export async function POST(request:NextRequest){
  catch(error){console.error("community POST",error);return NextResponse.json({error:"تعذر حفظ المشاركة."},{status:503});}
 }
 export async function PATCH(request:NextRequest){
- const actor=await requirePlatformRole(request,["admin","supervisor"]);if(!actor)return NextResponse.json({error:"إدارة المحتوى متاحة للمشرفين فقط."},{status:403});
+ const actor=await requirePlatformRole(request,["admin","platform_manager","supervisor","quality_manager"]);if(!actor)return NextResponse.json({error:"إدارة المحتوى متاحة للمشرفين فقط."},{status:403});
  let body:unknown;try{body=await request.json()}catch{return NextResponse.json({error:"بيانات غير صالحة."},{status:400})}
  if(!body||typeof body!=="object"||Array.isArray(body))return NextResponse.json({error:"بيانات غير مكتملة."},{status:400});
  const d=body as Record<string,unknown>,postId=clean(d.postId,80),status=clean(d.status,20);
