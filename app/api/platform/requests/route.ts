@@ -77,6 +77,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "أدخل الاسم والبريد الإلكتروني بصورة صحيحة." }, { status: 400 });
   }
 
+  if (kind === "course_enrollment" || kind === "classroom_registration") {
+    const learner = await requirePlatformRole(request, ["trainee", "admin", "platform_manager"]);
+    if (!learner) return NextResponse.json({ error: "سجّل الدخول بحساب متدرب قبل طلب الالتحاق." }, { status: 401 });
+    if (learner.email.toLowerCase() !== email) return NextResponse.json({ error: "استخدم البريد الإلكتروني نفسه المسجل في حساب المتدرب حتى يُفتح محتوى الدورة بعد الدفع." }, { status: 403 });
+  }
+
   const record: Record<string, unknown> = {
     requestId: randomUUID(),
     kind,
