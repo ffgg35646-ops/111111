@@ -10,6 +10,18 @@ function clean(value: unknown, max: number) {
 }
 
 export async function GET(request: NextRequest) {
+  if (request.nextUrl.searchParams.get("admin") === "1") {
+    const actor = await requirePlatformRole(request, ["admin"]);
+    if (!actor) return NextResponse.json({ error: "إدارة الشهادات متاحة لمدير النظام فقط." }, { status: 403 });
+    try {
+      const db = await getClinicalDatabase();
+      const certificates = await db.collection("platform_certificates").find({}, { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1, status: 1, revokedAt: 1 } }).sort({ issuedAt: -1 }).limit(500).toArray();
+      return NextResponse.json({ certificates }, { headers: { "Cache-Control": "no-store" } });
+    } catch (error) {
+      console.error("Certificate administration list failed", error);
+      return NextResponse.json({ error: "تعذر تحميل سجل الشهادات." }, { status: 503 });
+    }
+  }
   const serial = clean(request.nextUrl.searchParams.get("code"), 60).toUpperCase();
   if (!/^[A-F0-9-]{20,60}$/.test(serial)) {
     return NextResponse.json({ error: "أدخل رمز تحقق صالحاً." }, { status: 400 });
