@@ -18,8 +18,8 @@ export async function POST(request:NextRequest){
   const response=await fetch("https://api.moyasar.com/v1/payments/"+encodeURIComponent(paymentId),{headers:{Authorization:"Basic "+Buffer.from(apiSecret+":").toString("base64"),Accept:"application/json"},cache:"no-store"});
   const payment=await response.json().catch(()=>({})) as {id?:string;status?:string;amount?:number;currency?:string;description?:string};
   if(!response.ok||payment.id!==paymentId)return NextResponse.json({error:"Provider verification failed."},{status:502});
-  const match=payment.description?.match(/^ETZAN Request ([0-9a-f-]{36})$/i);if(!match)return NextResponse.json({received:true,ignored:true});
-  const requestId=match[1],intent=await db.collection("platform_payment_intents").findOne({requestId,intentId:{$exists:true}},{sort:{createdAt:-1}});
+  const match=payment.description?.match(/^ETZAN Request ([0-9a-f-]{36}) ([0-9a-f-]{36})$/i);if(!match)return NextResponse.json({received:true,ignored:true});
+  const requestId=match[1],intent=await db.collection("platform_payment_intents").findOne({requestId,description:payment.description,intentId:{$exists:true}});
   if(!intent||payment.amount!==intent.amount||payment.currency!=="SAR")return NextResponse.json({error:"Payment does not match an approved intent."},{status:409});
   await db.collection("platform_payments").createIndex({providerPaymentId:1},{unique:true});
   await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:payment.status,lastWebhookAt:new Date()},$setOnInsert:{createdAt:new Date()}},{upsert:true});
