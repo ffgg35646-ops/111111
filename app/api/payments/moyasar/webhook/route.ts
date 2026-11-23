@@ -19,7 +19,7 @@ export async function POST(request:NextRequest){
   const payment=await response.json().catch(()=>({})) as {id?:string;status?:string;amount?:number;currency?:string;description?:string};
   if(!response.ok||payment.id!==paymentId)return NextResponse.json({error:"Provider verification failed."},{status:502});
   const match=payment.description?.match(/^ETZAN Request ([0-9a-f-]{36})$/i);if(!match)return NextResponse.json({received:true,ignored:true});
-  const requestId=match[1],intent=await db.collection("platform_payment_intents").findOne({requestId,intentId:{$exists:true}});
+  const requestId=match[1],intent=await db.collection("platform_payment_intents").findOne({requestId,intentId:{$exists:true}},{sort:{createdAt:-1}});
   if(!intent||payment.amount!==intent.amount||payment.currency!=="SAR")return NextResponse.json({error:"Payment does not match an approved intent."},{status:409});
   if(type==="payment_paid"&&payment.status==="paid"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
