@@ -21,6 +21,7 @@ export async function GET(request:NextRequest){
   await db.collection("platform_payments").createIndex({providerPaymentId:1},{unique:true});
   await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$setOnInsert:{provider:"moyasar",providerPaymentId:paymentId,requestId,email:intent.email,amount:payment.amount,currency:payment.currency,status:"paid",fee:payment.fee??null,paymentMethod:payment.source?.company||payment.source?.type||"unknown",paidAt:new Date(),createdAt:new Date()}},{upsert:true});
   await db.collection("platform_requests").updateOne({requestId,email:intent.email,paymentStatus:{$ne:"paid"}},{$set:{status:"approved",paymentStatus:"paid",paymentId,paidAt:new Date(),paymentProvider:"moyasar"}});
+  await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"reserved"},{$set:{status:"booked",bookedAt:new Date(),paymentId}});
   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled"}});
   await db.collection("platform_audit_logs").insertOne({action:"moyasar_payment_verified",requestId,paymentId,amount:payment.amount,currency:payment.currency,createdAt:new Date()});
   return NextResponse.json({success:true,paid:true,status:"approved",requestId},{headers:{"Cache-Control":"no-store"}});
