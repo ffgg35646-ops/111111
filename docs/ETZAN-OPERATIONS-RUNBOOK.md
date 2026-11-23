@@ -18,7 +18,7 @@ Use Moyasar test keys first. Configure the webhook in the Moyasar merchant dashb
 
 `https://YOUR-ETZAN-DOMAIN/api/payments/moyasar/webhook`
 
-The payment integration uses server-created Payment Intents. The browser receives only the single-use intent client secret and publishable key; payment success is accepted only after the server fetches and verifies the payment. The refund action is restricted to platform administrators, managers, and accountants.
+If Moyasar sends a `webhook_verification` event, open `/platform-admin/payments` with an administrator or accountant account and copy the six-digit verification code shown there into the Moyasar dashboard before its 30-minute expiry.\n\nThe payment integration uses server-created Payment Intents. The browser receives only the single-use intent client secret and publishable key; payment success is accepted only after the server fetches and verifies the payment. The refund action is restricted to platform administrators, managers, and accountants.
 
 ## Operational URLs
 
