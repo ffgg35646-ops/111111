@@ -97,16 +97,17 @@ export default function CourseLearningPage() {
           if(!active)return;
           const done=Array.isArray(saved.completedLessons)?saved.completedLessons.filter((n:number)=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[];
           const note=typeof saved.reflection==="string"?saved.reflection:"";
-          setCompleted(done);setReflection(note);
+          setCompleted(done);setReflection(note);setAnswers(saved.quizAnswers&&typeof saved.quizAnswers==="object"?saved.quizAnswers:{});setChecked(saved.quizChecked===true);
           localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed:done,reflection:note,updatedAt:new Date().toISOString()}));
           setProgressHydrated(true);return;
         }
       }catch{}
       try{
-        const saved=JSON.parse(localStorage.getItem("clinical-course-progress:"+course.id)||"{}") as {completed?:number[];reflection?:string};
+        const saved=JSON.parse(localStorage.getItem("clinical-course-progress:"+course.id)||"{}") as {completed?:number[];reflection?:string;answers?:Record<number,number>;checked?:boolean};
         if(!active)return;
         setCompleted(Array.isArray(saved.completed)?saved.completed.filter(n=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[]);
         setReflection(typeof saved.reflection==="string"?saved.reflection:"");
+        setAnswers(saved.answers&&typeof saved.answers==="object"?saved.answers:{});setChecked(saved.checked===true);
       }catch{setCompleted([]);setReflection("");}
       if(active)setProgressHydrated(true);
     };
