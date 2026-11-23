@@ -1,21 +1,27 @@
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
+import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
-
-function authorized(request: NextRequest) {
-  const configured = process.env.PLATFORM_ADMIN_API_KEY;
-  const supplied = request.headers.get("x-platform-admin-key") || "";
-  if (!configured || configured.length < 32 || supplied.length !== configured.length) return false;
-  return timingSafeEqual(Buffer.from(supplied), Buffer.from(configured));
-}
 
 function clean(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
 export async function GET(request: NextRequest) {
+  if (request.nextUrl.searchParams.get("admin") === "1") {
+    const actor = await requirePlatformRole(request, ["admin"]);
+    if (!actor) return NextResponse.json({ error: "إدارة الشهادات متاحة لمدير النظام فقط." }, { status: 403 });
+    try {
+      const db = await getClinicalDatabase();
+      const certificates = await db.collection("platform_certificates").find({}, { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1, status: 1, revokedAt: 1 } }).sort({ issuedAt: -1 }).limit(500).toArray();
+      return NextResponse.json({ certificates }, { headers: { "Cache-Control": "no-store" } });
+    } catch (error) {
+      console.error("Certificate administration list failed", error);
+      return NextResponse.json({ error: "تعذر تحميل سجل الشهادات." }, { status: 503 });
+    }
+  }
   const serial = clean(request.nextUrl.searchParams.get("code"), 60).toUpperCase();
   if (!/^[A-F0-9-]{20,60}$/.test(serial)) {
     return NextResponse.json({ error: "أدخل رمز تحقق صالحاً." }, { status: 400 });
@@ -35,7 +41,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: "هذه العملية متاحة لإدارة المنصة فقط." }, { status: 403 });
+  const actor = await requirePlatformRole(request, ["admin"]);
+  if (!actor) return NextResponse.json({ error: "إصدار الشهادات متاح لمدير النظام فقط." }, { status: 403 });
   let body: unknown;
   try {
     body = await request.json();
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
     certificateType,
     issuedAt: new Date(),
     status: "issued",
-    issuedBy: "platform-admin",
+    issuedBy: actor.userId,
     completionVerified: true,
   };
   try {
@@ -71,5 +78,25 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Unable to issue certificate", error);
     return NextResponse.json({ error: "تعذر حفظ الشهادة." }, { status: 503 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const actor = await requirePlatformRole(request, ["admin"]);
+  if (!actor) return NextResponse.json({ error: "إلغاء الشهادات متاح لمدير النظام فقط." }, { status: 403 });
+  let body: unknown;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: "بيانات الإلغاء غير صالحة." }, { status: 400 }); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "أدخل رمز الشهادة." }, { status: 400 });
+  const serial = clean((body as Record<string, unknown>).serial, 60).toUpperCase();
+  if (!/^[A-F0-9-]{20,60}$/.test(serial)) return NextResponse.json({ error: "رمز الشهادة غير صالح." }, { status: 400 });
+  try {
+    const db = await getClinicalDatabase();
+    const result = await db.collection("platform_certificates").updateOne({ serial, status: "issued" }, { $set: { status: "revoked", revokedAt: new Date(), revokedBy: actor.userId } });
+    if (!result.matchedCount) return NextResponse.json({ error: "الشهادة غير موجودة أو سبق إلغاؤها." }, { status: 404 });
+    await db.collection("platform_audit_logs").insertOne({ action: "certificate_revoked", actorUserId: actor.userId, serial, createdAt: new Date() });
+    return NextResponse.json({ success: true, serial, status: "revoked" });
+  } catch (error) {
+    console.error("Certificate revocation failed", error);
+    return NextResponse.json({ error: "تعذر إلغاء الشهادة." }, { status: 503 });
   }
 }

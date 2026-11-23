@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (data.user?.mustChangePassword) {
         router.replace("/account/change-password");
       } else {
-        const next = new URLSearchParams(window.location.search).get("next") || "/";
+        const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
         router.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/");
       }
       router.refresh();

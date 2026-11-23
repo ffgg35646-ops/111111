@@ -1,143 +1,32 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
-  FileText, GraduationCap, LayoutDashboard, MessageCircle, Settings,
-  ShieldCheck, ShoppingBag, Users, Video, Glasses, Plus, Search,
-  Bell, ChevronLeft, CircleHelp, PanelRightClose
-} from "lucide-react";
-
-const sections = [
-  { title:"الرئيسية", items:[["نظرة عامة",LayoutDashboard]] },
-  { title:"الأكاديمية والتعلم", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة عبر Zoom",Video],["الشهادات",ShieldCheck]] },
-  { title:"المسارات التخصصية", items:[["منظومة التدريب التخصصي",Brain],["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
-  { title:"المحاكاة السريرية", items:[["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
-  { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
-  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["الإعدادات والصلاحيات",Settings]] },
-] as const;
-
-const routeByLabel: Record<string,string> = {
-  "منظومة التدريب التخصصي": "/specialties",
-  "الدورات والبرامج": "/academy",
-  "الفصول المباشرة عبر Zoom": "/classrooms",
-  "الشهادات": "/certificates",
-  "الخدمة الاجتماعية": "/specialties?track=social-work",
-  "العلاج المعرفي السلوكي CBT": "/specialties?track=psychotherapy",
-  "اضطراب طيف التوحد": "/specialties?track=autism",
-  "الاضطرابات النمائية والإعاقة الذهنية": "/specialties?track=developmental",
-  "دراسة الحالة والمقاييس": "/specialties?section=case-study",
-  "مكتبة الحالات التدريبية": "/cases",
-  "قاعة محاكاة الحالة": "/simulation",
-  "غرف الواقع الافتراضي": "/simulation",
-  "جلسات الإشراف": "/supervision",
-  "الشخصيات الافتراضية": "/characters",
-  "تقييم لغة الجسد": "/posture",
-  "الغرف المشتركة": "/supervision",
-  "ملف الكفاءات المهنية": "/competencies",
-  "مختبر المقاييس": "/specialties?section=scales",
-  "الاستشارات العلاجية والمهنية": "/consultations",
-  "المتجر المعرفي والكتب": "/books",
-  "تأجير قاعات Zoom": "/room-rental",
-  "إدارة الطلبات والحجوزات": "/platform-admin/requests",
-  "مراجعة تقارير المحاكاة": "/platform-admin/activities",
-  "المتدربون والمختصون": "/platform-admin/users",
-};
-
-const stats = [
-  {label:"إجمالي المتدربين",value:"—",note:"يتطلب تفعيل حسابات المتدربين الفردية",icon:Users,tone:"blue"},
-  {label:"البرامج التدريبية",value:"7",note:"برامج مدرجة في الكتالوج التدريبي",icon:GraduationCap,tone:"teal"},
-  {label:"سيناريوهات المحاكاة",value:"5",note:"حالات افتراضية متاحة للتدريب",icon:Brain,tone:"violet"},
-  {label:"جلسات هذا الأسبوع",value:"—",note:"تظهر بعد إعداد الجدولة وربط حساب Zoom",icon:CalendarDays,tone:"amber"},
+import Link from "next/link";
+import Image from "next/image";
+import { Activity, ArrowLeft, Award, BookOpen, Brain, ClipboardList, GraduationCap, HeartHandshake, Library, ShieldCheck, Users, Video } from "lucide-react";
+const tracks=[
+["الخدمة الاجتماعية","دراسة الحالة والتدخل المهني والإحالة والعمل مع الأفراد والأسر.","/specialties?track=social-work"],
+["علم النفس والممارسة الإكلينيكية","مهارات المقابلة والتقدير النفسي والممارسة المبنية على الأدلة.","/specialties?track=psychotherapy"],
+["العلاج المعرفي السلوكي CBT","صياغة الحالة ومهارات الحوار والتدخلات المعرفية والسلوكية.","/specialties?track=psychotherapy"],
+["الإرشاد الأسري","التواصل الأسري ومقابلات الوالدين وفهم ديناميات العلاقات.","/specialties"],
+["الاضطرابات النمائية وطيف التوحد","الفهم النمائي والتواصل الداعم والشراكة مع الأسرة.","/specialties?track=autism"],
+["التقييم والقياس النفسي","اختيار الأدوات المرخصة وفهم النتائج وحدود استخدامها.","/assessments"]
 ];
-
-const modules = [
-  [BookOpen,"التعليم والدورات"],[Video,"الفصول المباشرة"],[MessageCircle,"الاستشارات"],
-  [ShoppingBag,"المتجر المعرفي"],[Glasses,"محاكاة VR"],[Brain,"الذكاء الاصطناعي"],[ClipboardCheck,"التقييم والكفاءات"]
-] as const;
-
-export default function HomePage() {
-  const router = useRouter();
-  const [active,setActive] = useState("نظرة عامة");
-  const [query,setQuery] = useState("");
-  const [sidebarOpen,setSidebarOpen] = useState(true);
-
-  return <main className="app-shell">
-    <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
-      <div className="brand-block">
-        <div className="brand-copy"><strong>منصة التدريب السريري</strong><span>الإدارة والتشغيل</span></div>
-        <button className="icon-button sidebar-toggle" onClick={()=>setSidebarOpen(false)} aria-label="إخفاء القائمة"><PanelRightClose size={18}/></button>
-      </div>
-      <div className="workspace-label">مساحة العمل</div>
-      <nav className="side-nav">
-        {sections.map(section=><div className="nav-section" key={section.title}>
-          <p>{section.title}</p>
-          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>{const target=routeByLabel[label];if(target)router.push(target);else setActive(label);}}>
-            <Icon size={18}/><span>{label}</span>
-          </button>)}
-        </div>)}
-      </nav>
-      <div className="sidebar-bottom"><div className="support-icon"><CircleHelp size={18}/></div><div><strong>تحتاج إلى مساعدة؟</strong><span>مركز الدعم والإرشادات</span></div><ChevronLeft size={16}/></div>
-    </aside>
-
-    <section className="main-area">
-      <header className="topbar">
-        <div className="topbar-start">
-          {!sidebarOpen&&<button className="icon-button" onClick={()=>setSidebarOpen(true)} aria-label="إظهار القائمة"><PanelRightClose size={19}/></button>}
-          <div className="breadcrumb">الإدارة <ChevronLeft size={14}/> <strong>{active}</strong></div>
-        </div>
-        <div className="topbar-actions">
-          <label className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="ابحث في المنصة..."/></label>
-          <button className="icon-button notification-button" aria-label="الإشعارات"><Bell size={19}/><i/></button>
-          <a className="admin-profile" href="/login" style={{ textDecoration: "none", color: "inherit" }}><div className="avatar">د</div><div><strong>دخول المنصة</strong><span>حسابات وصلاحيات مستقلة</span></div></a>
-        </div>
-      </header>
-
-      <div className="page-content">
-        <div className="welcome-row">
-          <div><div className="eyebrow">لوحة التحكم الرئيسية</div><h1>مرحباً بك في مساحة الإدارة</h1><p>إدارة التعليم والتدريب والاستشارات والمحاكاة السريرية من مكان واحد.</p></div>
-          <button className="primary-button" onClick={()=>router.push("/cases")}><Plus size={18}/> إعداد حالة تدريبية</button>
-        </div>
-
-        <div className="notice-strip">
-          <div className="notice-icon"><Brain size={19}/></div>
-          <div><strong>إدارة الشخصيات والحالات الافتراضية</strong><span>الدكتور أو المشرف العلمي يكتب ملف الحالة وأهدافها وحدود معرفة الشخصية وطريقة استجابتها. الشخصية تتفاعل مع الحوار في سياقه، وليست تسجيلاً محفوظاً.</span></div>
-          <button onClick={()=>router.push("/cases")}>إعداد الحالات <ChevronLeft size={15}/></button>
-        </div>
-
-        <div className="stats-grid">{stats.map(stat=><article className="stat-card" key={stat.label}>
-          <div className={`stat-icon ${stat.tone}`}><stat.icon size={20}/></div>
-          <div className="stat-label">{stat.label}</div><div className="stat-value">{stat.value}</div><div className="stat-note">{stat.note}</div>
-        </article>)}</div>
-
-        <div className="content-grid">
-          <section className="panel activity-panel">
-            <div className="panel-heading"><div><h2>مسار تشغيل المنظومة</h2><p>الوحدات الأساسية وما يتطلب ربطاً واعتماداً قبل الإطلاق</p></div><span className="roadmap-tag">خطة التشغيل</span></div>
-            {[
-              ["الحسابات والأدوار","دخول آمن وحسابات منفصلة للمدير والمشرف والمدرب والمتدرب والمستشار"],
-              ["دراسة الحالة والتقييم","جمع المعلومات والفرضيات ونقاط القوة والمعلومات الناقصة ومراجعة المشرف"],
-              ["الشخصيات السريرية التفاعلية","شخصيات ثلاثية الأبعاد ومحادثة سياقية بالصوت والنص"],
-              ["المحاكاة والإشراف","WebXR داخل المتصفح وغرف LiveKit وقياسات VR وتقارير الكفاءات"],
-            ].map(([title,desc])=><div className="activity-row" key={title}><div className="activity-symbol"><FileText size={18}/></div><div className="activity-main"><strong>{title}</strong><span>{desc}</span></div><span className="status-pill status-green">وحدة مضافة</span></div>)}
-          </section>
-          <section className="panel quick-panel">
-            <div className="panel-heading"><div><h2>اختصارات الإدارة</h2><p>أقسام الإدارة الأساسية</p></div></div>
-            <div className="quick-grid">
-              <button onClick={()=>router.push("/cases")}><span className="quick-icon teal"><Brain size={19}/></span><strong>إعداد حالة تدريبية</strong><small>كتابة السيناريو السريري</small></button>
-              <button onClick={()=>router.push("/characters")}><span className="quick-icon blue"><Users size={19}/></span><strong>إعداد شخصية افتراضية</strong><small>تعليمات الشخصية وصوتها</small></button>
-              <button onClick={()=>router.push("/academy")}><span className="quick-icon violet"><GraduationCap size={19}/></span><strong>إضافة دورة</strong><small>برنامج تدريبي جديد</small></button>
-              <button onClick={()=>router.push("/competencies")}><span className="quick-icon amber"><ChartNoAxesCombined size={19}/></span><strong>ملفات الكفاءات</strong><small>تقييم أداء المتدربين</small></button>
-            </div>
-          </section>
-        </div>
-
-        <section className="panel roadmap-panel">
-          <div className="panel-heading"><div><h2>وحدات المنظومة</h2><p>الوصول إلى وحدات التعلم والتدريب والخدمات والمحاكاة</p></div></div>
-          <div className="module-chips">{modules.map(([Icon,label])=><span key={label}><Icon size={16}/>{label}</span>)}</div>
-        </section>
-        <footer className="page-footer">منصة التدريب والمحاكاة السريرية <span>•</span> مساحة الإدارة <span>•</span> <a href="/platform-admin/users">إدارة الحسابات</a></footer>
-      </div>
-    </section>
-  </main>;
-}
+const services:{icon:typeof BookOpen;title:string;desc:string;href:string}[]=[
+{icon:GraduationCap,title:"الأكاديمية والدورات",desc:"برامج ومسارات تعليمية مسجلة ومباشرة.",href:"/academy"},
+{icon:Brain,title:"مختبر المحاكاة AI",desc:"مقابلات تدريبية تفاعلية وتغذية راجعة مهنية.",href:"/cases"},
+{icon:Video,title:"الواقع الافتراضي VR",desc:"بيئة سريرية ثلاثية الأبعاد قابلة للتوسعة.",href:"/simulation"},
+{icon:ClipboardList,title:"المقاييس والأدوات",desc:"مكتبة تعليمية للمقاييس والنماذج المهنية.",href:"/assessments"},
+{icon:Library,title:"المكتبة العلمية",desc:"كتب ومراجع ومواد معرفية متخصصة.",href:"/books"},
+{icon:HeartHandshake,title:"الاستشارات",desc:"طلبات تواصل وحجز مع مقدم الخدمة.",href:"/consultations"},
+{icon:Users,title:"المجتمع المهني",desc:"مساحة مهنية للنقاش والتعلم التعاوني.",href:"/community"},
+{icon:Award,title:"الشهادات",desc:"إصدار الشهادات والتحقق من صحتها.",href:"/certificates"}
+];
+export default function HomePage(){return <main className="etzan-home" dir="rtl">
+<header className="etzan-nav"><Link href="/" className="etzan-logo"><span className="etzan-mark">ات</span><span><b>اتزان</b><small>ETZAN · من المعرفة إلى الممارسة</small></span></Link><nav><a href="#about">عن اتزان</a><a href="#tracks">المسارات</a><a href="#services">الخدمات</a><Link href="/academy">الأكاديمية</Link><Link href="/certificates">التحقق من شهادة</Link></nav><div className="etzan-nav-actions"><Link href="/login" className="etzan-login">دخول الأعضاء</Link><Link href="/academy" className="etzan-cta">اكتشف البرامج <ArrowLeft size={15}/></Link></div></header>
+<section className="etzan-hero"><div><span className="etzan-kicker"><i/> منصة مهنية للتعلم والممارسة</span><h1>من المعرفة<br/><em>إلى الممارسة.</em></h1><p>منظومة عربية متخصصة تجمع التدريب المهني، والمحاكاة السريرية بالذكاء الاصطناعي، والمسارات التخصصية، والأدوات العلمية في تجربة واحدة.</p><div className="etzan-hero-actions"><Link href="/academy" className="etzan-cta">ابدأ رحلتك التعليمية <ArrowLeft size={16}/></Link><Link href="/cases" className="etzan-outline">جرّب مختبر المحاكاة</Link></div><div className="etzan-hero-proof"><span><ShieldCheck size={16}/> تدريب مسؤول وآمن</span><span><Activity size={16}/> تعلم قائم على الممارسة</span></div></div><div className="etzan-hero-visual"><div className="etzan-photo-frame"><Image src="/clinic/clinic-room-reference.png" alt="بيئة تدريب سريرية احترافية" width={1200} height={800} priority/><div className="etzan-photo-caption"><i/> مختبر اتزان للمحاكاة المهنية <b>AI + VR</b></div></div><div className="etzan-floating-card"><Brain size={19}/><span><b>تدريب تفاعلي</b><small>حالات افتراضية وتقييم مهني</small></span></div></div></section>
+<div className="etzan-trust"><span>تعلم متخصص</span><i/> <span>محاكاة عملية</span><i/> <span>إشراف مهني</span><i/> <span>معرفة موثوقة</span></div>
+<section className="etzan-section" id="about"><div className="etzan-section-head"><div><span className="etzan-kicker">عن المنصة</span><h2>مساحة واحدة لتطوير الممارسة المهنية</h2></div><p>اتزان منصة للتعلم والتدريب والتطوير المهني في الخدمة الاجتماعية وعلم النفس والإرشاد الأسري والاضطرابات النمائية والسلوكية.</p></div><div className="etzan-supervisor"><div className="etzan-supervisor-icon">د.ص</div><div><span>الإشراف العلمي</span><h3>د. صالح بن حسن آل زبيد</h3><p>إشراف وتوجيه علمي للمحتوى والمسارات المهنية.</p></div><div className="etzan-supervisor-seal"><ShieldCheck size={25}/><span>منهجية مهنية</span></div></div></section>
+<section className="etzan-section etzan-dark-section" id="tracks"><div className="etzan-section-head"><div><span className="etzan-kicker">المسارات المهنية</span><h2>تخصص أعمق. ممارسة أكثر ثقة.</h2></div><Link href="/specialties" className="etzan-text-link">كل المسارات <ArrowLeft size={15}/></Link></div><div className="etzan-track-grid">{tracks.map(([title,desc,href],i)=><Link href={href} className="etzan-track" key={title}><small>0{i+1}</small><h3>{title}</h3><p>{desc}</p><ArrowLeft size={17}/></Link>)}</div></section>
+<section className="etzan-section" id="services"><div className="etzan-section-head"><div><span className="etzan-kicker">منظومة اتزان</span><h2>كل ما تحتاجه لرحلة تعلم متكاملة</h2></div><p>من اكتساب المعرفة إلى تطبيق المهارات ومراجعة الأداء وتوثيق الإنجاز.</p></div><div className="etzan-service-grid">{services.map(({icon:Icon,title,desc,href})=><Link href={href} className="etzan-service" key={title}><span><Icon size={21}/></span><h3>{title}</h3><p>{desc}</p><b>استكشف القسم <ArrowLeft size={14}/></b></Link>)}</div></section>
+<section className="etzan-simulation"><div><span className="etzan-kicker">مختبر اتزان · AI + VR</span><h2>تدرّب على المواقف المهنية<br/>في بيئة آمنة وتفاعلية.</h2><p>حالات افتراضية، محادثة نصية وصوتية عند تفعيل مفاتيح الخدمة، وشخصية ثلاثية الأبعاد، ثم تقرير تدريبي يساعدك على تطوير مهارات المقابلة والتعاطف وجمع المعلومات.</p><Link href="/cases" className="etzan-cta">ادخل مختبر المحاكاة <ArrowLeft size={15}/></Link></div><Image src="/clinic/doctor-front.jpg" alt="الشخصية الافتراضية للتدريب السريري" width={900} height={700}/></section>
+<section className="etzan-membership"><div><span className="etzan-kicker">عضويات اتزان</span><h2>استمر في تطوير مهاراتك.</h2><p>استكشف البرامج والمواد المتاحة، وتعرّف على خيارات العضوية عند إتاحة باقات الاشتراك والدفع.</p></div><Link href="/membership" className="etzan-outline">استكشف العضويات <ArrowLeft size={15}/></Link></section>
+<footer className="etzan-footer"><div className="etzan-logo"><span className="etzan-mark">ات</span><span><b>اتزان | ETZAN</b><small>من المعرفة إلى الممارسة</small></span></div><p>منصة تعلم وتدريب مهني. المحاكاة تعليمية ولا تقدم تشخيصاً أو علاجاً مستقلاً.</p><div><Link href="/login">دخول الأعضاء</Link><Link href="/certificates">التحقق من الشهادات</Link><Link href="/platform-admin">الإدارة</Link></div><small>© {new Date().getFullYear()} اتزان. جميع الحقوق محفوظة.</small></footer>
+</main>}

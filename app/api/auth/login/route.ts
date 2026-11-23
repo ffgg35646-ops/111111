@@ -5,6 +5,7 @@ import {
   issuePlatformSession,
   parsePasswordHash,
   PLATFORM_SESSION_COOKIE,
+  PLATFORM_ROLES,
   platformSessionCookieOptions,
   verifyPasswordHash,
   verifyStoredPassword,
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
     typeof account.email === "string" &&
     typeof account.name === "string" &&
     typeof account.role === "string" &&
-    ["admin", "supervisor", "trainer", "trainee", "consultant"].includes(account.role) &&
+    PLATFORM_ROLES.includes(account.role as PlatformRole) &&
     verifyStoredPassword(password, String(account.passwordSalt || ""), String(account.passwordHash || "")));
 
   if (!validAccount || !account) {
