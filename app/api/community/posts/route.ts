@@ -7,7 +7,7 @@ const roles=["admin","supervisor","trainer","trainee","consultant"] as const;
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
 export async function GET(request:NextRequest){
  const moderation=request.nextUrl.searchParams.get("moderation")==="1";let actor=null;
- if(moderation){actor=await requirePlatformRole(request,["admin","supervisor"]);if(!actor)return NextResponse.json({error:"غير مصرح."},{status:403});}
+ if(moderation){actor=await requirePlatformRole(request,["admin","platform_manager","supervisor","quality_manager"]);if(!actor)return NextResponse.json({error:"غير مصرح."},{status:403});}
  try{const db=await getClinicalDatabase();const posts=await db.collection("etzan_community_posts").find(moderation?{}:{status:"published"},{projection:{_id:0,postId:1,authorName:1,role:1,category:1,title:1,body:1,status:1,createdAt:1}}).sort({createdAt:-1}).limit(100).toArray();return NextResponse.json({posts},{headers:{"Cache-Control":"no-store"}});}
  catch(error){console.error("community GET",error);return NextResponse.json({error:"تعذر تحميل المجتمع المهني."},{status:503});}
 }
