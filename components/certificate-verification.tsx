@@ -22,6 +22,7 @@ export function CertificateVerificationPage() {
   const [valid, setValid] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const verifyCode = useCallback(async (value: string) => {
     const normalized = value.trim().toUpperCase();
@@ -81,6 +82,78 @@ export function CertificateVerificationPage() {
     anchor.click();
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const downloadCertificatePdf = async () => {
+    const source = document.querySelector<SVGSVGElement>("[data-certificate-svg='true']");
+    if (!source || !certificate || !valid || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      await document.fonts.ready;
+      const copy = source.cloneNode(true) as SVGSVGElement;
+      copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      copy.setAttribute("width", "2400");
+      copy.setAttribute("height", "1700");
+      const svgBlob = new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      try {
+        const image = new Image();
+        image.decoding = "sync";
+        image.src = svgUrl;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = 2400;
+        canvas.height = 1700;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("تعذر تجهيز ملف الشهادة.");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("تعذر تحويل الشهادة إلى PDF.")), "image/jpeg", 0.96));
+        const jpegBytes = new Uint8Array(await jpeg.arrayBuffer());
+        const encoder = new TextEncoder();
+        const chunks: Uint8Array[] = [];
+        let byteLength = 0;
+        const push = (part: Uint8Array | string) => {
+          const bytes = typeof part === "string" ? encoder.encode(part) : part;
+          chunks.push(bytes);
+          byteLength += bytes.length;
+        };
+        const offsets: number[] = [0];
+        push("%PDF-1.4\n% ETZAN\n");
+        const object = (id: number, body: string) => {
+          offsets[id] = byteLength;
+          push(id + " 0 obj\n" + body + "\nendobj\n");
+        };
+        object(1, "<< /Type /Catalog /Pages 2 0 R >>");
+        object(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+        object(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+        offsets[4] = byteLength;
+        push("4 0 obj\n<< /Type /XObject /Subtype /Image /Width 2400 /Height 1700 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpegBytes.length + " >>\nstream\n");
+        push(jpegBytes);
+        push("\nendstream\nendobj\n");
+        const stream = "q\n842 0 0 595 0 0 cm\n/Im0 Do\nQ\n";
+        object(5, "<< /Length " + encoder.encode(stream).length + " >>\nstream\n" + stream + "endstream");
+        const xrefOffset = byteLength;
+        push("xref\n0 6\n0000000000 65535 f \n");
+        for (let id = 1; id <= 5; id++) push(String(offsets[id]).padStart(10, "0") + " 00000 n \n");
+        push("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xrefOffset + "\n%%EOF");
+        const pdfUrl = URL.createObjectURL(new Blob(chunks, { type: "application/pdf" }));
+        const anchor = document.createElement("a");
+        anchor.href = pdfUrl;
+        anchor.download = "ETZAN-Certificate-" + certificate.serial + ".pdf";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 1500);
+      } finally {
+        URL.revokeObjectURL(svgUrl);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر تنزيل ملف PDF.");
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const certificateTitle = certificate?.certificateType === "completion"
@@ -218,6 +291,9 @@ export function CertificateVerificationPage() {
             <div className="certificate-actions">
               <button type="button" className="portal-button" onClick={downloadCertificate}>
                 <Download size={15} /> تنزيل الشهادة (SVG)
+              </button>
+              <button type="button" className="portal-button" onClick={() => void downloadCertificatePdf()} disabled={pdfLoading}>
+                <Download size={15} /> {pdfLoading ? "جارٍ تجهيز PDF..." : "تنزيل الشهادة PDF"}
               </button>
               <button type="button" className="portal-button secondary" onClick={() => window.print()}>
                 <Printer size={15} /> طباعة / حفظ PDF
