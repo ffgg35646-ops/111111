@@ -15,7 +15,7 @@ const sections = [
   { title:"الأكاديمية والتعلم", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة عبر Zoom",Video],["الشهادات",ShieldCheck]] },
   { title:"المسارات التخصصية", items:[["منظومة التدريب التخصصي",Brain],["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
   { title:"المحاكاة السريرية", items:[["إدارة سيناريوهات ومعايير التقييم",Settings],["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
-  { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
+  { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["إتاحة مواعيد الاستشارات",CalendarDays],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
   { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["إدارة المكتبة العلمية",Library],["إدارة الشهادات",ShieldCheck],["مراجعة المجتمع المهني",MessageCircle],["الإعدادات والصلاحيات",Settings]] },
 ] as const;
 
@@ -42,6 +42,7 @@ const routeByLabel: Record<string,string> = {
   "ملف الكفاءات المهنية": "/competencies",
   "مختبر المقاييس": "/specialties?section=scales",
   "الاستشارات العلاجية والمهنية": "/consultations",
+  "إتاحة مواعيد الاستشارات": "/platform-admin/availability",
   "المتجر المعرفي والكتب": "/books",
   "تأجير قاعات Zoom": "/room-rental",
   "إدارة الطلبات والحجوزات": "/platform-admin/requests",
