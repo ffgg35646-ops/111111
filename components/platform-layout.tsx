@@ -10,7 +10,7 @@ const navigation: NavigationItem[] = [
   { href: "/specialties", label: "المسارات التخصصية" },
   { href: "/academy", label: "الأكاديمية" },
   { href: "/cases", label: "الحالات التدريبية" },
-  { href: "/assistant", label: "مساعد اتزان", roles: ["admin", "platform_manager", "supervisor", "trainer", "trainee"] },
+  { href: "/assistant", label: "مساعد اتزان", roles: ["admin", "platform_manager", "supervisor", "trainer", "trainee", "consultant", "content_manager", "quality_manager"] },
   { href: "/assessments", label: "المقاييس والاختبارات" },
   { href: "/classrooms", label: "الفصول المباشرة", roles: ["admin", "platform_manager", "supervisor", "trainer", "trainee"] },
   { href: "/consultations", label: "الاستشارات" },
