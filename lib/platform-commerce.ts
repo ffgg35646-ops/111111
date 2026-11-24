@@ -205,7 +205,7 @@ export function addBillingPeriod(date: Date, period: "monthly" | "annual") {
 export async function activatePaidMembership(db: Db, order: Record<string, unknown>, paymentId: string) {
   const requestId = String(order.requestId || "");
   const subscription = await db.collection("platform_subscriptions").findOne({ requestId });
-  if (!subscription) return;
+  if (!subscription || (subscription.status === "active" && subscription.lastPaymentId === paymentId)) return;
   const now = new Date();
   let recurringReady = false;
   if (typeof subscription.tokenEncrypted === "string" && process.env.MOYASAR_SECRET_KEY) {
@@ -230,7 +230,7 @@ export async function activatePaidMembership(db: Db, order: Record<string, unkno
   const period = order.billingPeriod === "annual" ? "annual" : "monthly";
   const paidThrough = addBillingPeriod(now, period);
   await db.collection("platform_subscriptions").updateOne(
-    { requestId, status: { $in: ["pending_initial_payment", "awaiting_card_token", "active"] } },
+    { requestId, status: { $in: ["pending_initial_payment", "awaiting_card_token"] }, lastPaymentId: { $ne: paymentId } },
     { $set: {
       status: "active",
       autoRenewEnabled: recurringReady && order.recurringConsent === true,
