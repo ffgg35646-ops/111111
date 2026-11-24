@@ -41,6 +41,14 @@ A trainer can then score each criterion from the exact rubric snapshot used for 
 - `CLINICAL_REALTIME_MODEL` and `CLINICAL_REALTIME_VOICE` select the Realtime model and voice.
 - `NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL` can point to an approved public GLB/GLTF model. A scenario may override it with its own HTTPS or same-origin model URL.
 
+## AI usage, safety and draft creation
+
+- The general learning assistant is available at /assistant. It searches published article/book records and the current course catalog using bounded keyword ranking. Full semantic indexing over every attachment is still a separate future phase.
+- Quiz generation stores a reviewable draft in platform_ai_quiz_drafts; only an explicit authorized approval copies the question set to the course quiz collection.
+- Scenario generation writes a new scenario in inactive state. A trainer/supervisor must inspect its briefing, hidden context, steps, scores, safety note, and avatar before activation.
+- Text-model generation and simulation feedback write a separate platform_ai_usage record. Reported token and USD cost fields are taken from AI Gateway metadata when supplied. Missing cost information is not estimated.
+- Realtime voice session creation is logged as a session event. The completed voice session's actual metered usage is not yet ingested by the application and must be reviewed with the provider.
+- The /platform-admin/ai page is restricted to platform administrators and summarizes usage, reported costs, and pending AI drafts.
 ## Avatar fidelity and licensing
 
 The current default GLB is a rigged generic adult male avatar from the documented Rocketbox/Avatar Studio source. It supports facial morph targets and motion, but it is not a photorealistic Saudi-specific MetaHuman. For the requested highest realism, the organization must supply or commission a commercially licensed Saudi-specific MetaHuman/GLB export with a facial rig, visemes, and optimized LODs. The studio can link that approved model per scenario without changing application code.
