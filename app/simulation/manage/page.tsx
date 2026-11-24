@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, ClipboardList, FilePlus2, Save, ShieldCheck } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -78,7 +78,7 @@ export default function SimulationManagementPage() {
     catch { return 0; }
   }, [criteriaText]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
       const response = await fetch("/api/platform/simulation-config?manage=1", { cache: "no-store" });
@@ -88,9 +88,9 @@ export default function SimulationManagementPage() {
       setRubrics(Array.isArray(data.rubrics) ? data.rubrics : []);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "تعذر تحميل إعدادات المحاكاة."); }
     finally { setLoading(false); }
-  };
+  }, []);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const resetScenario = () => {
     setScenarioId(""); setTitle(""); setTrack("الخدمة الاجتماعية"); setAgeGroup("بالغ"); setSetting("مكتب الخدمة الاجتماعية");
