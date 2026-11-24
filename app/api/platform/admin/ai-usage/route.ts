@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { gateway } from "ai";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 
@@ -9,6 +10,25 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const usageCollection = db.collection("platform_ai_usage");
+    if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1") {
+      const pendingCosts = await usageCollection.find(
+        { costStatus: "pending", gatewayGenerationId: { $type: "string" } },
+        { projection: { _id: 0, usageId: 1, gatewayGenerationId: 1 } },
+      ).limit(25).toArray();
+      await Promise.all(pendingCosts.map(async (entry) => {
+        try {
+          const generation = await gateway.getGenerationInfo({ id: String(entry.gatewayGenerationId) });
+          if (typeof generation.totalCost === "number" && Number.isFinite(generation.totalCost) && generation.totalCost >= 0) {
+            await usageCollection.updateOne(
+              { usageId: entry.usageId, costStatus: "pending" },
+              { $set: { costUsd: generation.totalCost, currency: "USD", costStatus: "reported", costCheckedAt: new Date(), provider: generation.providerName, model: generation.model } },
+            );
+          }
+        } catch (error) {
+          console.warn("AI Gateway cost reconciliation pending", entry.usageId, error);
+        }
+      }));
+    }
     const [rows, usageTotals, pendingQuizDrafts, inactiveAiScenarios] = await Promise.all([
       usageCollection.find({}, { projection: {
         _id: 0, usageId: 1, feature: 1, provider: 1, model: 1, actorRole: 1,
