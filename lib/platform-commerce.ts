@@ -161,6 +161,7 @@ export async function createElectronicInvoice(
     discountAmount: money(discountAmount),
     taxAmount: money(taxAmount),
     vatRateBps,
+    pricesIncludeVat: order.pricesIncludeVat === true,
     totalAmount: money(totalAmount),
     providerFee: typeof payment.fee === "number" ? payment.fee / 100 : null,
     paymentMethod: String(payment.paymentMethod || "Moyasar"),
