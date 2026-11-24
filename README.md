@@ -82,6 +82,11 @@ The shared web avatar now renders a three-dimensional Saudi attire layer over th
 
 ## ETZAN application entry points
 
+- Administration dashboard overview: `/platform-admin`
+- Admin user and role management: `/platform-admin/users`
+- Course catalog and trainer assignment: `/platform-admin/courses`
+- Content, books/products, forms, consultation scheduling, payments, invoices status, certificates, community moderation, reports, and role reference are available under `/platform-admin/*`.
+
 - Certificate management and revocation: `/platform-admin/certificates`
 - Community reports review: available from `/platform-admin/community`
 

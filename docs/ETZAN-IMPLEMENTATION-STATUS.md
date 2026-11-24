@@ -24,6 +24,8 @@ This document separates implemented application behavior from integrations that 
 - Membership overview page with explicit payment-not-enabled notice.
 - Finance workspace for the Moyasar transaction ledger and authorized full-refund requests. Request queue access is read-only for accountant/support roles; approval/rejection and price authorization are restricted to system/platform managers.
 
+- The administration home now reads operational counts from MongoDB; dedicated administration entry points cover account roles, course-to-trainer assignment, articles, books/products, professional-form records, consultation availability, payment ledger, certificates, community moderation, and simulation reports. Subscription renewal and electronic invoicing are shown as not enabled rather than represented as live features.
+
 ## Existing integrations that are implemented in code but need live configuration and acceptance tests
 
 - MongoDB Atlas: `MONGODB_URI`, database name, indexes, access controls, backup policy, and production connection must be supplied and verified.
@@ -36,8 +38,11 @@ This document separates implemented application behavior from integrations that 
 ## Not yet production-ready / requires external commercial setup
 
 - Payment collection: a Moyasar integration path is implemented for server-created Payment Intents, card/Mada checkout, server-side payment verification, request payment state changes, and shared-secret authenticated/idempotent webhooks. It is NOT live until the merchant supplies `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, and `MOYASAR_WEBHOOK_SECRET`, configures the webhook URL, and completes test transactions. Apple Pay requires merchant activation and domain verification; recurring subscriptions, refund initiation UI, settlement reconciliation, and electronic invoicing remain incomplete. Never mark a request paid based only on the browser redirect.
-- Membership billing: plans are displayed but recurring billing, saved-card renewal, cancellation, proration, and dunning are not active.
-- Books: the current book catalog/request flow is not a connected digital storefront, payment, stock, or shipping system.
+- Membership billing: plans are displayed but recurring billing, saved-card renewal, cancellation, proration, and dunning are not active. The admin subscriptions entry is a readiness/status view, not a live subscription manager.
+- Electronic invoicing: a transaction ledger is available, but invoice-number generation, compliant tax invoice documents, and e-invoicing provider integration are not implemented. The admin invoices page is explicitly a payment-record view, not a legal invoice.
+- Books: the current book catalog/request flow is not a connected digital storefront, payment, stock, or shipping system. The admin screen edits catalog records and inventory but does not replace a full commerce/shipping integration.
+- Course catalog editing: the current curriculum and course lessons are maintained in the code catalog. Administration can assign active trainers to courses, but add/edit/archive course curriculum from the UI is not implemented.
+- Permissions: account role assignment and server-side role gates are implemented. A configurable per-action permission matrix (view/create/edit/delete/approve) is not implemented; the admin permissions page documents current role boundaries and links to role assignment.
 - Consultations: consultant-managed availability slots, public slot discovery, atomic reservation to prevent double booking, SAR quote approval, and payment-gated booking confirmation are implemented. Automatic reminders, customer self-service rescheduling/cancellation, calendar sync (Google/Outlook), and video-session provider integration still need setup and credentials. Zoom meetings are created during approval when Zoom OAuth is configured; join URLs are exposed only after verified payment.
 - Certificates: serial and QR verification, manager/admin issuance and revocation, personal certificate wallet, and automatic recorded-course issuance after verified completion are implemented. Live/hybrid issuance requires recorded attendance. Downloadable branded PDF output and course-specific attendance thresholds remain to be completed.
 - Licensed psychometric scales: no copyrighted/proprietary instrument should be published until the owner grants the required digital administration and scoring rights.

@@ -2,36 +2,53 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { courses, trainingCases } from "@/lib/platform-catalog";
 import {
-  Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
+  Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck, CreditCard, Wallet,
   FileText, GraduationCap, LayoutDashboard, MessageCircle, Settings,
-  ShieldCheck, ShoppingBag, Library, Users, Video, Glasses, Plus, Search,
+  ShieldCheck, ShoppingBag, Users, Video, Glasses, Plus, Search,
   Bell, ChevronLeft, CircleHelp, PanelRightClose
 } from "lucide-react";
 
 const sections = [
   { title:"الرئيسية", items:[["نظرة عامة",LayoutDashboard]] },
-  { title:"الأكاديمية والتعلم", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة عبر Zoom",Video],["قاعة التدريب المباشر",Video],["الشهادات",ShieldCheck]] },
-  { title:"المسارات التخصصية", items:[["منظومة التدريب التخصصي",Brain],["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
-  { title:"المحاكاة السريرية", items:[["إدارة سيناريوهات ومعايير التقييم",Settings],["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
-  { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["إتاحة مواعيد الاستشارات",CalendarDays],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
-  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["إدارة المكتبة العلمية",Library],["إدارة الشهادات",ShieldCheck],["مراجعة المجتمع المهني",MessageCircle],["الإعدادات والصلاحيات",Settings]] },
+  { title:"الإدارة الرئيسية", items:[
+    ["إدارة المستخدمين",Users],["إدارة الدورات والبرامج",GraduationCap],["إدارة المحتوى العلمي",BookOpen],
+    ["إدارة الكتب والمنتجات",ShoppingBag],["إدارة المقاييس والنماذج",ClipboardCheck],
+    ["إدارة الاستشارات",MessageCircle],["إدارة الاشتراكات",CreditCard],
+    ["المدفوعات",Wallet],["الفواتير",FileText],["إدارة الشهادات",ShieldCheck],
+    ["المجتمع والبلاغات",MessageCircle],["التقارير والإحصائيات",ChartNoAxesCombined],["إدارة الصلاحيات",Settings],
+  ] },
+  { title:"تشغيل الخدمات", items:[
+    ["طلبات المنصة والحجوزات",ClipboardCheck],["إتاحة مواعيد الاستشارات",CalendarDays],
+    ["الفصول المباشرة عبر Zoom",Video],["قاعة التدريب المباشر",Video],
+  ] },
+  { title:"التدريب والمحاكاة", items:[
+    ["منظومة التدريب التخصصي",Brain],["إدارة سيناريوهات ومعايير التقييم",Settings],
+    ["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],
+    ["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],
+    ["ملف الكفاءات المهنية",ChartNoAxesCombined],
+  ] },
 ] as const;
 
 const routeByLabel: Record<string,string> = {
-  "منظومة التدريب التخصصي": "/specialties",
-  "الدورات والبرامج": "/academy",
+  "إدارة المستخدمين": "/platform-admin/users",
+  "إدارة الدورات والبرامج": "/platform-admin/courses",
+  "إدارة المحتوى العلمي": "/platform-admin/content",
+  "إدارة الكتب والمنتجات": "/platform-admin/books",
+  "إدارة المقاييس والنماذج": "/platform-admin/forms",
+  "إدارة الاستشارات": "/platform-admin/availability",
+  "إدارة الاشتراكات": "/platform-admin/subscriptions",
+  "المدفوعات": "/platform-admin/payments",
+  "الفواتير": "/platform-admin/invoices",
+  "إدارة الشهادات": "/platform-admin/certificates",
+  "المجتمع والبلاغات": "/platform-admin/community",
+  "التقارير والإحصائيات": "/platform-admin/reports",
+  "إدارة الصلاحيات": "/platform-admin/permissions",
+  "طلبات المنصة والحجوزات": "/platform-admin/requests",
+  "إتاحة مواعيد الاستشارات": "/platform-admin/availability",
   "الفصول المباشرة عبر Zoom": "/classrooms",
   "قاعة التدريب المباشر": "/platform-admin/classrooms",
-  "الشهادات": "/certificates",
-  "إدارة الشهادات": "/platform-admin/certificates",
-  "الإعدادات والصلاحيات": "/platform-admin/users",
-  "الخدمة الاجتماعية": "/specialties?track=social-work",
-  "العلاج المعرفي السلوكي CBT": "/specialties?track=psychotherapy",
-  "اضطراب طيف التوحد": "/specialties?track=autism",
-  "الاضطرابات النمائية والإعاقة الذهنية": "/specialties?track=developmental",
-  "دراسة الحالة والمقاييس": "/specialties?section=case-study",
+  "منظومة التدريب التخصصي": "/specialties",
   "إدارة سيناريوهات ومعايير التقييم": "/simulation/manage",
   "مكتبة الحالات التدريبية": "/cases",
   "قاعة محاكاة الحالة": "/simulation",
@@ -39,31 +56,34 @@ const routeByLabel: Record<string,string> = {
   "جلسات الإشراف": "/supervision",
   "الشخصيات الافتراضية": "/characters",
   "تقييم لغة الجسد": "/posture",
-  "الغرف المشتركة": "/supervision",
   "ملف الكفاءات المهنية": "/competencies",
-  "مختبر المقاييس": "/specialties?section=scales",
-  "الاستشارات العلاجية والمهنية": "/consultations",
-  "إتاحة مواعيد الاستشارات": "/platform-admin/availability",
-  "المتجر المعرفي والكتب": "/books",
-  "تأجير قاعات Zoom": "/room-rental",
-  "إدارة الطلبات والحجوزات": "/platform-admin/requests",
-  "مراجعة تقارير المحاكاة": "/platform-admin/activities",
-  "المتدربون والمختصون": "/platform-admin/users",
-  "إدارة المحتوى العلمي": "/platform-admin/content",
-  "إدارة المكتبة العلمية": "/platform-admin/books",
-  "مراجعة المجتمع المهني": "/platform-admin/community",
 };
 
 const stats = [
-  {label:"إجمالي المتدربين",value:"—",note:"يتطلب تفعيل حسابات المتدربين الفردية",icon:Users,tone:"blue"},
-  {label:"البرامج التدريبية",value:String(courses.length),note:"برامج مدرجة في الكتالوج التدريبي",icon:GraduationCap,tone:"teal"},
-  {label:"سيناريوهات المحاكاة",value:String(trainingCases.length),note:"حالات افتراضية متاحة للتدريب",icon:Brain,tone:"violet"},
-  {label:"جلسات هذا الأسبوع",value:"—",note:"تظهر بعد إعداد الجدولة وربط حساب Zoom",icon:CalendarDays,tone:"amber"},
-];
+  {label:"حسابات المنصة",valueKey:"usersTotal",note:"كل حسابات الأدوار المسجلة",icon:Users,tone:"blue"},
+  {label:"الدورات التدريبية",valueKey:"courses",note:"دورات الكتالوج الحالي",icon:GraduationCap,tone:"teal"},
+  {label:"طلبات قيد المراجعة",valueKey:"pendingRequests",note:"تنتظر قرار الإدارة",icon:ClipboardCheck,tone:"violet"},
+  {label:"الشهادات السارية",valueKey:"issuedCertificates",note:"شهادات صادرة وغير ملغاة",icon:ShieldCheck,tone:"amber"},
+] as const;
 
 const modules = [
   [BookOpen,"التعليم والدورات"],[Video,"الفصول المباشرة"],[MessageCircle,"الاستشارات"],
   [ShoppingBag,"المتجر المعرفي"],[Glasses,"محاكاة VR"],[Brain,"الذكاء الاصطناعي"],[ClipboardCheck,"التقييم والكفاءات"]
+] as const;
+
+const adminShortcuts = [
+  {label:"إدارة المستخدمين",description:"الحسابات والأدوار والحالات",href:"/platform-admin/users",icon:Users},
+  {label:"إدارة الدورات",description:"كتالوج البرامج وإسناد المدربين",href:"/platform-admin/courses",icon:GraduationCap},
+  {label:"إدارة المحتوى",description:"المقالات العلمية والنشر",href:"/platform-admin/content",icon:BookOpen},
+  {label:"الكتب والمنتجات",description:"الكتب الرقمية والورقية والمخزون",href:"/platform-admin/books",icon:ShoppingBag},
+  {label:"المقاييس والنماذج",description:"سجلات النماذج وأدوات التقدير",href:"/platform-admin/forms",icon:ClipboardCheck},
+  {label:"الاستشارات",description:"المواعيد والحجوزات",href:"/platform-admin/availability",icon:CalendarDays},
+  {label:"الاشتراكات",description:"جاهزية العضويات والتجديد",href:"/platform-admin/subscriptions",icon:CreditCard},
+  {label:"المدفوعات والفواتير",description:"سجل العمليات والمبالغ",href:"/platform-admin/invoices",icon:Wallet},
+  {label:"الشهادات",description:"الإصدار والتحقق والإلغاء",href:"/platform-admin/certificates",icon:ShieldCheck},
+  {label:"المجتمع والبلاغات",description:"المشاركات والتقارير المفتوحة",href:"/platform-admin/community",icon:MessageCircle},
+  {label:"التقارير والإحصائيات",description:"مؤشرات التشغيل والأداء",href:"/platform-admin/reports",icon:ChartNoAxesCombined},
+  {label:"إدارة الصلاحيات",description:"الأدوار وحدود الوصول",href:"/platform-admin/permissions",icon:Settings},
 ] as const;
 
 export default function HomePage() {
@@ -74,6 +94,9 @@ export default function HomePage() {
   const [active,setActive] = useState("نظرة عامة");
   const [query,setQuery] = useState("");
   const [sidebarOpen,setSidebarOpen] = useState(true);
+  const [overview,setOverview] = useState<{totals:Record<string,number>;generatedAt:string}|null>(null);
+  const [overviewError,setOverviewError] = useState("");
+  useEffect(()=>{if(!authorized)return;let active=true;fetch("/api/platform/admin/overview",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error||"تعذر تحميل المؤشرات.");if(active)setOverview(data)}).catch(error=>{if(active)setOverviewError(error instanceof Error?error.message:"تعذر تحميل المؤشرات.")});return()=>{active=false}},[authorized]);
 
   if(checking)return <main className="app-shell" dir="rtl"><div className="portal-empty">جارٍ التحقق من صلاحية الإدارة...</div></main>;
   if(!authorized)return null;
@@ -104,7 +127,7 @@ export default function HomePage() {
         <div className="topbar-actions">
           <label className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="ابحث في المنصة..."/></label>
           <button className="icon-button notification-button" aria-label="الإشعارات"><Bell size={19}/><i/></button>
-          <a className="admin-profile" href="/login" style={{ textDecoration: "none", color: "inherit" }}><div className="avatar">د</div><div><strong>دخول المنصة</strong><span>حسابات وصلاحيات مستقلة</span></div></a>
+          <a className="admin-profile" href="/platform-admin/users" style={{ textDecoration: "none", color: "inherit" }}><div className="avatar">إ</div><div><strong>إدارة الحسابات</strong><span>المستخدمون والأدوار</span></div></a>
         </div>
       </header>
 
@@ -122,9 +145,11 @@ export default function HomePage() {
 
         <div className="stats-grid">{stats.map(stat=><article className="stat-card" key={stat.label}>
           <div className={`stat-icon ${stat.tone}`}><stat.icon size={20}/></div>
-          <div className="stat-label">{stat.label}</div><div className="stat-value">{stat.value}</div><div className="stat-note">{stat.note}</div>
+          <div className="stat-label">{stat.label}</div><div className="stat-value">{overview?Number(overview.totals[stat.valueKey]||0).toLocaleString("ar-SA"):"—"}</div><div className="stat-note">{stat.note}</div>
         </article>)}</div>
 
+        {overviewError&&<div className="portal-callout" role="alert">{overviewError}</div>}
+        <section className="panel roadmap-panel admin-shortcuts-panel"><div className="panel-heading"><div><h2>مراكز الإدارة</h2><p>الوصول المباشر إلى وحدات الإدارة من مكان واحد</p></div></div><div className="quick-grid">{adminShortcuts.map(({label,description,href,icon:Icon},index)=><button key={href} onClick={()=>router.push(href)}><span className={"quick-icon "+(["teal","blue","violet","amber"][index%4])}><Icon size={19}/></span><strong>{label}</strong><small>{description}</small></button>)}</div></section>
         <div className="content-grid">
           <section className="panel activity-panel">
             <div className="panel-heading"><div><h2>مسار تشغيل المنظومة</h2><p>الوحدات الأساسية وما يتطلب ربطاً واعتماداً قبل الإطلاق</p></div><span className="roadmap-tag">خطة التشغيل</span></div>
@@ -140,7 +165,7 @@ export default function HomePage() {
             <div className="quick-grid">
               <button onClick={()=>router.push("/cases")}><span className="quick-icon teal"><Brain size={19}/></span><strong>إعداد حالة تدريبية</strong><small>كتابة السيناريو السريري</small></button>
               <button onClick={()=>router.push("/characters")}><span className="quick-icon blue"><Users size={19}/></span><strong>إعداد شخصية افتراضية</strong><small>تعليمات الشخصية وصوتها</small></button>
-              <button onClick={()=>router.push("/academy")}><span className="quick-icon violet"><GraduationCap size={19}/></span><strong>إضافة دورة</strong><small>برنامج تدريبي جديد</small></button>
+              <button onClick={()=>router.push("/platform-admin/courses")}><span className="quick-icon violet"><GraduationCap size={19}/></span><strong>إدارة الدورات</strong><small>إسناد المدربين ومتابعة البرامج</small></button>
               <button onClick={()=>router.push("/competencies")}><span className="quick-icon amber"><ChartNoAxesCombined size={19}/></span><strong>ملفات الكفاءات</strong><small>تقييم أداء المتدربين</small></button>
             </div>
           </section>
