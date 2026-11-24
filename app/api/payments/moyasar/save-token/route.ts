@@ -1,9 +1,12 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
 import {encryptPlatformSecret} from "@/lib/platform-crypto";
+import {requirePlatformRole} from "@/lib/platform-auth";
 export const runtime="nodejs";
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
 export async function POST(request:NextRequest){
+ const actor=await requirePlatformRole(request,["trainee","trainer","consultant","supervisor","admin","platform_manager"]);
+ if(!actor)return NextResponse.json({error:"سجّل الدخول لحفظ وسيلة الدفع."},{status:401});
  const origin=request.headers.get("origin");if(origin&&origin!==request.nextUrl.origin)return NextResponse.json({error:"مصدر الطلب غير مسموح."},{status:403});
  let body:unknown;try{body=await request.json()}catch{return NextResponse.json({error:"بيانات البطاقة المحفوظة غير صالحة."},{status:400})}
  if(!body||typeof body!=="object"||Array.isArray(body))return NextResponse.json({error:"بيانات البطاقة مطلوبة."},{status:400});
