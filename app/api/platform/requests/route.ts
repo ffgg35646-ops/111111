@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
+import { sendConsultationNotice } from "@/lib/consultation-notifications";
 
 export const runtime = "nodejs";
 
@@ -121,6 +122,9 @@ export async function POST(request: NextRequest) {
     const slotId = cleanText(data.slotId, 80);
     if (!consultationServices.has(serviceId) || !/^[0-9a-f-]{36}$/i.test(slotId)) return NextResponse.json({ error: "اختر مجال الاستشارة وموعداً منشوراً من مقدم الخدمة." }, { status: 400 });
     record.serviceId = serviceId;
+    record.consultationType = serviceId;
+    record.deliveryMode = "video";
+    record.videoPlatform = "zoom";
     record.slotId = slotId;
     record.consent = data.consent === true;
     record.requestNote = cleanText(data.requestNote, 500);
@@ -213,6 +217,19 @@ export async function POST(request: NextRequest) {
       if (reservedSlotId) await db.collection("platform_consultant_slots").updateOne({ slotId: reservedSlotId, reservationId: record.requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
       for (const item of reservedBooks) await db.collection("etzan_books").updateOne({bookId:item.bookId},{$inc:{stock:item.quantity,reserved:-item.quantity}});
       throw error;
+    }
+    if (kind === "consultation") {
+      const manageUrl = new URL("/my-consultations", request.nextUrl.origin);
+      manageUrl.searchParams.set("requestId", String(record.requestId));
+      manageUrl.searchParams.set("email", email);
+      await sendConsultationNotice(db, {
+        requestId: String(record.requestId),
+        email,
+        recipientName: name,
+        subject: "تم استلام طلب الاستشارة - اتزان",
+        message: "استلمنا طلبك بنجاح. الموعد محجوز مؤقتاً لمدة 90 دقيقة حتى اعتماد السعر وإتمام الدفع المسبق. رقم الطلب: " + String(record.requestId),
+        actionUrl: manageUrl.toString(),
+      });
     }
     return NextResponse.json({
       success: true,
