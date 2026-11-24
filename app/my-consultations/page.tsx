@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, Clock3, CreditCard, Video } from "lucide-react";
+import { CalendarDays, CreditCard, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
 type Appointment = {
@@ -38,8 +38,8 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function MyConsultationsPage() {
-  const [requestId, setRequestId] = useState("");
-  const [email, setEmail] = useState("");
+  const [requestId, setRequestId] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("requestId") || "" : "");
+  const [email, setEmail] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("email") || "" : "");
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [date, setDate] = useState(today());
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -50,12 +50,6 @@ export default function MyConsultationsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-
-  useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    setRequestId(query.get("requestId") || "");
-    setEmail(query.get("email") || "");
-  }, []);
 
   async function lookup(id = requestId, mail = email) {
     setLoading(true);
@@ -80,29 +74,37 @@ export default function MyConsultationsPage() {
     }
   }
 
+  const appointmentRequestId = appointment?.requestId;
+  const appointmentStatus = appointment?.status;
+  const appointmentPaymentStatus = appointment?.paymentStatus;
+  const appointmentServiceId = appointment?.serviceId;
+  const appointmentProviderUserId = appointment?.providerUserId;
+  const appointmentSlotId = appointment?.slotId;
+
   useEffect(() => {
-    if (!appointment || appointment.status !== "approved" || appointment.paymentStatus !== "paid") return;
+    if (!appointmentRequestId || appointmentStatus !== "approved" || appointmentPaymentStatus !== "paid") return;
     let active = true;
-    const query = new URLSearchParams({ serviceId: appointment.serviceId, date, timezoneOffset: String(new Date().getTimezoneOffset()) });
+    const query = new URLSearchParams({ serviceId: appointmentServiceId || "", date, timezoneOffset: String(new Date().getTimezoneOffset()) });
     if (providerUserId) query.set("providerUserId", providerUserId);
     fetch("/api/platform/consultation-slots?" + query.toString(), { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "تعذر تحميل التقويم.");
         if (!active) return;
-        setProviders(data.providers || []);
-        if (!providerUserId && data.providers?.length) {
-          const currentProvider = data.providers.find((provider: Provider) => provider.userId === appointment.providerUserId);
-          setProviderUserId(currentProvider?.userId || data.providers[0].userId);
+        const availableProviders = data.providers || [];
+        setProviders(availableProviders);
+        if (!providerUserId && availableProviders.length) {
+          const currentProvider = availableProviders.find((provider: Provider) => provider.userId === appointmentProviderUserId);
+          setProviderUserId(currentProvider?.userId || availableProviders[0].userId);
           return;
         }
-        const available = (data.slots || []).filter((slot: Slot) => slot.slotId !== appointment.slotId);
+        const available = (data.slots || []).filter((slot: Slot) => slot.slotId !== appointmentSlotId);
         setSlots(available);
         setNewSlotId((current) => available.some((slot: Slot) => slot.slotId === current) ? current : available[0]?.slotId || "");
       })
       .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "تعذر تحميل التقويم."); });
     return () => { active = false; };
-  }, [appointment?.requestId, appointment?.status, appointment?.paymentStatus, appointment?.serviceId, appointment?.providerUserId, appointment?.slotId, date, providerUserId]);
+  }, [appointmentRequestId, appointmentStatus, appointmentPaymentStatus, appointmentServiceId, appointmentProviderUserId, appointmentSlotId, date, providerUserId]);
 
   async function manage(action: "cancel" | "reschedule") {
     if (action === "reschedule" && !newSlotId) { setError("اختر الموعد الجديد أولاً."); return; }
