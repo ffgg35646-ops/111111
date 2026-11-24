@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { getClinicalDatabase } from "@/lib/mongodb";
+import { recordPlatformAiUsage } from "@/lib/platform-ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 20;
@@ -17,7 +18,8 @@ const DOCTOR_IDENTITY = [
 ].join("\n");
 
 export async function POST(request: NextRequest) {
-  if (!(await requirePlatformRole(request, ["admin", "supervisor", "trainer", "trainee", "consultant"]))) {
+  const actor = await requirePlatformRole(request, ["admin", "platform_manager", "supervisor", "trainer", "trainee", "consultant"]);
+  if (!actor) {
     return NextResponse.json({ error: "سجّل الدخول إلى حسابك قبل تشغيل الاتصال الصوتي الحي." }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
   const apiKey = process.env.OPENAI_API_KEY;
@@ -149,10 +151,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const realtimeModel = payload.session?.model ?? process.env.CLINICAL_REALTIME_MODEL ?? "gpt-realtime-2.1";
+    await recordPlatformAiUsage({
+      feature: "realtime_voice_session", provider: "openai-realtime",
+      actorUserId: actor.userId, actorRole: actor.role, model: realtimeModel,
+      eventStatus: "session_created",
+      note: "تم تسجيل بدء الجلسة فقط؛ تكلفة الصوت الفعلية غير متاحة من استجابة إنشاء الجلسة.",
+      referenceId: payload.session?.id,
+    });
     return NextResponse.json({
       value: payload.value,
       expires_at: payload.expires_at ?? null,
-      session: { id: payload.session?.id ?? null, model: payload.session?.model ?? process.env.CLINICAL_REALTIME_MODEL ?? "gpt-realtime-2.1" },
+      session: { id: payload.session?.id ?? null, model: realtimeModel },
     }, { headers: { "Cache-Control": "no-store", "Pragma": "no-cache" } });
   } catch (error) {
     console.error("Realtime client secret request failed", error);
