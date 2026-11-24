@@ -20,7 +20,7 @@ const supervisorScoreKeys = [
 ] as const;
 
 export async function GET(request: NextRequest) {
-  const reviewer = await requirePlatformRole(request, ["admin", "platform_manager", "supervisor", "quality_manager"]);
+  const reviewer = await requirePlatformRole(request, ["admin", "platform_manager", "supervisor", "trainer", "quality_manager"]);
   if (!reviewer) {
     return NextResponse.json({ error: "عرض تقارير المحاكاة متاح للمشرف أو إدارة المنصة فقط." }, { status: 403 });
   }
