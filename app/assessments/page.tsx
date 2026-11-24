@@ -73,7 +73,7 @@ export default function AssessmentsPage(){
         <div>{item.choices.map((choice,choiceIndex)=><button key={choice} className={answers[index]===choiceIndex?"selected":""} onClick={()=>setAnswers(current=>({...current,[index]:choiceIndex}))}>{choice}</button>)}</div>
         {answers[index]!==undefined&&<p className={answers[index]===item.answer?"correct":"incorrect"}>{answers[index]===item.answer?"إجابة صحيحة. ":"راجع المفهوم. "}{item.why}</p>}
       </article>)}
-      {answered===quiz.length&&<div className="quiz-result"><CheckCircle2 size={18}/> نتيجتك التعليمية: {score} من {quiz.length}<button className="portal-button" disabled={saving} onClick={()=>void saveAttempt()}>{saving?"جارٍ حفظ النتيجة...":"حفظ نتيجتي"}</button></div>}
+      {answered===quiz.length&&<div className="quiz-result"><CheckCircle2 size={18}/> نتيجتك التعليمية: {score} من {quiz.length}<button className="portal-button" disabled={saving||Boolean(saveMessage)} onClick={()=>void saveAttempt()}>{saving?"جارٍ حفظ النتيجة...":saveMessage?"تم حفظ النتيجة":"حفظ نتيجتي"}</button></div>}
       {saveMessage&&<p role="status" style={{color:"#18745e"}}>{saveMessage}</p>}
       {saveError&&<p role="alert" style={{color:"#a33"}}>{saveError}</p>}
     </section>

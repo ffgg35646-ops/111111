@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Activity, ArrowUpLeft, Award, BookOpen, Brain, CalendarDays, CheckCircle2,
-  ClipboardCheck, Clock3, CreditCard, GraduationCap, PlayCircle, TrendingUp, Video,
+  Activity, ArrowUpLeft, Award, BookOpen, Brain, CalendarDays,
+  ClipboardCheck, GraduationCap, PlayCircle, TrendingUp, Video,
   type LucideIcon,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
