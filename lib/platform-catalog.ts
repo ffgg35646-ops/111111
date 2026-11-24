@@ -558,8 +558,6 @@ export const trainingCases: TrainingCase[] = [
   },
 ];
 
-];
-
 export const practiceScales = [
   {
     id: "functional-observation",
