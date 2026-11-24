@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { recordSecurityEvent } from "@/lib/platform-security";
 import {
-  createPasswordHash, issuePlatformSession, parsePasswordHash,
+  createPasswordHash, isPlatformSessionActive, issuePlatformSession, parsePasswordHash,
   platformSessionCookieOptions, PLATFORM_SESSION_COOKIE, readPlatformSession,
   verifyStoredPassword,
 } from "@/lib/platform-auth";
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const session = await readPlatformSession(request);
-  if (!session || !session.sessionId || !session.deviceId) return NextResponse.json({ error: "سجّل الدخول أولاً." }, { status: 401 });
+  if (!session || !session.sessionId || !session.deviceId || !(await isPlatformSessionActive(session))) return NextResponse.json({ error: "انتهت الجلسة أو تم إنهاؤها. سجّل الدخول مجدداً." }, { status: 401 });
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ error: "مصدر الطلب غير مسموح." }, { status: 403 });
 

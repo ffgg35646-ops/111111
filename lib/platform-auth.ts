@@ -99,6 +99,24 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
   } catch { return null; }
 }
 
+export async function isPlatformSessionActive(session: PlatformSession) {
+  if (!session.sessionId || !session.deviceId) return false;
+  try {
+    const db = await getClinicalDatabase();
+    const record = await db.collection("platform_sessions").findOne({
+      sessionId: session.sessionId,
+      userId: session.userId,
+      deviceId: session.deviceId,
+      status: "active",
+      expiresAt: { $gt: new Date() },
+    }, { projection: { _id: 1 } });
+    return Boolean(record);
+  } catch (error) {
+    console.error("Unable to verify active platform session", error);
+    return false;
+  }
+}
+
 export async function requirePlatformRole(request: NextRequest, roles: PlatformRole[]) {
   const session = await readPlatformSession(request);
   if (!session || session.mustChangePassword || !session.sessionId || !session.deviceId) return null;
