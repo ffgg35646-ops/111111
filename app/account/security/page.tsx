@@ -23,7 +23,24 @@ export default function AccountSecurityPage() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "تعذر تحميل الأجهزة."); }
     finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/devices", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل الأجهزة.");
+        if (active) {
+          setSessions(data.sessions || []);
+          setMaxDevices(data.maxDevices || 2);
+          setActiveDevices(data.activeDevices || 0);
+        }
+      })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : "تعذر تحميل الأجهزة.");
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
   async function revoke(sessionId: string) {
     setBusy(sessionId); setError(""); setNotice("");
     try {
