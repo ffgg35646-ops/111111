@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
         model, usage: result.usage, providerMetadata: (result as unknown as { providerMetadata?: unknown }).providerMetadata,
         referenceId: draftId,
       });
-      return NextResponse.json({ success: true, draftId, courseTitle: course.title, questions, status: "pending_review" }, { status: 201, headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json({ success: true, draftId, courseId, courseTitle: course.title, questions, status: "pending_review" }, { status: 201, headers: { "Cache-Control": "no-store" } });
     }
 
     if (task === "scenario") {
