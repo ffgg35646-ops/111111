@@ -102,3 +102,8 @@ See [ETZAN platform requirements](docs/ETZAN-PLATFORM-REQUIREMENTS.md) and [impl
 ## مختبر المحاكاة الافتراضية
 
 راجع [دليل استوديو المحاكاة وإدارة السيناريوهات ومعايير التقييم](docs/etzan-simulation-studio.md) لتفاصيل `/simulation` و`/simulation/manage` ولوحة مراجعة أداء المتدربين ومتغيرات التشغيل المطلوبة.
+
+
+## الاستشارات والحجز المسبق
+
+راجع [دليل حجز الاستشارات وإدارة المواعيد والدفع المرئي](docs/etzan-consultation-booking.md) لتفاصيل اختيار مقدم الخدمة والتقويم والدفع عبر Moyasar وربط Zoom والإشعارات والإلغاء وإعادة الجدولة.
