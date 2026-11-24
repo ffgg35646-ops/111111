@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const db = await getClinicalDatabase();
     const [indexState, recentJob] = await Promise.all([
       db.collection("platform_ai_knowledge_index_state").findOne(
-        { _id: "published-content" },
+        { indexKey: "published-content" },
         { projection: { _id: 0 } },
       ),
       db.collection("platform_ai_knowledge_index_jobs").findOne(
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     if (result.done) {
       const now = new Date();
       await db.collection("platform_ai_knowledge_index_state").updateOne(
-        { _id: "published-content" },
+        { indexKey: "published-content" },
         { $set: {
           activeRunId: jobId,
           sourceCount: Number(job.sourceCount || 0),

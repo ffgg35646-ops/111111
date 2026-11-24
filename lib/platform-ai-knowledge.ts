@@ -122,7 +122,7 @@ export async function searchSemanticKnowledge(query: string, actor: KnowledgeAct
   if (!gatewayConfigured() || process.env.ETZAN_AI_VECTOR_SEARCH_ENABLED !== "true") return null;
   try {
     const db = await getClinicalDatabase();
-    const state = await db.collection("platform_ai_knowledge_index_state").findOne({ _id: "published-content" });
+    const state = await db.collection("platform_ai_knowledge_index_state").findOne({ indexKey: "published-content" });
     const activeRunId = typeof state?.activeRunId === "string" ? state.activeRunId : "";
     if (!activeRunId) return null;
 
