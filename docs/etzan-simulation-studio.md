@@ -52,3 +52,13 @@ The current default GLB is a rigged generic adult male avatar from the documente
 - AI review is educational support, not diagnosis, licensure, or a final professional judgment.
 - Trainer review is separately recorded with reviewer identity and audit logging.
 - Raw microphone audio is not stored by the simulation activity route; conversation transcripts may be stored with the report.
+
+## AI usage, safety and draft creation
+
+- The general learning assistant is available at `/assistant`. It searches published article/book records and the current course catalog using bounded keyword ranking. Full semantic indexing over every attachment is still a separate future phase.
+- Quiz generation stores a reviewable draft in `platform_ai_quiz_drafts`; only an explicit authorized approval copies the question set to the course quiz collection.
+- Scenario generation writes a new scenario in inactive state. A trainer/supervisor must inspect its briefing, hidden context, steps, scores, safety note, and avatar before activation.
+- Text-model generation and simulation feedback write a separate `platform_ai_usage` record. Reported token and USD cost fields are taken from AI Gateway metadata when supplied. Missing cost information is not estimated.
+- Realtime voice session creation is logged as a session event. The completed voice session's actual metered usage is not yet ingested by the application and must be reviewed with the provider.
+- The `/platform-admin/ai` page is restricted to platform administrators and summarizes usage, reported costs, and pending AI drafts.
+
