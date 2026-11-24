@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       ).sort({ createdAt: -1 }).limit(100).toArray(),
       db.collection("platform_learning_activities").find(
         { "trainee.userId": actor.userId },
-        { projection: { _id: 0, activityId: 1, caseTitle: 1, score: 1, completedAt: 1, aiReviewStatus: 1, supervisorReview: 1, clinicalFormulation: { reviewStatus: 1 } } },
+        { projection: { _id: 0, activityId: 1, caseTitle: 1, score: 1, completedAt: 1, aiReviewStatus: 1, supervisorReview: 1, "clinicalFormulation.reviewStatus": 1 } },
       ).sort({ completedAt: -1 }).limit(30).toArray(),
       db.collection("platform_assessment_attempts").find(
         { userId: actor.userId },
@@ -96,11 +96,12 @@ export async function GET(request: NextRequest) {
     const completedLessonCount = activeCourses.reduce((sum, course) => sum + course.completedLessons, 0);
     const totalLessonCount = activeCourses.reduce((sum, course) => sum + course.totalLessons, 0);
     const completedCourses = activeCourses.filter((course) => course.totalLessons > 0 && course.completedLessons === course.totalLessons).length;
+    const toTimestamp = (value: unknown) => value instanceof Date ? value.getTime() : new Date(String(value || "")).getTime();
     const upcomingAppointments = consultations.filter((item) => {
-      const time = item.preferredAt ? new Date(item.preferredAt as string | Date).getTime() : NaN;
+      const time = item.preferredAt ? toTimestamp(item.preferredAt) : NaN;
       return Number.isFinite(time) && time >= Date.now() && !["cancelled", "rejected", "refunded"].includes(String(item.status));
     }).length;
-    const upcomingSessions = sessions.filter((item) => new Date(item.startTime as string | Date).getTime() >= Date.now()).length;
+    const upcomingSessions = sessions.filter((item) => toTimestamp(item.startTime) >= Date.now()).length;
 
     return NextResponse.json({
       user: { name: actor.name, email: actor.email },

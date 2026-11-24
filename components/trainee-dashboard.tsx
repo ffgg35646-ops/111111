@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Activity, ArrowUpLeft, Award, BookOpen, Brain, CalendarDays, CheckCircle2,
   ClipboardCheck, Clock3, CreditCard, GraduationCap, PlayCircle, TrendingUp, Video,
+  type LucideIcon,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
@@ -43,7 +44,7 @@ function SectionHeading({ title, description, href, linkLabel }: { title: string
   return <div className="portal-section-title"><div><h2>{title}</h2><p>{description}</p></div>{href && <Link className="portal-link-button secondary" href={href}>{linkLabel || "عرض الكل"} <ArrowUpLeft size={14}/></Link>}</div>;
 }
 
-function Metric({ icon: Icon, label, value, hint }: { icon: typeof BookOpen; label: string; value: number | string; hint: string }) {
+function Metric({ icon: Icon, label, value, hint }: { icon: LucideIcon; label: string; value: number | string; hint: string }) {
   return <article className="portal-card" style={{ padding: 18, minHeight: 126 }}>
     <span className="track-icon"><Icon size={19}/></span>
     <div style={{ fontSize: 25, fontWeight: 800, marginTop: 10, lineHeight: 1.2 }}>{value}</div>
