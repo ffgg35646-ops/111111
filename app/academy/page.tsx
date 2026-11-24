@@ -21,7 +21,7 @@ function AcademyWorkspace() {
   const filtered=useMemo(()=>courses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[track,mode]);
   const chosen=courses.find(course=>course.id===selectedCourse);
 
-  return <PlatformLayout title="الأكاديمية والمسارات التدريبية" description="برامج منظمة للتأهيل في الخدمة الاجتماعية والصحة النفسية وCBT والتوحد والاضطرابات النمائية، مع محتوى مسجل ولقاءات مباشرة.">
+  return <PlatformLayout title="الأكاديمية والمسارات التدريبية" description="برامج منظمة في الخدمة الاجتماعية وعلم النفس وCBT والإرشاد الأسري والاضطرابات النمائية والتوحد والقياس النفسي والممارسة الإكلينيكية والتطوير المهني.">
     <div className="portal-callout">اختر دورة لفتح وحداتها التعليمية والأنشطة القصيرة واختبار الفهم. تسجيلات الفيديو تظهر عند إضافة رابط التسجيل المعتمد لكل دورة، أما الفصول المباشرة فتُنسق عبر Zoom بعد اعتماد طلب الالتحاق.</div>
     <div className="portal-section-title"><div><h2>المسارات التخصصية</h2><p>اختر مجالاً لاستعراض البرامج ذات الصلة</p></div></div>
     <div className="portal-grid">
