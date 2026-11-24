@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
 import {requirePlatformRole} from "@/lib/platform-auth";
+import {isTrainerCourseOwner} from "@/lib/platform-trainer";
 export const runtime="nodejs";
 const managers=["admin","platform_manager","supervisor","trainer"] as const;
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
@@ -10,6 +11,7 @@ export async function GET(request:NextRequest){
  try{
   const db=await getClinicalDatabase(),session=await db.collection("platform_classroom_sessions").findOne({sessionId},{projection:{_id:0,sessionId:1,courseId:1,courseTitle:1,topic:1,startTime:1,status:1}});
   if(!session)return NextResponse.json({error:"الجلسة غير موجودة."},{status:404});
+  if(actor.role==="trainer"&&!(await isTrainerCourseOwner(db,String(session.courseId||""),actor.userId)))return NextResponse.json({error:"لا يمكنك عرض حضور دورة غير مسندة إلى حسابك."},{status:403});
   const registrations=await db.collection("platform_requests").find({kind:"classroom_registration",courseId:session.courseId,status:"approved"},{projection:{_id:0,email:1,name:1,requestId:1}}).toArray();
   const emails=[...new Set(registrations.map(r=>String(r.email||"").toLowerCase()).filter(Boolean))];
   const users=emails.length?await db.collection("platform_users").find({email:{$in:emails},status:"active"},{projection:{_id:0,userId:1,email:1,name:1}}).toArray():[];
@@ -28,6 +30,7 @@ export async function POST(request:NextRequest){
  try{
   const db=await getClinicalDatabase(),session=await db.collection("platform_classroom_sessions").findOne({sessionId,status:{$ne:"cancelled"}});
   if(!session)return NextResponse.json({error:"الجلسة غير موجودة أو ملغاة."},{status:404});
+  if(actor.role==="trainer"&&!(await isTrainerCourseOwner(db,String(session.courseId||""),actor.userId)))return NextResponse.json({error:"لا يمكنك تسجيل حضور دورة غير مسندة إلى حسابك."},{status:403});
   const user=await db.collection("platform_users").findOne({userId,status:"active"},{projection:{_id:0,userId:1,email:1,name:1}});
   if(!user)return NextResponse.json({error:"حساب المتدرب غير موجود أو غير نشط."},{status:404});
   const registration=await db.collection("platform_requests").findOne({kind:"classroom_registration",courseId:session.courseId,email:String(user.email).toLowerCase(),status:"approved"});

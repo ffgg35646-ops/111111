@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
-import { ensurePlatformCourseCertificate, scorePlatformCourseQuiz } from "@/lib/platform-certificates";
+import { ensurePlatformCourseCertificate } from "@/lib/platform-certificates";
+import { getPlatformCourseQuiz, scorePlatformCourseQuiz, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
 
 export const runtime = "nodejs";
 
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
         { status: 402 },
       );
     }
-    const [record, certificate] = await Promise.all([
+    const [record, certificate, quizDocument] = await Promise.all([
       db.collection("platform_course_progress").findOne(
         { userId: actor.userId, courseId },
         { projection: { _id: 0, completedLessons: 1, reflection: 1, quizAnswers: 1, quizChecked: 1, updatedAt: 1 } },
@@ -58,9 +59,14 @@ export async function GET(request: NextRequest) {
         { userId: actor.userId, courseId },
         { projection: { _id: 0, serial: 1, courseTitle: 1, issuedAt: 1, status: 1, revokedAt: 1 } },
       ),
+      db.collection("platform_course_quizzes").findOne(
+        { courseId },
+        { projection: { _id: 0, questions: 1 } },
+      ),
     ]);
+    const quiz = getPlatformCourseQuiz(course.trackId, Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null);
     return NextResponse.json(
-      { ...(record || { completedLessons: [], reflection: "", quizAnswers: {}, quizChecked: false }), certificate },
+      { ...(record || { completedLessons: [], reflection: "", quizAnswers: {}, quizChecked: false }), certificate, quiz },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
@@ -132,7 +138,12 @@ export async function POST(request: NextRequest) {
       { upsert: true },
     );
 
-    const quiz = scorePlatformCourseQuiz(course.trackId, quizAnswers, quizChecked);
+    const quizDocument = await db.collection("platform_course_quizzes").findOne(
+      { courseId },
+      { projection: { _id: 0, questions: 1 } },
+    );
+    const customQuiz = Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null;
+    const quiz = scorePlatformCourseQuiz(course.trackId, quizAnswers, quizChecked, customQuiz);
     let attendanceVerified = course.mode === "recorded";
     if (actor.role === "trainee" && completed.length === course.lessons.length && quiz.passed && course.mode !== "recorded") {
       const attendance = await db.collection("platform_classroom_attendance").findOne(

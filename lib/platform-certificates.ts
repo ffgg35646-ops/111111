@@ -9,18 +9,7 @@ export function isPlatformCertificateSerial(value: string) {
   return /^[A-Z0-9-]{12,60}$/.test(value);
 }
 
-export function scorePlatformCourseQuiz(trackId: string, answers: Record<string, unknown>, checked: boolean) {
-  const correctByTrack: Record<string, number[]> = {
-    "social-work": [1, 0, 1],
-    cbt: [0, 1, 1],
-    autism: [1, 0, 1],
-    developmental: [1, 0, 0],
-    "mental-health": [0, 1, 1],
-  };
-  const correct = correctByTrack[trackId] || correctByTrack["mental-health"];
-  const score = correct.reduce((total, answer, index) => total + (answers[String(index)] === answer ? 1 : 0), 0);
-  return { score, total: correct.length, passed: checked && score >= 2 };
-}
+export { scorePlatformCourseQuiz } from "@/lib/platform-quizzes";
 
 export async function ensurePlatformCourseCertificate(
   db: Db,

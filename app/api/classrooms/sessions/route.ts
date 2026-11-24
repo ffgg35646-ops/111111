@@ -4,6 +4,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { createZoomMeeting, deleteZoomMeeting, getZoomMeetingRecording } from "@/lib/zoom";
+import { isTrainerCourseOwner } from "@/lib/platform-trainer";
 export const runtime="nodejs";
 const managers=["admin","platform_manager","supervisor","trainer"] as const;
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
@@ -16,6 +17,7 @@ export async function GET(request:NextRequest){
  try{
   const db=await getClinicalDatabase();
   const filter:Record<string,unknown>={status:{$ne:"cancelled"}};
+  if(actor.role==="trainer") filter.createdBy=actor.userId;
   if(actor.role==="trainee"){
    const registrations=await db.collection("platform_requests").find(
     {email:actor.email.toLowerCase(),kind:"classroom_registration",status:"approved"},
@@ -54,6 +56,8 @@ export async function POST(request:NextRequest){
   return NextResponse.json({error:"حدد عنوان الجلسة وموعداً بعد خمس دقائق على الأقل ومدة من 15 إلى 480 دقيقة."},{status:400});
  if(recordingAllowed&&d.recordingConsentConfirmed!==true)return NextResponse.json({error:"يلزم تأكيد إبلاغ المشاركين والحصول على موافقتهم قبل تفعيل التسجيل."},{status:400});
  try{
+  const db=await getClinicalDatabase();
+  if(actor.role==="trainer"&&!(await isTrainerCourseOwner(db,course.id,actor.userId)))return NextResponse.json({error:"لا يمكنك جدولة جلسة لدورة غير مسندة إلى حسابك."},{status:403});
   const meeting=await createZoomMeeting({topic,startTime,durationMinutes,recordingAllowed});
   const now=new Date(),session={
    sessionId:randomUUID(),provider:"zoom",meetingId:meeting.meetingId,courseId:course.id,courseTitle:course.title,topic,
@@ -62,7 +66,6 @@ export async function POST(request:NextRequest){
    ...(recordingAllowed?{recordingConsentConfirmedAt:now,recordingConsentConfirmedBy:actor.userId}:{}),
    status:"scheduled",createdBy:actor.userId,createdAt:now,updatedAt:now,
   };
-  const db=await getClinicalDatabase();
   await db.collection("platform_classroom_sessions").createIndex({sessionId:1},{unique:true});
   try{await db.collection("platform_classroom_sessions").insertOne(session);}
   catch(error){await deleteZoomMeeting(meeting.meetingId).catch(()=>{});throw error;}
@@ -82,6 +85,7 @@ export async function PATCH(request:NextRequest){
  try{
   const db=await getClinicalDatabase(),collection=db.collection("platform_classroom_sessions"),session=await collection.findOne({sessionId});
   if(!session)return NextResponse.json({error:"الجلسة غير موجودة."},{status:404});
+  if(actor.role==="trainer"&&session.createdBy!==actor.userId)return NextResponse.json({error:"لا يمكنك تعديل جلسة أنشأها مدرب آخر."},{status:403});
   if(action==="cancel"){
    if(session.status==="cancelled")return NextResponse.json({success:true,status:"cancelled"});
    try{await deleteZoomMeeting(String(session.meetingId||""));}

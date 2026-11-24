@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
-import { ensurePlatformCourseCertificate, scorePlatformCourseQuiz } from "@/lib/platform-certificates";
+import { ensurePlatformCourseCertificate } from "@/lib/platform-certificates";
+import { scorePlatformCourseQuiz, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
+import { isTrainerCourseOwner } from "@/lib/platform-trainer";
 
 export const runtime = "nodejs";
 
@@ -21,6 +23,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const db = await getClinicalDatabase();
+    if (actor.role === "trainer" && !(await isTrainerCourseOwner(db, courseId, actor.userId))) {
+      return NextResponse.json({ error: "لا يمكنك إدارة حضور دورة غير مسندة إلى حسابك." }, { status: 403 });
+    }
     const requests = await db.collection("platform_requests").find(
       { kind: "classroom_registration", courseId, status: "approved" },
       { projection: { _id: 0, email: 1, name: 1, requestId: 1 } },
@@ -80,6 +85,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = await getClinicalDatabase();
+    if (actor.role === "trainer" && !(await isTrainerCourseOwner(db, courseId, actor.userId))) {
+      return NextResponse.json({ error: "لا يمكنك تسجيل حضور دورة غير مسندة إلى حسابك." }, { status: 403 });
+    }
     const user = await db.collection("platform_users").findOne(
       { userId, status: "active" },
       { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1 } },
@@ -128,7 +136,12 @@ export async function POST(request: NextRequest) {
       const answers = progress?.quizAnswers && typeof progress.quizAnswers === "object"
         ? progress.quizAnswers as Record<string, unknown>
         : {};
-      const quiz = scorePlatformCourseQuiz(course.trackId, answers, progress?.quizChecked === true);
+      const quizDocument = await db.collection("platform_course_quizzes").findOne(
+        { courseId },
+        { projection: { _id: 0, questions: 1 } },
+      );
+      const customQuiz = Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null;
+      const quiz = scorePlatformCourseQuiz(course.trackId, answers, progress?.quizChecked === true, customQuiz);
       if (progress && completed.length === course.lessons.length && quiz.passed) {
         certificate = await ensurePlatformCourseCertificate(db, {
           userId,

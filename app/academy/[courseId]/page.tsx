@@ -7,6 +7,7 @@ import { ArrowRight, BookOpen, CheckCircle2, ChevronLeft, CirclePlay, ClipboardC
 import { PlatformLayout } from "@/components/platform-layout";
 import PlatformRequestForm from "@/components/platform-request-form";
 import { courses } from "@/lib/platform-catalog";
+import { platformQuizByTrack, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
 import "./learning.css";
 
 type Guide = { intro: string; points: string[]; exercise: string };
@@ -42,33 +43,6 @@ const guideByTrack: Record<string, Guide[]> = {
     { intro:"التشخيص الرسمي قرار مهني مخول يتطلب تقييماً شاملاً، وليس اختيار اسم من قائمة.", points:["كوّن فرضيات أولية قابلة للمراجعة.","افحص التفسيرات البديلة والمعلومات الناقصة.","وثق حدود التقييم وخطوة الإحالة المناسبة."], exercise:"اكتب فرضيتين بديلتين وما الدليل المطلوب للتمييز بينهما." }
   ]
 };
-const quizByTrack: Record<string,{q:string;options:string[];correct:number;why:string}[]> = {
-  "social-work":[
-    {q:"ما الممارسة الأفضل عند كتابة دراسة الحالة؟",options:["دمج أقوال المصادر والملاحظات في حقيقة واحدة","الفصل بين أقوال المصدر والملاحظة والفرضية","كتابة حكم عام دون أمثلة"],correct:1,why:"الفصل بين مصادر المعلومات والتفسير يجعل التقرير قابلاً للمراجعة."},
-    {q:"كيف تصاغ خطة التدخل؟",options:["هدف تشاركي قابل للقياس مع مسؤوليات ومتابعة","قائمة خدمات دون موافقة","وعد بحل كل المشكلات"],correct:0,why:"الخطة المهنية تشاركية ومحددة وقابلة للمتابعة."},
-    {q:"ما الذي يسبق الإحالة؟",options:["إخفاء سبب الإحالة","شرح سببها والتحقق من المسار والموافقة المناسبة","إصدار تشخيص نهائي"],correct:1,why:"الإحالة الواضحة تحترم الشخص وحدود الدور."}
-  ],
-  cbt:[
-    {q:"ما عناصر نموذج CBT الأساسي؟",options:["الموقف والفكرة والانفعال والسلوك","العمر والوظيفة فقط","التشخيص والدواء فقط"],correct:0,why:"النموذج ينظم العلاقة بين الموقف والأفكار والانفعالات والاستجابات."},
-    {q:"كيف نفحص فكرة تلقائية؟",options:["نستبدلها بإيجابية قسرية","نفحص الأدلة والتفسيرات البديلة تعاونياً","نؤكد أنها صحيحة دائماً"],correct:1,why:"الفحص التعاوني لا يفرض استنتاجاً مسبقاً."},
-    {q:"ما شرط التجربة السلوكية؟",options:["الإكراه","خطوة آمنة متدرجة ومتفق عليها","ضمان اختفاء الأعراض"],correct:1,why:"التجربة التعليمية يجب أن تكون آمنة وتعاونية ولا تتضمن وعوداً."}
-  ],
-  autism:[
-    {q:"ما الأساس في دعم التواصل؟",options:["فرض التواصل البصري","استخدام وسيلة التواصل المناسبة وإتاحة وقت المعالجة","تجاهل تفضيلات الشخص"],correct:1,why:"التواصل الفعال يحترم الاختلافات الفردية ووسائل التواصل."},
-    {q:"عند الضيق الحسي، ماذا تفعل؟",options:["تعديل البيئة وعرض خيارات آمنة","الإصرار على البقاء في المثير","منع وسائل التنظيم الذاتي"],correct:0,why:"التيسيرات البيئية تدعم الراحة والمشاركة."},
-    {q:"كيف تحدد هدف الدعم؟",options:["خطة واحدة للجميع","هدف فردي تشاركي ذو معنى","هدف يختاره المدرب وحده"],correct:1,why:"الدعم يتمحور حول الشخص واحتياجاته."}
-  ],
-  developmental:[
-    {q:"ما الطريقة الأفضل لتقدير المهارات التكيفية؟",options:["درجة واحدة من استبيان","أمثلة من مجالات وسياقات ومصادر متعددة","الانطباع من العمر"],correct:1,why:"التقدير الشامل لا يختزل الأداء في مصدر واحد."},
-    {q:"ما الذي قد يستدعي إحالة عاجلة؟",options:["فقد مهارة مكتسبة أو تغير حاد","اختلاف تفضيل النشاط","الحاجة إلى وقت معالجة"],correct:0,why:"فقد المهارات المكتسبة يحتاج استيضاحاً طبياً/نمائياً دون تأخير."},
-    {q:"ما التقرير الجيد؟",options:["وصف الوقائع والحدود والمعلومات الناقصة","تسمية اضطراب من وصف قصير","مقارنة عامة بالأقران"],correct:0,why:"التقرير يفصل الأدلة عن الاستنتاجات ويحدد ما يحتاج إلى تقييم."}
-  ],
-  "mental-health":[
-    {q:"كيف تبدأ المقابلة؟",options:["بسؤال مفتوح وشرح الدور والخصوصية","بتأكيد تشخيص","بتجاهل هدف الشخص"],correct:0,why:"المقابلة المهنية تبدأ بالوضوح والتعاون."},
-    {q:"ما معنى نتيجة التحري الإيجابية؟",options:["تشخيص نهائي","إشارة لاستكمال التقييم حسب السياق","دليل على شدة الحالة"],correct:1,why:"أدوات التحري لا تثبت التشخيص ولا تنفيه."},
-    {q:"ماذا تفعل عند خطر مباشر؟",options:["تواصل المحاكاة","تتبع بروتوكول الطوارئ والإحالة البشرية","تكتفي بتسجيل ملاحظة"],correct:1,why:"الخطر الواقعي يتطلب استجابة بشرية عاجلة."}
-  ]
-};
 
 export default function CourseLearningPage() {
   const params = useParams<{courseId:string}>();
@@ -86,7 +60,9 @@ export default function CourseLearningPage() {
   const [issuedCertificate,setIssuedCertificate] = useState<{serial:string;status:string}|null>(null);
   const [completionMessage,setCompletionMessage] = useState("");
   const [progressSaveError,setProgressSaveError] = useState("");
-  const quiz = useMemo(()=>course?quizByTrack[course.trackId]??quizByTrack["mental-health"]:[],[course]);
+  const [customQuiz,setCustomQuiz] = useState<PlatformQuizQuestion[]>([]);
+  const defaultQuiz = useMemo(()=>course?platformQuizByTrack[course.trackId]??platformQuizByTrack["mental-health"]:[],[course]);
+  const quiz = customQuiz.length ? customQuiz : defaultQuiz;
   const score = quiz.reduce((sum,item,index)=>sum+(answers[index]===item.correct?1:0),0);
   const guides = course ? guideByTrack[course.trackId] ?? guideByTrack["mental-health"] : [];
   const guide = guides[activeLesson % guides.length];
@@ -95,6 +71,7 @@ export default function CourseLearningPage() {
     if(!course)return;
     let active=true;
     const hydrate=async()=>{
+      setCustomQuiz([]);
       try{
         const response=await fetch("/api/learning/progress?courseId="+encodeURIComponent(course.id),{cache:"no-store"});
         if(response.status===401){if(active){setAccessStatus("login_required");setProgressHydrated(false)}return;}
@@ -105,6 +82,7 @@ export default function CourseLearningPage() {
           if(!active)return;
           const done=Array.isArray(saved.completedLessons)?saved.completedLessons.filter((n:number)=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[];
           const note=typeof saved.reflection==="string"?saved.reflection:"";
+          if(Array.isArray(saved.quiz)&&saved.quiz.length>=3)setCustomQuiz(saved.quiz as PlatformQuizQuestion[]);
           setCompleted(done);setReflection(note);setAnswers(saved.quizAnswers&&typeof saved.quizAnswers==="object"?saved.quizAnswers:{});setChecked(saved.quizChecked===true);
           if(saved.certificate&&typeof saved.certificate.serial==="string")setIssuedCertificate({serial:saved.certificate.serial,status:String(saved.certificate.status||"issued")});
           localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed:done,reflection:note,updatedAt:new Date().toISOString()}));
@@ -143,7 +121,7 @@ export default function CourseLearningPage() {
   const toggleLesson=()=>{
     setCompleted(current=>current.includes(activeLesson)?current.filter(n=>n!==activeLesson):[...current,activeLesson]);
   };
-  const quizPassed=checked&&score>=2;
+  const quizPassed=checked&&score>=Math.ceil(quiz.length*(2/3));
   const allLessonsDone=completed.length===course.lessons.length;
   const learningComplete=allLessonsDone&&quizPassed;
 
