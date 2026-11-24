@@ -2,6 +2,7 @@ import {timingSafeEqual} from "node:crypto";
 import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
 import {finalizePaidBookInventory} from "@/lib/book-orders";
+import {sendConsultationNotice} from "@/lib/consultation-notifications";
 export const runtime="nodejs";
 function safeEqual(a:string,b:string){const aa=Buffer.from(a),bb=Buffer.from(b);return aa.length===bb.length&&timingSafeEqual(aa,bb)}
 export async function POST(request:NextRequest){
@@ -30,6 +31,18 @@ export async function POST(request:NextRequest){
    await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"reserved"},{$set:{status:"booked",bookedAt:new Date(),paymentId}});
    await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled",paymentId,paymentStatus:"paid"},$unset:{clientSecretEncrypted:""}});
    if(intent.requestId) await finalizePaidBookInventory(db,requestId);
+   if(intent.requestId) {
+    const order=await db.collection("platform_requests").findOne({requestId,email:intent.email,kind:"consultation"});
+    if(order) {
+     const meetingUrl=typeof order.zoomMeeting?.joinUrl==="string"?order.zoomMeeting.joinUrl:"";
+     await sendConsultationNotice(db,{
+      requestId,email:String(intent.email),recipientName:String(order.name||"عميل اتزان"),
+      subject:"تم تأكيد حجز الاستشارة والدفع - اتزان",
+      message:"تم تأكيد الدفع المسبق وحجز موعدك المرئي. "+(meetingUrl?"رابط الدخول إلى الجلسة: "+meetingUrl:"يمكنك متابعة الموعد من صفحة متابعة الحجز.")+" رقم الطلب: "+requestId,
+      actionUrl:new URL("/my-consultations?requestId="+encodeURIComponent(requestId)+"&email="+encodeURIComponent(String(intent.email)),process.env.NEXT_PUBLIC_APP_URL||"https://etzan.sa").toString(),
+     });
+    }
+   }
   }else if(type==="payment_refunded"&&payment.status==="refunded"){
    await db.collection("platform_payments").updateOne({providerPaymentId:paymentId},{$set:{status:"refunded",refundedAt:new Date()}});
    await db.collection("platform_requests").updateOne({requestId,email:intent.email},{$set:{status:"refunded",paymentStatus:"refunded",refundedAt:new Date()}});
