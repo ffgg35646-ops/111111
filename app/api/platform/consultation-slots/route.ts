@@ -48,9 +48,14 @@ export async function GET(request: NextRequest) {
     }])).values());
     const date = clean(request.nextUrl.searchParams.get("date"), 10);
     const providerUserId = clean(request.nextUrl.searchParams.get("providerUserId"), 100);
+    const offsetMinutes = Math.max(-840, Math.min(840, Number(request.nextUrl.searchParams.get("timezoneOffset")) || 0));
+    const dateStart = /^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? new Date(Date.parse(date + "T00:00:00.000Z") + offsetMinutes * 60000)
+      : null;
+    const dateEnd = dateStart ? new Date(dateStart.getTime() + 24 * 60 * 60 * 1000) : null;
     const slots = allSlots.filter((slot) => {
       if (providerUserId && String(slot.providerUserId) !== providerUserId) return false;
-      if (date && !(slot.startsAt instanceof Date && slot.startsAt.toISOString().slice(0, 10) === date)) return false;
+      if (dateStart && dateEnd && (!(slot.startsAt instanceof Date) || slot.startsAt < dateStart || slot.startsAt >= dateEnd)) return false;
       return true;
     });
     return NextResponse.json({ slots, providers }, { headers: { "Cache-Control": "no-store" } });
