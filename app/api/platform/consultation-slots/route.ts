@@ -25,7 +25,15 @@ export async function GET(request: NextRequest) {
       const slots = await db.collection("platform_consultant_slots")
         .find(filter, { projection: { _id: 0, slotId: 1, providerUserId: 1, providerName: 1, serviceIds: 1, startsAt: 1, durationMinutes: 1, status: 1, reservedUntil: 1 } })
         .sort({ startsAt: 1 }).limit(300).toArray();
-      return NextResponse.json({ slots, providers }, { headers: { "Cache-Control": "no-store" } });
+      const appointmentFilter: Record<string, unknown> = {
+        kind: "consultation",
+        status: { $in: ["awaiting_payment", "approved", "cancellation_requested", "completed"] },
+      };
+      if (actor.role === "consultant") appointmentFilter.providerUserId = actor.userId;
+      const appointments = await db.collection("platform_requests")
+        .find(appointmentFilter, { projection: { _id: 0, requestId: 1, name: 1, email: 1, serviceId: 1, providerUserId: 1, providerName: 1, preferredAt: 1, durationMinutes: 1, status: 1, paymentStatus: 1, zoomMeeting: 1, cancellationRequestedAt: 1 } })
+        .sort({ preferredAt: 1 }).limit(300).toArray();
+      return NextResponse.json({ slots, providers, appointments }, { headers: { "Cache-Control": "no-store" } });
     }
 
     const allSlots = await db.collection("platform_consultant_slots").find({
