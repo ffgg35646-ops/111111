@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       totalCalls: 0, inputTokens: 0, outputTokens: 0,
       reportedSpendUsd: 0, reportedCostCalls: 0, pendingCostCalls: 0, unavailableCostCalls: 0,
     };
-    return NextResponse.json({ totals, pendingQuizDrafts, inactiveAiScenarios, rows, generatedAt: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ totals, pendingQuizDrafts, inactiveAiScenarios, rows, config: { gatewayConfigured: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1"), textModel: process.env.CLINICAL_AI_MODEL || "openai/gpt-6-astra", realtimeConfigured: Boolean(process.env.OPENAI_API_KEY), realtimeModel: process.env.CLINICAL_REALTIME_MODEL || "gpt-realtime-2.1" }, generatedAt: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("AI usage dashboard failed", error);
     return NextResponse.json({ error: "تعذر تحميل سجل استخدام الذكاء الاصطناعي." }, { status: 503 });
