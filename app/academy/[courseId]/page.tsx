@@ -83,6 +83,9 @@ export default function CourseLearningPage() {
   const [savedReflection,setSavedReflection] = useState(false);
   const [progressHydrated,setProgressHydrated] = useState(false);
   const [accessStatus,setAccessStatus] = useState<"checking"|"allowed"|"payment_required"|"login_required"|"error">("checking");
+  const [issuedCertificate,setIssuedCertificate] = useState<{serial:string;status:string}|null>(null);
+  const [completionMessage,setCompletionMessage] = useState("");
+  const [progressSaveError,setProgressSaveError] = useState("");
   const quiz = useMemo(()=>course?quizByTrack[course.trackId]??quizByTrack["mental-health"]:[],[course]);
   const score = quiz.reduce((sum,item,index)=>sum+(answers[index]===item.correct?1:0),0);
   const guides = course ? guideByTrack[course.trackId] ?? guideByTrack["mental-health"] : [];
@@ -103,6 +106,7 @@ export default function CourseLearningPage() {
           const done=Array.isArray(saved.completedLessons)?saved.completedLessons.filter((n:number)=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[];
           const note=typeof saved.reflection==="string"?saved.reflection:"";
           setCompleted(done);setReflection(note);setAnswers(saved.quizAnswers&&typeof saved.quizAnswers==="object"?saved.quizAnswers:{});setChecked(saved.quizChecked===true);
+          if(saved.certificate&&typeof saved.certificate.serial==="string")setIssuedCertificate({serial:saved.certificate.serial,status:String(saved.certificate.status||"issued")});
           localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed:done,reflection:note,updatedAt:new Date().toISOString()}));
           setAccessStatus("allowed");setProgressHydrated(true);return;
         }
@@ -124,7 +128,7 @@ export default function CourseLearningPage() {
     if(!course||!progressHydrated)return;
     const payload={completedLessons:completed,reflection,quizAnswers:answers,quizChecked:checked,updatedAt:new Date().toISOString()};
     localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed,reflection,answers,checked,updatedAt:payload.updatedAt}));
-    const timer=window.setTimeout(()=>{void fetch("/api/learning/progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({courseId:course.id,...payload})}).catch(()=>{});},650);
+    const timer=window.setTimeout(()=>{void (async()=>{try{const response=await fetch("/api/learning/progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({courseId:course.id,...payload})});const result=await response.json();if(!response.ok){if(response.status!==402)setProgressSaveError(result.error||"تعذر حفظ تقدم الدورة.");return;}setProgressSaveError("");if(result.certificate&&typeof result.certificate.serial==="string"){setIssuedCertificate({serial:result.certificate.serial,status:String(result.certificate.status||"issued")});setCompletionMessage(result.certificate.status==="issued"?"تم إصدار شهادتك تلقائياً وأصبحت جاهزة للتنزيل والتحقق.":"توجد شهادة مسجلة لهذه الدورة لكنها ملغاة؛ راجع إدارة المنصة.");}else if(result.completedCount===result.totalLessons&&result.quizPassed&&course.mode!=="recorded"&&!result.attendanceVerified){setCompletionMessage("اكتملت الوحدات والاختبار. ستصدر الشهادة تلقائياً بعد اعتماد حضورك من المدرب أو المشرف.");}}catch{setProgressSaveError("تعذر حفظ تقدم الدورة حالياً.");}})();},650);
     return ()=>window.clearTimeout(timer);
   },[course,completed,reflection,answers,checked,progressHydrated]);
 
@@ -168,8 +172,8 @@ export default function CourseLearningPage() {
       <button className="portal-button" onClick={()=>setChecked(true)} disabled={Object.keys(answers).length!==quiz.length}>تصحيح الاختبار</button>
       {checked&&<p className={quizPassed?"learning-passed":"learning-failed"}>{score} من {quiz.length} — {quizPassed?"اجتزت الاختبار":"تحتاج إلى مراجعة المحتوى والمحاولة مرة أخرى"}.</p>}
     </section>
-    <section className="learning-completion"><GraduationCap size={23}/><div><strong>إتمام الدورة</strong><p>{learningComplete?"أكملت الوحدات واجتزت اختبار الفهم. أرسل طلب اعتماد الإكمال إلى إدارة المنصة.":"أكمل جميع الوحدات واجتز الاختبار لطلب اعتماد إتمام الدورة."}</p></div><button disabled={!learningComplete} onClick={()=>router.push("/certificates")}>الانتقال إلى الشهادات</button></section>
+    <section className="learning-completion"><GraduationCap size={23}/><div><strong>إتمام الدورة والشهادة</strong><p>{issuedCertificate?.status==="issued"?"أصدرت المنصة شهادتك تلقائياً بعد استيفاء شروط الإتمام.":learningComplete?(course.mode==="recorded"?"أكملت الوحدات واجتزت الاختبار. جارٍ تسجيل الشهادة تلقائياً.":"أكملت الوحدات واجتزت الاختبار. تصدر الشهادة تلقائياً بعد اعتماد حضورك."):"أكمل جميع الوحدات واجتز الاختبار للوصول إلى شرط إصدار الشهادة."}</p>{issuedCertificate?.serial&&<small dir="ltr">الرقم التسلسلي: {issuedCertificate.serial}</small>}{completionMessage&&<small>{completionMessage}</small>}{progressSaveError&&<small role="alert" style={{color:"#a55b53"}}>{progressSaveError}</small>}</div><button disabled={!issuedCertificate?.serial&&!learningComplete} onClick={()=>router.push(issuedCertificate?.serial?"/certificates/verify?code="+encodeURIComponent(issuedCertificate.serial):"/certificates/mine")}>{issuedCertificate?.serial?"عرض وتنزيل الشهادة":"متابعة الشهادات"}</button></section>
     {course.mode!=="recorded"&&<div className="portal-callout"><Video size={16}/> هذه الدورة تتضمن لقاءات مباشرة. <Link href="/classrooms">انتقل إلى صفحة الفصول الافتراضية</Link> لطلب الالتحاق واستلام رابط Zoom بعد اعتماد الموعد.</div>}
-    <div className="portal-callout"><LockKeyhole size={15}/> تقدم هذه النسخة محفوظ محلياً في هذا المتصفح. ربط التقدم بحساب متدرب موحد يتطلب تفعيل تسجيل الدخول المؤسسي.</div>
+    <div className="portal-callout"><LockKeyhole size={15}/> يُحفظ تقدم الوحدات ونتائج الاختبار داخل حسابك في المنصة، وتُراجع شروط الحضور قبل إصدار شهادة الدورات المباشرة والهجينة.</div>
   </PlatformLayout>;
 }

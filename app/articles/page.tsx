@@ -5,6 +5,7 @@ import {PlatformLayout} from "@/components/platform-layout";
 type Article={articleId:string;title:string;summary:string;content:string;category:string;authorName:string;createdAt:string};
 export default function ArticlesPage(){
  const [items,setItems]=useState<Article[]>([]),[selected,setSelected]=useState<Article|null>(null),[query,setQuery]=useState(""),[category,setCategory]=useState("الكل"),[loading,setLoading]=useState(true),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ // eslint-disable-next-line react-hooks/set-state-in-effect -- asynchronous API response updates the article feed.
  useEffect(()=>{let active=true;fetch("/api/content/articles",{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error);if(active)setItems(d.articles||[])}).catch(e=>{if(active)setError(e.message||"تعذر تحميل المقالات")}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[]);
  const categories=useMemo(()=>["الكل",...Array.from(new Set(items.map(a=>a.category))).sort((a,b)=>a.localeCompare(b,"ar"))],[items]);
  useEffect(()=>{if(typeof window==="undefined"||items.length===0)return;const id=new URLSearchParams(window.location.search).get("article");if(id){const match=items.find(a=>a.articleId===id);if(match)setSelected(match)}},[items]);

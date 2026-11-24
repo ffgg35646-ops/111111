@@ -40,6 +40,7 @@ export default function CommunityModerationPage() {
     if (!groupResponse.ok) throw new Error(groupData.error || "تعذر تحميل المجموعات.");
     setPosts(postData.posts || []); setReports(reportData.reports || []); setGroups(groupData.groups || []);
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial async moderation data load.
   useEffect(() => {
     load().catch((cause) => setError(cause instanceof Error ? cause.message : "تعذر تحميل مساحة الإشراف."))
       .finally(() => setLoading(false));
