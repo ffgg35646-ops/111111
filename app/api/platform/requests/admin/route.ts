@@ -3,6 +3,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { createZoomMeeting } from "@/lib/zoom";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { releasePendingBookInventory } from "@/lib/book-orders";
+import { sendConsultationNotice } from "@/lib/consultation-notifications";
 
 export const runtime = "nodejs";
 
@@ -78,10 +79,22 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    await collection.updateOne({ requestId, status: "pending_review" }, { $set: {
+    const saved = await collection.updateOne({ requestId, status: "pending_review" }, { $set: {
       status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: Math.round(quotedAmount * 100) / 100, currency: "SAR", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin",
       ...(zoomMeeting ? { zoomMeeting, meetingProvisionedAt: new Date() } : {}),
     } });
+    if (!saved.modifiedCount) return NextResponse.json({ error: "تغيرت حالة الطلب أثناء الاعتماد. حدّث القائمة." }, { status: 409 });
+    if (record.kind === "consultation") {
+      const payUrl = new URL("/pay-request", request.nextUrl.origin);
+      payUrl.searchParams.set("requestId", requestId);
+      payUrl.searchParams.set("email", String(record.email || ""));
+      await sendConsultationNotice(db, {
+        requestId, email: String(record.email || ""), recipientName: String(record.name || "عميل اتزان"),
+        subject: "تم اعتماد استشارتك - أكمل الدفع المسبق",
+        message: "تم اعتماد طلب الاستشارة وتحديد قيمته بـ " + (Math.round(quotedAmount * 100) / 100) + " ريال سعودي. أكمل الدفع المسبق لتأكيد الموعد، وسيظهر رابط الجلسة المرئية بعد نجاح الدفع.",
+        actionUrl: payUrl.toString(),
+      });
+    }
     return NextResponse.json({ success: true, status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: Math.round(quotedAmount * 100) / 100, currency: "SAR", zoomMeeting: zoomMeeting ? { joinUrl: zoomMeeting.joinUrl, startTime: zoomMeeting.startTime } : undefined });
   } catch (error) {
     console.error("Unable to review platform request", error);
