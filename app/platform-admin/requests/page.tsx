@@ -94,7 +94,7 @@ export default function PlatformRequestManagementPage() {
     if(action==="approve"&&!(Number(prices[item.requestId])>0)){
       setError("أدخل إجمالي السعر بالريال السعودي قبل اعتماد الطلب.");return;
     }
-    if(!window.confirm(action==="approve"?"تأكيد اعتماد الطلب؟ سيتم إنشاء اجتماع Zoom تلقائياً للطلبات التي تحتاج جلسة.":"تأكيد رفض الطلب؟"))return;
+    if(!window.confirm(action==="approve"?(item.kind==="classroom_registration"?"تأكيد اعتماد الالتحاق؟ سيظهر للمتدرب رابط الجلسات المشتركة المجدولة بعد تأكيد الدفع.":"تأكيد اعتماد الطلب؟ سيتم تجهيز اجتماع Zoom للخدمات التي تحتاج جلسة."):"تأكيد رفض الطلب؟"))return;
     setBusy(item.requestId);setError("");
     try{
       const response=await fetch("/api/platform/requests/admin",{
@@ -155,6 +155,6 @@ export default function PlatformRequestManagementPage() {
         </div>}
       </article>)}
     </div>
-    <div className="portal-callout" style={{marginTop:18}}>إنشاء روابط Zoom يتطلب إعداد Server-to-Server OAuth على الخادم. لا يُكشف رابط الاجتماع لصاحب الطلب إلا بعد تأكيد الدفع من Moyasar والتحقق منه على الخادم.</div>
+    <div className="portal-callout" style={{marginTop:18}}>تُنشأ جلسات الفصول المشتركة من «قاعة التدريب المباشر»؛ ولا يظهر رابطها إلا للمتدرب صاحب الالتحاق المعتمد والمدفوع. تُنشأ اجتماعات الاستشارات وقاعات التأجير وفق مسارها الحالي.</div>
   </PlatformLayout>;
 }

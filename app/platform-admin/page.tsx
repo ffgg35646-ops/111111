@@ -12,7 +12,7 @@ import {
 
 const sections = [
   { title:"الرئيسية", items:[["نظرة عامة",LayoutDashboard]] },
-  { title:"الأكاديمية والتعلم", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة عبر Zoom",Video],["الشهادات",ShieldCheck]] },
+  { title:"الأكاديمية والتعلم", items:[["الدورات والبرامج",GraduationCap],["الفصول المباشرة عبر Zoom",Video],["قاعة التدريب المباشر",Video],["الشهادات",ShieldCheck]] },
   { title:"المسارات التخصصية", items:[["منظومة التدريب التخصصي",Brain],["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
   { title:"المحاكاة السريرية", items:[["إدارة سيناريوهات ومعايير التقييم",Settings],["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
   { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["إتاحة مواعيد الاستشارات",CalendarDays],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
@@ -23,6 +23,7 @@ const routeByLabel: Record<string,string> = {
   "منظومة التدريب التخصصي": "/specialties",
   "الدورات والبرامج": "/academy",
   "الفصول المباشرة عبر Zoom": "/classrooms",
+  "قاعة التدريب المباشر": "/platform-admin/classrooms",
   "الشهادات": "/certificates",
   "إدارة الشهادات": "/platform-admin/certificates",
   "الإعدادات والصلاحيات": "/platform-admin/users",

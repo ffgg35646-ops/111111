@@ -72,8 +72,12 @@ export async function PATCH(request: NextRequest) {
       if (!liveHold) return NextResponse.json({ error: "انتهت مهلة حجز الفترة. اطلب من العميل اختيار موعد متاح جديداً." }, { status: 409 });
     }
 
+    if (record.kind === "classroom_registration" && (!(record.preferredAt instanceof Date) || record.preferredAt.getTime() < Date.now() + 5 * 60 * 1000)) {
+      return NextResponse.json({ error: "الموعد المقترح لم يعد صالحاً. اطلب من صاحب الطلب تحديد موعد جديد." }, { status: 409 });
+    }
+
     let zoomMeeting: Awaited<ReturnType<typeof createZoomMeeting>> | undefined;
-    if (["classroom_registration", "consultation", "room_rental"].includes(String(record.kind))) {
+    if (["consultation", "room_rental"].includes(String(record.kind))) {
       if (!(record.preferredAt instanceof Date) || record.preferredAt.getTime() < Date.now() + 5 * 60 * 1000) {
         return NextResponse.json({ error: "الموعد المقترح لم يعد صالحاً. اطلب من صاحب الطلب تحديد موعد جديد." }, { status: 409 });
       }
