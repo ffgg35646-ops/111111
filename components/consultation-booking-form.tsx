@@ -33,7 +33,7 @@ export default function ConsultationBookingForm({ serviceId, title }: { serviceI
     let active = true;
     setLoading(true);
     setError("");
-    const query = new URLSearchParams({ serviceId, date });
+    const query = new URLSearchParams({ serviceId, date, timezoneOffset: String(new Date().getTimezoneOffset()) });
     if (providerUserId) query.set("providerUserId", providerUserId);
     fetch("/api/platform/consultation-slots?" + query.toString(), { cache: "no-store" })
       .then(async (response) => {
