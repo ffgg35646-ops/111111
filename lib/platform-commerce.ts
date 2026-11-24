@@ -58,6 +58,10 @@ export async function calculateCommercePrice(
 
   const taxable = money(Math.max(0, subtotalAmount - discountAmount));
   const vatRegistered = process.env.ETZAN_VAT_REGISTERED === "true";
+  const sellerVatNumber = (process.env.ETZAN_MERCHANT_VAT_NUMBER || "").replace(/\s/g, "");
+  if (vatRegistered && (!/^3\d{14}3$/.test(sellerVatNumber) || !process.env.ETZAN_MERCHANT_LEGAL_NAME?.trim())) {
+    throw new Error("بيانات التسجيل الضريبي واسم المنشأة مطلوبة قبل احتساب ضريبة القيمة المضافة.");
+  }
   const configuredRate = Number(process.env.ETZAN_VAT_RATE_BPS || "1500");
   const vatRateBps = vatRegistered && Number.isInteger(configuredRate) && configuredRate >= 0 && configuredRate <= 10000 ? configuredRate : 0;
   const pricesIncludeVat = process.env.ETZAN_PRICES_INCLUDE_VAT !== "false";
@@ -138,7 +142,7 @@ export async function createElectronicInvoice(
     });
   }
 
-  await db.collection("platform_invoices").insertOne({
+  await invoices.insertOne({
     invoiceId,
     invoiceNumber,
     providerPaymentId: paymentId,
@@ -255,6 +259,7 @@ export async function settleRecurringPayment(db: Db, payment: {
   const subscription = await subscriptions.findOne({ subscriptionId });
   if (!subscription) return true;
   const charges = db.collection("platform_subscription_charges");
+  await charges.createIndex({ chargeId: 1 }, { unique: true });
   await charges.updateOne({ chargeId }, { $set: {
     chargeId, subscriptionId, providerPaymentId: payment.id, amount: payment.amount, currency: payment.currency,
     status: payment.status, fee: payment.fee ?? null, updatedAt: new Date(),
