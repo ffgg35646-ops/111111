@@ -77,7 +77,7 @@ export default function MyConsultationsPage() {
   useEffect(() => {
     if (!appointment || appointment.status !== "approved" || appointment.paymentStatus !== "paid") return;
     let active = true;
-    const query = new URLSearchParams({ serviceId: appointment.serviceId, date });
+    const query = new URLSearchParams({ serviceId: appointment.serviceId, date, timezoneOffset: String(new Date().getTimezoneOffset()) });
     if (providerUserId) query.set("providerUserId", providerUserId);
     fetch("/api/platform/consultation-slots?" + query.toString(), { cache: "no-store" })
       .then(async (response) => {
