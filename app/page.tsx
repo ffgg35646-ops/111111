@@ -5,16 +5,19 @@ import { courses, practiceScales, trainingCases } from "@/lib/platform-catalog";
 import { getClinicalDatabase } from "@/lib/mongodb";
 
 const tracks=[
-["الخدمة الاجتماعية","دراسة الحالة والتدخل المهني والإحالة والعمل مع الأفراد والأسر.","/specialties?track=social-work"],
-["علم النفس والممارسة الإكلينيكية","مهارات المقابلة والتقدير النفسي والممارسة المبنية على الأدلة.","/specialties?track=psychotherapy"],
-["العلاج المعرفي السلوكي CBT","صياغة الحالة ومهارات الحوار والتدخلات المعرفية والسلوكية.","/specialties?track=psychotherapy"],
-["الإرشاد الأسري","التواصل الأسري ومقابلات الوالدين وفهم ديناميات العلاقات.","/specialties"],
-["الاضطرابات النمائية وطيف التوحد","الفهم النمائي والتواصل الداعم والشراكة مع الأسرة.","/specialties?track=autism"],
-["التقييم والقياس النفسي","اختيار الأدوات المرخصة وفهم النتائج وحدود استخدامها.","/assessments"]
+["الخدمة الاجتماعية","التقدير الاجتماعي ودراسة الحالة والتدخل المهني وإدارة الموارد.","/specialties?track=social-work"],
+["علم النفس","فهم السلوك والانفعال ومهارات المقابلة والتقدير النفسي العلمي.","/specialties?track=mental-health"],
+["العلاج المعرفي السلوكي CBT","صياغة الحالة ونموذج ABC وإعادة التقييم والتدخلات السلوكية.","/specialties?track=cbt"],
+["الإرشاد والعلاج الأسري","المقابلات الأسرية وديناميات العلاقات والتواصل وبناء الأهداف المشتركة.","/specialties?track=family-guidance"],
+["الاضطرابات النمائية والسلوكية","التاريخ النمائي والملاحظة الوظيفية والمهارات التكيفية والدعم.","/specialties?track=developmental"],
+["طيف التوحد","التواصل الداعم والاحتياجات الحسية والخطط الفردية المرتكزة على القوة.","/specialties?track=autism"],
+["التقييم والقياس النفسي","اختيار أدوات التقييم وفهم الصدق والثبات والمعايير وحدود التفسير.","/specialties?track=psychometrics"],
+["الممارسة الإكلينيكية","المقابلة وصياغة الحالة وتقدير السلامة والتوثيق والإحالة.","/specialties?track=clinical-practice"],
+["مسارات مهنية قابلة للإضافة والتطوير","إطار توسعي لتخصصات دقيقة وبرامج جديدة بحسب احتياجات الميدان.","/specialties?track=professional-development"]
 ];
 const services:{icon:typeof BookOpen;title:string;desc:string;href:string}[]=[
 {icon:GraduationCap,title:"الأكاديمية والدورات",desc:"برامج ومسارات تعليمية مسجلة ومباشرة.",href:"/academy"},
-{icon:Brain,title:"مختبر المحاكاة AI",desc:"مقابلات تدريبية تفاعلية وتغذية راجعة مهنية.",href:"/cases"},
+{icon:Brain,title:"مختبر المحاكاة AI",desc:"مقابلات تدريبية تفاعلية وتغذية راجعة مهنية.",href:"/simulation"},
 {icon:Video,title:"الواقع الافتراضي VR",desc:"بيئة سريرية ثلاثية الأبعاد قابلة للتوسعة.",href:"/simulation"},
 {icon:ClipboardList,title:"المقاييس والأدوات",desc:"مكتبة تعليمية للمقاييس والنماذج المهنية.",href:"/assessments"},
 {icon:Library,title:"المكتبة العلمية",desc:"كتب ومراجع ومواد معرفية متخصصة.",href:"/books"},
