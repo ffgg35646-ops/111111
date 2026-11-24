@@ -85,17 +85,40 @@ export async function PATCH(request: NextRequest) {
   }
 
   const scoreInput = rawScores as Record<string, unknown>;
-  const scores = Object.fromEntries(supervisorScoreKeys.map((key) => [key, Number(scoreInput[key])])) as Record<(typeof supervisorScoreKeys)[number], number>;
-  const invalidScore = supervisorScoreKeys.some((key) => !Number.isInteger(scores[key]) || scores[key] < 0 || scores[key] > 5);
-  if (invalidScore || feedbackNotes.length < 10) {
-    return NextResponse.json({ error: "أدخل درجة صحيحة من 0 إلى 5 لكل محور، وملاحظة إشرافية لا تقل عن 10 أحرف." }, { status: 400 });
+  if (feedbackNotes.length < 10) {
+    return NextResponse.json({ error: "أدخل ملاحظة إشرافية لا تقل عن 10 أحرف." }, { status: 400 });
   }
 
-  const overallScore = Number((supervisorScoreKeys.reduce((sum, key) => sum + scores[key], 0) / supervisorScoreKeys.length).toFixed(2));
   const reviewedAt = new Date();
 
   try {
     const db = await getClinicalDatabase();
+    const activity = await db.collection("platform_learning_activities").findOne(
+      { activityId },
+      { projection: { rubricSnapshot: 1 } },
+    );
+    if (!activity) return NextResponse.json({ error: "لم يتم العثور على جلسة المحاكاة." }, { status: 404 });
+    const savedCriteria = Array.isArray(activity.rubricSnapshot?.criteria) ? activity.rubricSnapshot.criteria : [];
+    const criteria = savedCriteria.length >= 3 && savedCriteria.length <= 12
+      ? savedCriteria
+      : DEFAULT_SIMULATION_RUBRIC.criteria;
+    const validCriteria = criteria.every((criterion: Record<string, unknown>) =>
+      typeof criterion.key === "string" && /^[A-Za-z][A-Za-z0-9_-]{1,39}$/.test(criterion.key) &&
+      typeof criterion.label === "string" && Number.isInteger(criterion.weight) &&
+      Number(criterion.weight) >= 1 && Number(criterion.weight) <= 100 && Number(criterion.maxScore || 5) === 5
+    );
+    if (!validCriteria || criteria.reduce((sum: number, criterion: Record<string, unknown>) => sum + Number(criterion.weight), 0) !== 100) {
+      return NextResponse.json({ error: "معيار التقييم المحفوظ لهذه الجلسة غير صالح؛ راجع إعدادات المعيار." }, { status: 409 });
+    }
+    const scores = Object.fromEntries(criteria.map((criterion: Record<string, unknown>) => [String(criterion.key), Number(scoreInput[String(criterion.key)])]));
+    const invalidScore = criteria.some((criterion: Record<string, unknown>) => {
+      const score = scores[String(criterion.key)];
+      return !Number.isInteger(score) || score < 0 || score > 5;
+    });
+    if (invalidScore) return NextResponse.json({ error: "أدخل درجة صحيحة من 0 إلى 5 لكل محور في معيار هذه الجلسة." }, { status: 400 });
+    const weightedScore = Math.round(criteria.reduce((sum: number, criterion: Record<string, unknown>) =>
+      sum + (scores[String(criterion.key)] / 5) * Number(criterion.weight), 0));
+    const overallScore = Number((weightedScore / 20).toFixed(2));
     const result = await db.collection("platform_learning_activities").updateOne(
       { activityId },
       {
@@ -103,11 +126,13 @@ export async function PATCH(request: NextRequest) {
           supervisorReview: {
             scores,
             overallScore,
+            weightedScore,
+            rubricTitle: activity.rubricSnapshot?.title || DEFAULT_SIMULATION_RUBRIC.title,
             feedbackNotes,
             reviewedAt,
             reviewedBy: reviewer.userId,
-          reviewerName: reviewer.name,
-            rubricVersion: 1,
+            reviewerName: reviewer.name,
+            rubricVersion: activity.rubricSnapshot?.version || 1,
           },
           "clinicalFormulation.reviewStatus": "supervisor_reviewed",
         },
