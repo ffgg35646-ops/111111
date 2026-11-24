@@ -45,7 +45,7 @@ export async function createClassroomAccessUrl(
   userId: string,
   action: ClassroomAccessAction,
 ) {
-  const token = await new SignJWT({ action })
+  const token = await new SignJWT({ action, sessionId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuer("etzan-secure-classroom-media")
     .setAudience("etzan-classroom-access")
@@ -53,7 +53,6 @@ export async function createClassroomAccessUrl(
     .setJti(randomUUID())
     .setIssuedAt()
     .setExpirationTime("5m")
-    .setClaim("sessionId", sessionId)
     .sign(mediaSecret());
   return "/api/classrooms/sessions/" + encodeURIComponent(sessionId) + "/" + action + "?token=" + encodeURIComponent(token);
 }

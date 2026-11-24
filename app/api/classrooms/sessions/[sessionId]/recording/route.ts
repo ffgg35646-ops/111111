@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, context: Context) {
     if (!session) return NextResponse.json({ error: "الجلسة غير موجودة أو ملغاة." }, { status: 404 });
     const enrollment = await db.collection("platform_requests").findOne({ email: actor.email.toLowerCase(), courseId: session.courseId, kind: "classroom_registration", status: "approved", paymentStatus: "paid" }, { projection: { _id: 1 } });
     if (!enrollment) return NextResponse.json({ error: "لم يعد حسابك مخولاً لدخول هذه الجلسة." }, { status: 403 });
-    const target = "recording" === "join" ? trustedZoomUrl(session.joinUrl) : session.recordingAllowed === true && session.recordingStatus === "published" ? trustedZoomUrl(session.recordingUrl) : "";
+    const target = session.recordingAllowed === true && session.recordingStatus === "published" ? trustedZoomUrl(session.recordingUrl) : "";
     if (!target) return NextResponse.json({ error: "المحتوى غير متاح أو لم يتم نشر التسجيل." }, { status: 404 });
     await recordSecurityEvent(db, { action: "classroom_recording_accessed", actorUserId: actor.userId, targetId: sessionId, request });
     return NextResponse.redirect(target, { status: 302, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" } });
