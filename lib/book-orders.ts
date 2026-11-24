@@ -4,7 +4,7 @@ export async function finalizePaidBookInventory(db:Db,requestId:string){
  const order=await requests.findOne({requestId,kind:"book_order",paymentStatus:"paid"});
  if(!order||!Array.isArray(order.items))return {status:"not_applicable" as const};
  const wasReserved=order.inventoryStatus==="reserved";
- const claim=await requests.updateOne({requestId,kind:"book_order",paymentStatus:"paid",inventoryStatus:{$nin:["processing","deducted","released"]}},{$set:{inventoryStatus:"processing",inventoryProcessingAt:new Date()}});
+ const claim=await requests.updateOne({requestId,kind:"book_order",paymentStatus:"paid",inventoryStatus:{$nin:["processing","deducted"]}},{$set:{inventoryStatus:"processing",inventoryProcessingAt:new Date()}});
  if(claim.modifiedCount!==1)return {status:"already_processing" as const};
  try{
   for(const raw of order.items){
