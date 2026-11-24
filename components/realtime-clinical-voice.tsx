@@ -7,6 +7,7 @@ type TranscriptTurn = { role: "user" | "assistant"; content: string };
 
 type RealtimeClinicalVoiceProps = {
   scenario: string;
+  caseId?: string;
   mode?: "supervisor" | "client";
   onTranscript: (turn: TranscriptTurn) => void;
   onSpeakingChange?: (speaking: boolean) => void;
@@ -27,6 +28,7 @@ type RealtimeEvent = {
 
 export function RealtimeClinicalVoice({
   scenario,
+  caseId,
   mode = "supervisor",
   onTranscript,
   onSpeakingChange,
@@ -128,7 +130,7 @@ export function RealtimeClinicalVoice({
       const tokenResponse = await fetch("/api/clinical-agent/realtime-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario, mode }),
+        body: JSON.stringify({ scenario, caseId, mode }),
         cache: "no-store",
       });
       const tokenPayload = await tokenResponse.json().catch(() => ({})) as {
