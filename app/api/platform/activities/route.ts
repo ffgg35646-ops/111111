@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
         supervisorReview: 1,
         aiReview: 1,
         aiReviewUsage: 1,
+        rubricId: 1,
+        rubricSnapshot: 1,
       } })
       .sort({ completedAt: -1 })
       .limit(100)
