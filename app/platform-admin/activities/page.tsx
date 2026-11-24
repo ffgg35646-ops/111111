@@ -34,8 +34,16 @@ type Activity = {
   supervisorReview?: { scores: Record<string, number>; overallScore: number; weightedScore?: number; feedbackNotes: string; reviewedAt: string };
 };
 
-function emptyDraft(): ReviewDraft {
-  return { scores: Object.fromEntries(reviewFields.map((field) => [field.key, ""])), feedbackNotes: "" };
+function getReviewFields(activity: Activity) {
+  const criteria = activity.rubricSnapshot?.criteria;
+  return Array.isArray(criteria) && criteria.length
+    ? criteria.map(({ key, label }) => ({ key, label }))
+    : reviewFields;
+}
+
+function emptyDraft(activity?: Activity): ReviewDraft {
+  const fields = activity ? getReviewFields(activity) : reviewFields;
+  return { scores: Object.fromEntries(fields.map((field) => [field.key, ""])), feedbackNotes: "" };
 }
 
 export default function SimulationActivityReviewPage() {
@@ -90,12 +98,13 @@ export default function SimulationActivityReviewPage() {
     return () => { active = false; };
   }, [loadActivities, router]);
 
-  const updateDraft = (activityId: string, update: Partial<ReviewDraft>) => {
-    setDrafts((current) => ({ ...current, [activityId]: { ...emptyDraft(), ...current[activityId], ...update } }));
+  const updateDraft = (activity: Activity, update: Partial<ReviewDraft>) => {
+    setDrafts((current) => ({ ...current, [activity.activityId]: { ...emptyDraft(activity), ...current[activity.activityId], ...update } }));
   };
 
   const saveReview = async (activity: Activity) => {
-    const fields = getReviewFields(activity);\n    const draft = drafts[activity.activityId] || emptyDraft(activity);
+    const fields = getReviewFields(activity);
+    const draft = drafts[activity.activityId] || emptyDraft(activity);
     setSavingId(activity.activityId); setError(""); setNotice("");
     try {
       const scores = Object.fromEntries(fields.map((field) => [field.key, Number(draft.scores[field.key])]));
