@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createPlatformCertificateSerial } from "@/lib/platform-certificates";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
@@ -68,25 +68,34 @@ export async function POST(request: NextRequest) {
   const data = body as Record<string, unknown>;
   const learnerName = clean(data.learnerName, 100);
   const courseTitle = clean(data.courseTitle, 180);
-  const certificateType = clean(data.certificateType, 40) || "appreciation";
+  const certificateType = clean(data.certificateType, 40) || "completion";
+  if (!["completion", "participation", "appreciation"].includes(certificateType)) {
+    return NextResponse.json({ error: "نوع الشهادة غير صالح." }, { status: 400 });
+  }
   if (!learnerName || !courseTitle || data.completionVerified !== true) {
     return NextResponse.json({ error: "لا تصدر الشهادة إلا بعد توثيق إتمام المتطلبات من إدارة المنصة." }, { status: 400 });
   }
 
-  const serial = randomUUID().toUpperCase();
+  const issuedAt = new Date();
+  const serial = createPlatformCertificateSerial(issuedAt);
   const document = {
     serial,
     learnerName,
     courseTitle,
     certificateType,
-    issuedAt: new Date(),
+    issuedAt,
     status: "issued",
+    source: "manual",
     issuedBy: actor.userId,
     completionVerified: true,
+    createdAt: issuedAt,
   };
   try {
     const db = await getClinicalDatabase();
-    await db.collection("platform_certificates").insertOne(document);
+    const certificates = db.collection("platform_certificates");
+    await certificates.createIndex({ serial: 1 }, { unique: true });
+    await certificates.insertOne(document);
+    await db.collection("platform_audit_logs").insertOne({ action: "certificate_manually_issued", actorUserId: actor.userId, serial, learnerName, courseTitle, certificateType, createdAt: issuedAt });
     return NextResponse.json({ success: true, certificate: { serial, learnerName, courseTitle, certificateType, issuedAt: document.issuedAt } }, { status: 201 });
   } catch (error) {
     console.error("Unable to issue certificate", error);
