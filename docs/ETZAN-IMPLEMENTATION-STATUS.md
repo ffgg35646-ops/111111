@@ -50,6 +50,17 @@ This document separates implemented application behavior from integrations that 
 - Saudi PDPL operational review, retention schedules, consent records, data-subject workflows, security testing, incident response, and processor agreements require legal/security review before handling real clinical data.
 - Role-aware dashboard entry points and account roles are implemented, including attendance and consultant availability workspaces. Detailed separate operational dashboards for every role, device/session limits, dynamic watermarking, secure video delivery, and complete audit coverage require additional implementation and verification.
 
+## AI assistant, generation and usage ledger
+
+- The member-facing AI workspace is available at `/assistant`. It offers a knowledge search and learning explanation flow using published articles/books and the platform's current static course/track/case catalog. Retrieval is currently bounded and keyword-based; it is not a full semantic or vector search system.
+- AI-generated course quiz questions are saved in `platform_ai_quiz_drafts` as pending review. They are not applied to `platform_course_quizzes` until an authorized trainer/supervisor/admin explicitly approves them. Trainers can create and approve quiz drafts only for courses assigned to their account.
+- AI-generated professional scenarios are saved in `platform_simulation_scenarios` with `status: inactive`; they remain hidden from trainees until reviewed and activated in `/simulation/manage`.
+- `platform_ai_usage` records the feature, model/provider, role, token counts, Gateway generation ID, and Gateway-reported USD cost when available. Missing costs are marked pending or unavailable; the application does not estimate provider charges.
+- Text chat, AI simulation review, and assistant generation write usage records. Realtime voice records session creation, but the current OpenAI client-secret response does not include the completed session's billable usage; voice cost must still be reconciled in the provider's usage dashboard.
+- Admin usage review is at `/platform-admin/ai`; its API is restricted to `admin` and `platform_manager`.
+- External text-model integration is provider-neutral through the configured AI Gateway model ID (`CLINICAL_AI_MODEL`). Realtime voice remains a separate direct OpenAI integration using `OPENAI_API_KEY`, `CLINICAL_REALTIME_MODEL`, and `CLINICAL_REALTIME_VOICE`.
+- Simulation scenarios, assessment rubrics, chat/realtime endpoints, performance reports, and VR telemetry use separate API/data boundaries. A new XR runtime/device or AI provider can be integrated through an adapter and the existing scenario/report contracts; this is an extension path, not automatic compatibility or a completed plug-in marketplace.
+
 ## Required secrets and external accounts
 
 Use hosting environment variables only. Never commit real credentials.
