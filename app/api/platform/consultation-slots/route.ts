@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
       providerName = String(provider.name);
     }
     const overlap = await db.collection("platform_consultant_slots").findOne({
-      providerUserId, status: { $in: ["open", "reserved", "booked"] },
+      providerUserId,
+      $or: [{ status: { $in: ["open", "booked"] } }, { status: "reserved", reservedUntil: { $gt: new Date() } }],
       startsAt: { $lt: new Date(startsAt.getTime() + durationMinutes * 60000) },
       $expr: { $gt: [{ $add: ["$startsAt", { $multiply: ["$durationMinutes", 60000] }] }, startsAt] },
     });
