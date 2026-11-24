@@ -26,6 +26,10 @@ type KnowledgeActor = { userId: string; role: string };
 
 const embeddingModelName = () => process.env.ETZAN_AI_EMBEDDING_MODEL || "openai/text-embedding-3-small";
 const vectorIndexName = () => process.env.ETZAN_AI_VECTOR_INDEX_NAME || "etzan_ai_knowledge_vector";
+const embeddingDimensions = () => {
+  const value = Number(process.env.ETZAN_AI_EMBEDDING_DIMENSIONS || "1536");
+  return Number.isInteger(value) && value > 0 && value <= 8192 ? value : 1536;
+};
 const gatewayConfigured = () => Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1");
 
 function digest(value: string) {
@@ -127,6 +131,7 @@ export async function searchSemanticKnowledge(query: string, actor: KnowledgeAct
       value: query.slice(0, 1200),
       maxRetries: 1,
     });
+    if (result.embedding.length !== embeddingDimensions()) throw new Error("أبعاد نموذج التضمين لا تطابق إعدادات فهرس Atlas.");
     await recordPlatformAiUsage({
       feature: "knowledge_query_embedding",
       actorUserId: actor.userId,
@@ -205,6 +210,7 @@ export async function indexKnowledgeBatch(input: {
     maxRetries: 1,
   });
   if (result.embeddings.length !== batch.length) throw new Error("لم يرجع مزود التضمين متجهًا لكل مقطع محتوى.");
+  if (result.embeddings.some((embedding) => embedding.length !== embeddingDimensions())) throw new Error("أبعاد نموذج التضمين لا تطابق إعدادات الفهرس. راجع ETZAN_AI_EMBEDDING_DIMENSIONS وفهرس Atlas.");
 
   const db = await getClinicalDatabase();
   const operations = batch.map((chunk, index) => {
@@ -260,6 +266,7 @@ export function getKnowledgeIndexConfig() {
     gatewayConfigured: gatewayConfigured(),
     vectorSearchEnabled: process.env.ETZAN_AI_VECTOR_SEARCH_ENABLED === "true",
     embeddingModel: embeddingModelName(),
+    embeddingDimensions: embeddingDimensions(),
     vectorIndexName: vectorIndexName(),
     collectionName: "platform_ai_knowledge_chunks",
   };

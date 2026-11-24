@@ -26,9 +26,9 @@ type IndexStatus = {
   recentJob?: { status?: string; totalChunks?: number; nextOffset?: number; createdAt?: string } | null;
 };
 
-const indexDefinition = JSON.stringify({
+const indexDefinition = (dimensions: number) => JSON.stringify({
   fields: [
-    { type: "vector", path: "embedding", numDimensions: 1536, similarity: "cosine" },
+    { type: "vector", path: "embedding", numDimensions: dimensions, similarity: "cosine" },
     { type: "filter", path: "visibility" },
     { type: "filter", path: "indexRunId" },
   ],
@@ -162,7 +162,7 @@ export default function AiKnowledgeAdminPage() {
     <section className="portal-card" style={{ marginTop: 16 }}>
       <h2 style={{ marginTop: 0 }}><Database size={19} style={{ verticalAlign: "middle" }}/> إعداد MongoDB Atlas Vector Search</h2>
       <p>أنشئ فهرس Vector Search على مجموعة <code>platform_ai_knowledge_chunks</code> داخل قاعدة بيانات اتزان، وسمّه <code>{data?.config.vectorIndexName || "etzan_ai_knowledge_vector"}</code>.</p>
-      <pre dir="ltr" style={{ whiteSpace: "pre-wrap", overflowX: "auto", padding: 14, borderRadius: 10, background: "var(--portal-soft, #f4f6f7)", fontSize: 12 }}>{indexDefinition}</pre>
+      <pre dir="ltr" style={{ whiteSpace: "pre-wrap", overflowX: "auto", padding: 14, borderRadius: 10, background: "var(--portal-soft, #f4f6f7)", fontSize: 12 }}>{indexDefinition(data?.config.embeddingDimensions || 1536)}</pre>
       <p>التعريف أعلاه مطابق للنموذج الافتراضي ذي 1536 بُعدًا. عند تغيير نموذج التضمين، يجب ضبط <code>ETZAN_AI_EMBEDDING_DIMENSIONS</code> بما يطابق أبعاد النموذج ثم إعادة إنشاء فهرس Atlas وإعادة الفهرسة.</p>
       <p>بعد اكتمال إنشاء فهرس Atlas، أضف متغيري البيئة التاليين إلى بيئة الخادم:</p>
       <pre dir="ltr" style={{ whiteSpace: "pre-wrap", padding: 14, borderRadius: 10, background: "var(--portal-soft, #f4f6f7)", fontSize: 12 }}>ETZAN_AI_VECTOR_SEARCH_ENABLED=true{"\n"}ETZAN_AI_VECTOR_INDEX_NAME=etzan_ai_knowledge_vector</pre>

@@ -8,6 +8,8 @@
 - AI simulation performance review and persistence: /api/platform/activities.
 - Trainer scenario/rubric studio: /simulation/manage.
 - Admin usage and cost view: /platform-admin/ai.
+- Semantic knowledge index management: /platform-admin/ai-knowledge.
+- Semantic index management API: /api/platform/admin/ai-knowledge.
 
 ## Content retrieval boundary
 
@@ -53,7 +55,7 @@ The platform_ai_usage collection stores:
 - AI Gateway generation ID and numeric USD cost only when provider metadata supplies it.
 - A cost state of reported, pending (generation ID exists but a cost has not been returned), or unavailable.
 
-The helper intentionally does not store prompts or transcripts in the usage ledger. Conversation and assessment data follow their existing collections and permissions. Realtime session creation is logged, but actual voice session billing is not inferred from a temporary client-secret response; reconcile it against the provider's usage reporting until a completed-session usage callback is added.
+The helper intentionally does not store prompts or transcripts in the usage ledger. Conversation and assessment data follow their existing collections and permissions. Realtime session creation is logged, but actual voice session billing is not inferred from a temporary client-secret response. An administrator can record the final USD amount after checking the provider usage statement and must enter a statement or invoice reference; the reconciliation actor, timestamp, evidence reference, and amount are written to the audit log. This is a controlled manual import, not an automatic provider meter.
 
 ## Extension points for future AI and VR
 
