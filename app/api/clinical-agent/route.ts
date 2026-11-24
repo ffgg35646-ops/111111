@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { scenario?: string; messages?: ChatMessage[]; mode?: string };
+  let body: { scenario?: string; caseId?: string; messages?: ChatMessage[]; mode?: string };
   try {
     body = await request.json();
   } catch {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 
   const scenario = typeof body.scenario === "string" ? body.scenario.slice(0, 5000) : "";
-  const caseId = typeof (body as { caseId?: unknown }).caseId === "string" ? String((body as { caseId: string }).caseId).slice(0, 80) : "";
+  const caseId = typeof body.caseId === "string" ? body.caseId.slice(0, 80) : "";
   const mode = body.mode === "client" ? "client" : "supervisor";
   let privateScenarioContext = "";
   if (caseId) {
