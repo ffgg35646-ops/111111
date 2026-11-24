@@ -154,7 +154,18 @@ export async function POST(request: NextRequest) {
       return [{ bookId, quantity }];
     });
     if (!items.length) return NextResponse.json({ error: "أضف كتاباً واحداً على الأقل إلى الطلب." }, { status: 400 });
-    record.items = items;
+    const db = await getClinicalDatabase();
+    const enriched: {bookId:string;quantity:number;title:string;productType:string;unitPrice:number}[] = [];
+    for (const item of items) {
+      const book = await db.collection("etzan_books").findOne({bookId:item.bookId,published:true});
+      if (!book) return NextResponse.json({ error: "أحد الكتب لم يعد متاحاً في المكتبة. حدّث الصفحة وحاول مجدداً." }, { status: 409 });
+      if (book.productType === "physical" && (!Number.isInteger(Number(book.stock)) || Number(book.stock) < item.quantity)) {
+        return NextResponse.json({ error: "الكمية المطلوبة غير متاحة حالياً من الكتاب الورقي: " + String(book.title || item.bookId) }, { status: 409 });
+      }
+      enriched.push({bookId:item.bookId,quantity:item.quantity,title:String(book.title||"كتاب"),productType:book.productType==="physical"?"physical":"digital",unitPrice:Number(book.price)||0});
+    }
+    record.items = enriched;
+    record.expectedAmount = Math.round(enriched.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0)*100)/100;
     record.deliveryRegion = cleanText(data.deliveryRegion, 80);
     record.orderNote = cleanText(data.orderNote, 300);
   }
