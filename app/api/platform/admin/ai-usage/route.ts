@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         _id: 0, usageId: 1, feature: 1, provider: 1, model: 1, actorRole: 1,
         inputTokens: 1, outputTokens: 1, totalTokens: 1, costUsd: 1, currency: 1,
         costStatus: 1, eventStatus: 1, note: 1, occurredAt: 1, referenceId: 1,
+        costSource: 1, costEvidenceRef: 1, costReconciledAt: 1,
       } }).sort({ occurredAt: -1 }).limit(100).toArray(),
       usageCollection.aggregate([{
         $group: {
@@ -58,5 +59,70 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("AI usage dashboard failed", error);
     return NextResponse.json({ error: "تعذر تحميل سجل استخدام الذكاء الاصطناعي." }, { status: 503 });
+  }
+}
+
+
+export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (origin && origin !== request.nextUrl.origin) {
+    return NextResponse.json({ error: "مصدر الطلب غير مسموح." }, { status: 403 });
+  }
+  const actor = await requirePlatformRole(request, ["admin", "platform_manager"]);
+  if (!actor) return NextResponse.json({ error: "تسوية تكاليف الذكاء الاصطناعي متاحة للإدارة فقط." }, { status: 403 });
+
+  let body: unknown;
+  try { body = await request.json(); } catch {
+    return NextResponse.json({ error: "بيانات التسوية غير صالحة." }, { status: 400 });
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "أدخل بيانات التكلفة ومرجع كشف المزوّد." }, { status: 400 });
+  }
+  const data = body as Record<string, unknown>;
+  const usageId = typeof data.usageId === "string" ? data.usageId.trim().slice(0, 80) : "";
+  const costUsd = typeof data.costUsd === "number" ? data.costUsd : Number(data.costUsd);
+  const evidenceRef = typeof data.evidenceRef === "string" ? data.evidenceRef.trim().slice(0, 180) : "";
+  if (!usageId || !Number.isFinite(costUsd) || costUsd < 0 || costUsd > 1000000 || evidenceRef.length < 4) {
+    return NextResponse.json({ error: "أدخل تكلفة USD صالحة ومرجعاً واضحاً لكشف الاستخدام أو الفاتورة." }, { status: 400 });
+  }
+
+  try {
+    const db = await getClinicalDatabase();
+    const now = new Date();
+    const updated = await db.collection("platform_ai_usage").updateOne(
+      {
+        usageId,
+        provider: "openai-realtime",
+        eventStatus: "session_created",
+        costStatus: { $in: ["not_available", "pending"] },
+      },
+      {
+        $set: {
+          costUsd,
+          currency: "USD",
+          costStatus: "reported",
+          costSource: "manual-provider-reconciliation",
+          costEvidenceRef: evidenceRef,
+          costReconciledAt: now,
+          costReconciledBy: actor.userId,
+        },
+      },
+    );
+    if (!updated.modifiedCount) {
+      return NextResponse.json({ error: "لم يتم العثور على جلسة صوت غير مسوّاة بهذا المعرّف؛ ربما تمت تسويتها سابقاً." }, { status: 409 });
+    }
+    await db.collection("platform_audit_logs").insertOne({
+      action: "ai_usage_cost_reconciled_manually",
+      actorUserId: actor.userId,
+      usageId,
+      costUsd,
+      currency: "USD",
+      evidenceRef,
+      createdAt: now,
+    });
+    return NextResponse.json({ success: true, usageId, costUsd, currency: "USD", costSource: "manual-provider-reconciliation" });
+  } catch (error) {
+    console.error("Manual AI usage cost reconciliation failed", error);
+    return NextResponse.json({ error: "تعذرت تسوية تكلفة الجلسة الصوتية." }, { status: 503 });
   }
 }

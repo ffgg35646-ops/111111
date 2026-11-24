@@ -11,6 +11,7 @@ type UsageRow = {
   inputTokens: number | null; outputTokens: number | null; totalTokens: number | null;
   costUsd: number | null; currency: string | null; costStatus: string; eventStatus: string;
   note: string | null; occurredAt: string; referenceId: string | null;
+  costSource?: string | null; costEvidenceRef?: string | null; costReconciledAt?: string | null;
 };
 type UsageData = {
   totals: { totalCalls: number; inputTokens: number; outputTokens: number; reportedSpendUsd: number; reportedCostCalls: number; pendingCostCalls: number; unavailableCostCalls: number };
@@ -35,7 +36,11 @@ export default function AdminAiPage() {
   const router = useRouter();
   const [data, setData] = useState<UsageData | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [manualCosts, setManualCosts] = useState<Record<string, string>>({});
+  const [manualCostRefs, setManualCostRefs] = useState<Record<string, string>>({});
+  const [savingCostId, setSavingCostId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -60,6 +65,33 @@ export default function AdminAiPage() {
     }).catch(() => router.replace("/login?next=/platform-admin/ai"));
   }, [router, load]);
 
+  async function reconcileVoiceCost(row: UsageRow) {
+    const costUsd = Number(manualCosts[row.usageId]);
+    const evidenceRef = (manualCostRefs[row.usageId] || "").trim();
+    if (!Number.isFinite(costUsd) || costUsd < 0 || evidenceRef.length < 4) {
+      setError("أدخل قيمة التكلفة بالدولار ومرجع كشف الاستخدام أو الفاتورة.");
+      return;
+    }
+    setSavingCostId(row.usageId);
+    setError("");
+    try {
+      const response = await fetch("/api/platform/admin/ai-usage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usageId: row.usageId, costUsd, evidenceRef }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "تعذرت تسوية التكلفة.");
+      setManualCosts((current) => ({ ...current, [row.usageId]: "" }));
+      setNotice("تم تسجيل تكلفة الجلسة بعد إدخال مرجع كشف المزوّد.");
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذرت تسوية التكلفة.");
+    } finally {
+      setSavingCostId("");
+    }
+  }
+
   const totals = data?.totals;
   return <PlatformLayout title="إدارة الذكاء الاصطناعي" eyebrow="ETZAN · AI OPERATIONS" description="متابعة استهلاك النماذج، مراجعة التكلفة المبلغ عنها، وإدارة نقاط التكامل والتطوير.">
     <div className="portal-callout" style={{ marginBottom: 16 }}><ShieldCheck size={17}/> مفاتيح الربط تبقى في بيئة الخادم ولا تُعرض في لوحة الإدارة. لا يتم إنشاء مفاتيح أو شراء رصيد أو تفعيل تكامل مدفوع تلقائياً.</div>
@@ -77,11 +109,12 @@ export default function AdminAiPage() {
       </div>
       <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
         <div><strong>المساعد والشرح وإنشاء المحتوى:</strong> {data?.config.gatewayConfigured ? "الاتصال مهيأ على الخادم." : "الاتصال غير مهيأ بعد."} النموذج المحدد: {data?.config.textModel || "—"}. يمكن تبديل المزود بتغيير معرف النموذج وبياناته في إعدادات AI Gateway.</div>
-        <div><strong>الصوت الحي:</strong> {data?.config.realtimeConfigured ? "الاتصال مهيأ على الخادم." : "مفتاح الصوت غير مهيأ."} النموذج: {data?.config.realtimeModel || "—"}. يحتاج هذا المسار OPENAI_API_KEY وCLINICAL_REALTIME_MODEL وCLINICAL_REALTIME_VOICE. يسجل النظام بدء الجلسة، لكن لا يسجل تكلفتها الفعلية بعد؛ تظهر تكلفة الاستخدام من لوحة مزود الصوت.</div>
+        <div><strong>الصوت الحي:</strong> {data?.config.realtimeConfigured ? "الاتصال مهيأ على الخادم." : "مفتاح الصوت غير مهيأ."} النموذج: {data?.config.realtimeModel || "—"}. يحتاج هذا المسار OPENAI_API_KEY وCLINICAL_REALTIME_MODEL وCLINICAL_REALTIME_VOICE. يسجل النظام بدء الجلسة، ويمكن لمسؤول المنصة تسوية تكلفتها بعد مطابقتها مع كشف الاستخدام أو الفاتورة من لوحة مزود الصوت.</div>
         <div><strong>المحاكاة وتقييم الأداء:</strong> يستخدمان نموذج CLINICAL_AI_MODEL نفسه، مع بقاء مراجعة المدرب/المشرف مستقلة عن التقييم الآلي.</div>
       </div>
       <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 16 }}>
         <Link href="/assistant" className="portal-button"><Sparkles size={15}/> تجربة مساعد اتزان</Link>
+        <Link href="/platform-admin/ai-knowledge" className="portal-button secondary">إدارة فهرس المعرفة الدلالي</Link>
         <Link href="/simulation/manage" className="portal-button secondary">إدارة السيناريوهات</Link>
         <Link href="/platform-admin/activities" className="portal-button secondary">مراجعة تقارير المحاكاة</Link>
       </div>
@@ -89,12 +122,13 @@ export default function AdminAiPage() {
 
     <section className="portal-card" style={{ marginTop: 16 }}>
       <h2 style={{ marginTop: 0 }}>سجل الاستخدام والتكلفة</h2>
-      <p style={{ fontSize: 13 }}>حالة «مبلّغ عنها» تعني أن بيانات التكلفة وصلت من بوابة الذكاء الاصطناعي. «قيد التحقق» تعني وجود معرّف توليد دون قيمة تكلفة بعد. «غير متاحة» تعني أن المزوّد لم يرسل تكلفة لهذه العملية؛ لا يتم تقديرها أو اختلاقها.</p>
+      <p style={{ fontSize: 13 }}>حالة «مبلّغ عنها» تعني أن بيانات التكلفة وصلت من بوابة الذكاء الاصطناعي. «قيد التحقق» تعني وجود معرّف توليد دون قيمة تكلفة بعد. يمكن تسوية جلسة الصوت الحي يدويًا بعد مطابقة المبلغ مع كشف استخدام المزوّد وتسجيل مرجع الكشف؛ ويسجل النظام اسم المسؤول ووقت التسوية في سجل التدقيق. لا يتم تقدير أي تكلفة غير متاحة.</p>
       {error && <div className="portal-callout" role="alert">{error}</div>}
+      {notice && <div className="portal-callout" role="status">{notice}</div>}
       {loading && <div>جارٍ تحميل السجل...</div>}
       {!loading && data && <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
-          <thead><tr>{["التاريخ","الخدمة","المزوّد / النموذج","الدور","الرموز","التكلفة USD","حالة التكلفة"].map((label) => <th key={label} style={{ textAlign: "right", padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{label}</th>)}</tr></thead>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 930 }}>
+          <thead><tr>{["التاريخ","الخدمة","المزوّد / النموذج","الدور","الرموز","التكلفة USD","حالة التكلفة","تسوية الصوت"].map((label) => <th key={label} style={{ textAlign: "right", padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{label}</th>)}</tr></thead>
           <tbody>
             {data.rows.map((row) => <tr key={row.usageId}>
               <td style={{ padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{dateLabel(row.occurredAt)}</td>
@@ -103,9 +137,16 @@ export default function AdminAiPage() {
               <td style={{ padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{roleLabels[row.actorRole] || row.actorRole}</td>
               <td style={{ padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{row.totalTokens?.toLocaleString("ar-EG") ?? "—"}</td>
               <td style={{ padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{row.costUsd === null ? "—" : row.costUsd.toFixed(6)}</td>
-              <td style={{ padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{row.costStatus === "reported" ? "مبلّغ عنها" : row.costStatus === "pending" ? "قيد التحقق" : "غير متاحة"}</td>
+              <td style={{ padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)" }}>{row.costStatus === "reported" ? (row.costSource === "manual-provider-reconciliation" ? "تسوية يدوية موثقة" : "مبلّغ عنها") : row.costStatus === "pending" ? "قيد التحقق" : "غير متاحة"}</td>
+              <td style={{ padding: 9, borderBottom: "1px solid var(--portal-border, #e5eaed)", minWidth: 190 }}>
+                {row.provider === "openai-realtime" && row.costStatus !== "reported" ? <div style={{ display: "grid", gap: 5 }}>
+                  <input aria-label="تكلفة جلسة الصوت بالدولار" type="number" min="0" step="0.000001" placeholder="التكلفة USD" value={manualCosts[row.usageId] || ""} onChange={(event) => setManualCosts((current) => ({ ...current, [row.usageId]: event.target.value }))} />
+                  <input aria-label="مرجع كشف تكلفة الصوت" type="text" maxLength={180} placeholder="مرجع كشف المزوّد" value={manualCostRefs[row.usageId] || ""} onChange={(event) => setManualCostRefs((current) => ({ ...current, [row.usageId]: event.target.value }))} />
+                  <button type="button" className="portal-button secondary" onClick={() => reconcileVoiceCost(row)} disabled={savingCostId === row.usageId}>{savingCostId === row.usageId ? "جارٍ الحفظ..." : "تسجيل التكلفة"}</button>
+                </div> : row.provider === "openai-realtime" ? <small>{row.costEvidenceRef || "تمت التسوية"}</small> : "—"}
+              </td>
             </tr>)}
-            {!data.rows.length && <tr><td colSpan={7} style={{ padding: 16, textAlign: "center" }}>لا توجد عمليات مسجلة حتى الآن.</td></tr>}
+            {!data.rows.length && <tr><td colSpan={8} style={{ padding: 16, textAlign: "center" }}>لا توجد عمليات مسجلة حتى الآن.</td></tr>}
           </tbody>
         </table>
       </div>}

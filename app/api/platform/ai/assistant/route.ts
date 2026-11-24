@@ -6,6 +6,7 @@ import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses, learningTracks, practiceScales, trainingCases } from "@/lib/platform-catalog";
 import { isTrainerCourseOwner } from "@/lib/platform-trainer";
 import { recordPlatformAiUsage } from "@/lib/platform-ai";
+import { searchSemanticKnowledge } from "@/lib/platform-ai-knowledge";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -44,7 +45,9 @@ function scoreDocument(queryTokens: string[], document: SourceDocument) {
   const title = normalizeArabic(document.title);
   return queryTokens.reduce((score, token) => score + (token.length > 1 && haystack.includes(token) ? (title.includes(token) ? 3 : 1) : 0), 0);
 }
-async function searchPlatformKnowledge(query: string): Promise<SourceDocument[]> {
+async function searchPlatformKnowledge(query: string, actorUserId: string, actorRole: string): Promise<{ sources: SourceDocument[]; method: "semantic" | "keyword" }> {
+  const semantic = await searchSemanticKnowledge(query, { userId: actorUserId, role: actorRole });
+  if (semantic?.length) return { sources: semantic, method: "semantic" };
   const db = await getClinicalDatabase();
   const [articles, books] = await Promise.all([
     db.collection("etzan_articles").find({ status: "published" }, {
@@ -63,9 +66,10 @@ async function searchPlatformKnowledge(query: string): Promise<SourceDocument[]>
     ...practiceScales.map((item) => ({ type: "أداة تدريبية", title: item.title, href: "/assessments", text: [item.purpose, ...(Array.isArray(item.domains) ? item.domains : []), item.disclaimer].filter(Boolean).join("\n") })),
   ];
   const tokens = Array.from(new Set(normalizeArabic(query).split(" ").filter((token) => token.length > 1))).slice(0, 16);
-  return documents.map((document) => ({ ...document, score: scoreDocument(tokens, document) }))
+  const sources = documents.map((document) => ({ ...document, score: scoreDocument(tokens, document) }))
     .filter((document) => (document.score || 0) > 0)
     .sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 6);
+  return { sources, method: "keyword" };
 }
 function extractJson(text: string): Record<string, unknown> {
   const start = text.indexOf("{"), end = text.lastIndexOf("}");
@@ -140,7 +144,8 @@ export async function POST(request: NextRequest) {
 
   try {
     if (task === "ask" || task === "explain") {
-      const sources = await searchPlatformKnowledge(prompt);
+      const searchResult = await searchPlatformKnowledge(prompt, actor.userId, actor.role);
+      const sources = searchResult.sources;
       const sourceContext = sources.map((source, index) => "[" + (index + 1) + "] " + source.type + ": " + source.title + "\n" + source.text).join("\n\n").slice(0, 18000);
       const result = await generateText({
         model, temperature: 0.25, maxOutputTokens: 1300,
@@ -156,6 +161,7 @@ export async function POST(request: NextRequest) {
         success: true, answer: result.text,
         sources: sources.map(({ type, title, href }) => ({ type, title, href })),
         searchScope: "published-content-and-course-catalog",
+        searchMethod: searchResult.method,
       }, { headers: { "Cache-Control": "no-store" } });
     }
 
