@@ -1,13 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
-import type { Document } from "mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 export const runtime = "nodejs";
 const COMMUNITY_ROLES = ["admin","platform_manager","supervisor","trainer","trainee","consultant","accountant","support","content_manager","quality_manager"] as const;
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 type CommunityComment = { commentId: string; authorId: string; authorName: string; role: string; body: string; createdAt: Date };
-type CommunityPostDocument = Document & { postId: string; status: string; likedBy?: string[]; comments?: CommunityComment[] };
+type CommunityPostDocument = { postId: string; status: string; likedBy?: string[]; comments?: CommunityComment[] };
 export async function POST(request: NextRequest) {
   const actor = await requirePlatformRole(request, [...COMMUNITY_ROLES]);
   if (!actor) return NextResponse.json({ error: "سجل الدخول للتفاعل مع المجتمع." }, { status: 401 });
