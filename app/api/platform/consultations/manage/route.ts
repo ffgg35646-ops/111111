@@ -58,6 +58,10 @@ export async function POST(request: NextRequest) {
     if (action === "cancel") {
       if (record.status === "cancellation_requested") return NextResponse.json({ error: "تم إرسال طلب الإلغاء مسبقاً." }, { status: 409 });
       const now = new Date();
+      const scheduledStart = record.preferredAt instanceof Date ? record.preferredAt : new Date(String(record.preferredAt || ""));
+      if (Number.isFinite(scheduledStart.getTime()) && scheduledStart <= now) {
+        return NextResponse.json({ error: "لا يمكن إلغاء الموعد بعد بدء وقته المحدد. تواصل مع فريق اتزان." }, { status: 409 });
+      }
       if (record.paymentStatus === "payment_initiated") {
         return NextResponse.json({ error: "توجد عملية دفع قيد التحقق. انتظر تحديث حالتها قبل طلب الإلغاء." }, { status: 409 });
       }
@@ -102,6 +106,9 @@ export async function POST(request: NextRequest) {
     if (!validId(newSlotId) || newSlotId === record.slotId) return NextResponse.json({ error: "اختر موعداً جديداً مختلفاً." }, { status: 400 });
     const oldStart = record.preferredAt instanceof Date ? record.preferredAt : new Date(String(record.preferredAt || ""));
     const oldDuration = Number(record.durationMinutes) || 50;
+    if (!Number.isFinite(oldStart.getTime()) || oldStart.getTime() <= Date.now()) {
+      return NextResponse.json({ error: "انتهى وقت الموعد الحالي ولا يمكن إعادة جدولته." }, { status: 409 });
+    }
     const newSlot = await db.collection("platform_consultant_slots").findOne({
       slotId: newSlotId,
       serviceIds: String(record.serviceId),
