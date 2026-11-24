@@ -89,3 +89,49 @@ export async function createZoomMeeting(input: CreateZoomMeetingInput) {
     joinUrl: record.joinUrl,
   };
 }
+
+
+export async function rescheduleZoomMeeting(input: { meetingId: string; startTime: Date; durationMinutes: number }) {
+  const hostUserId = process.env.ZOOM_HOST_USER_ID;
+  const accountId = process.env.ZOOM_ACCOUNT_ID;
+  const clientId = process.env.ZOOM_CLIENT_ID;
+  const clientSecret = process.env.ZOOM_CLIENT_SECRET;
+  if (!hostUserId || !accountId || !clientId || !clientSecret) throw new Error("Zoom Server-to-Server OAuth credentials are not configured.");
+  if (!input.meetingId || !Number.isFinite(input.startTime.getTime()) || input.startTime.getTime() < Date.now() + 5 * 60 * 1000) {
+    throw new Error("The new Zoom meeting time must be at least five minutes in the future.");
+  }
+  if (!Number.isInteger(input.durationMinutes) || input.durationMinutes < 15 || input.durationMinutes > 480) {
+    throw new Error("Zoom meeting duration must be between 15 and 480 minutes.");
+  }
+  const tokenUrl = new URL("https://zoom.us/oauth/token");
+  tokenUrl.searchParams.set("grant_type", "account_credentials");
+  tokenUrl.searchParams.set("account_id", accountId);
+  const basic = Buffer.from(clientId + ":" + clientSecret).toString("base64");
+  const tokenResponse = await fetch(tokenUrl, {
+    method: "POST",
+    headers: { Authorization: "Basic " + basic, "Content-Type": "application/x-www-form-urlencoded" },
+    cache: "no-store",
+  });
+  const tokenPayload = await tokenResponse.json().catch(() => ({})) as { access_token?: string; message?: string };
+  if (!tokenResponse.ok || !tokenPayload.access_token) throw new Error(tokenPayload.message || "Zoom OAuth token request failed.");
+  const response = await fetch("https://api.zoom.us/v2/meetings/" + encodeURIComponent(input.meetingId), {
+    method: "PATCH",
+    headers: { Authorization: "Bearer " + tokenPayload.access_token, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      start_time: input.startTime.toISOString(),
+      duration: input.durationMinutes,
+      timezone: process.env.ZOOM_TIMEZONE || "Africa/Cairo",
+    }),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({})) as { message?: string };
+    throw new Error(payload.message || "Zoom rejected the meeting reschedule.");
+  }
+  const db = await getClinicalDatabase();
+  await db.collection("platform_zoom_meetings").updateOne(
+    { meetingId: input.meetingId },
+    { $set: { startTime: input.startTime, durationMinutes: input.durationMinutes, updatedAt: new Date(), status: "rescheduled" } },
+  );
+  return { meetingId: input.meetingId, startTime: input.startTime, durationMinutes: input.durationMinutes };
+}
