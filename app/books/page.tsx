@@ -1,35 +1,38 @@
 "use client";
-
-import { useState } from "react";
-import { BookOpen, ShoppingBag } from "lucide-react";
-import { PlatformLayout } from "@/components/platform-layout";
+import {useEffect,useMemo,useState} from "react";
+import {BookOpen,Download,Eye,Library,Search,ShoppingBag,FileText,ShieldCheck,X} from "lucide-react";
+import {PlatformLayout} from "@/components/platform-layout";
 import PlatformRequestForm from "@/components/platform-request-form";
-
-const books=[
- {id:"book-social-case",title:"دليل دراسة الحالة في الخدمة الاجتماعية",category:"الخدمة الاجتماعية",description:"مادة تعليمية مقترحة لتنظيم المقابلة والتاريخ الاجتماعي وخطة التدخل.",format:"كتاب تدريبي"},
- {id:"book-cbt-practice",title:"دفتر تطبيقات العلاج المعرفي السلوكي",category:"CBT",description:"أوراق عمل تعليمية لنموذج ABC وسجل الأفكار والتجارب السلوكية.",format:"دفتر تمارين"},
- {id:"book-autism-support",title:"دليل التواصل والدعم للأسر",category:"التوحد",description:"مادة إرشادية عن التواصل الداعم والاحتياجات الحسية والشراكة مع الأسرة.",format:"دليل عملي"},
- {id:"book-developmental",title:"مدخل إلى التقدير النمائي والمهارات التكيفية",category:"الاضطرابات النمائية",description:"مفاهيم تدريبية لفهم التاريخ النمائي والأداء التكيفي وحدود التقييم.",format:"كتاب تدريبي"},
- {id:"book-scales",title:"مرشد قراءة المقاييس النفسية والنمائية",category:"المقاييس والتقييم",description:"مبادئ الصدق والثبات والمعايير وحقوق استخدام أدوات القياس.",format:"مرجع تعليمي"},
-];
+type Book={bookId:string;title:string;author?:string;category:string;description:string;format:string;productType:"digital"|"physical";price:number;currency:string;coverUrl?:string;previewUrl?:string;rightsNote?:string;stock?:number;published:boolean};
+const categories=["الكل","الخدمة الاجتماعية","علم النفس","الإرشاد الأسري","العلاج المعرفي السلوكي CBT","التوحد","الاضطرابات النمائية","القياس والتقييم","التدريب المهني","الصحة النفسية","مراجع عامة"];
 export default function BooksPage(){
-  const [bookId,setBookId]=useState(books[0].id);
-  const active=books.find(book=>book.id===bookId)!;
-  return <PlatformLayout title="المكتبة والمتجر المعرفي" description="كتالوج للكتب والأدلة والمواد التعليمية المرتبطة بالخدمة الاجتماعية والصحة النفسية والتوحد والقياس.">
-    <div className="portal-callout"><ShoppingBag size={16}/> أرسل طلب الكتاب وسيتحقق فريق المتجر من توفر النسخة والسعر ووسيلة التسليم قبل تأكيد الطلب. الدفع الإلكتروني والمخزون والشحن الآلي لم يتم ربطها بعد.</div>
-    <div className="portal-grid">
-      {books.map(book=><article className="portal-card book-card" key={book.id}>
-        <div className="book-cover"><BookOpen size={30}/><span>{book.category}</span></div>
-        <span className="portal-chip">{book.format}</span><h3>{book.title}</h3><p>{book.description}</p>
-        <button className="portal-button secondary" onClick={()=>setBookId(book.id)}>طلب هذه المادة</button>
-      </article>)}
-    </div>
-    <section className="book-order-panel">
-      <div className="portal-section-title"><div><h2>طلب شراء</h2><p>{active.title}</p></div></div>
-      <PlatformRequestForm key={active.id} kind="book_order" title="بيانات طلب الكتاب" initialData={{items:[{bookId:active.id,quantity:1}]}} fields={[
-        {name:"deliveryRegion",label:"المدينة / منطقة التسليم",type:"text",placeholder:"اكتب المدينة"},
-        {name:"orderNote",label:"ملاحظة للطلب (اختياري)",type:"textarea",placeholder:"عدد النسخ أو تفضيل طريقة التواصل."},
-      ]} submitLabel="إرسال طلب الشراء"/>
-    </section>
-  </PlatformLayout>;
+ const [books,setBooks]=useState<Book[]>([]),[category,setCategory]=useState("الكل"),[query,setQuery]=useState(""),[selected,setSelected]=useState<Book|null>(null),[preview,setPreview]=useState<Book|null>(null),[quantity,setQuantity]=useState(1),[loading,setLoading]=useState(true),[error,setError]=useState("");
+ useEffect(()=>{let active=true;fetch("/api/books",{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error);if(active)setBooks(Array.isArray(d.books)?d.books:[])}).catch(e=>{if(active)setError(e.message||"تعذر تحميل المكتبة العلمية.")}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[]);
+ const visible=useMemo(()=>books.filter(b=>(category==="الكل"||b.category===category)&&(b.title+" "+(b.author||"")+" "+b.description).toLowerCase().includes(query.toLowerCase())),[books,category,query]);
+ return <PlatformLayout title="المكتبة العلمية والكتب" description="مراجع وكتب إلكترونية وورقية متخصصة في الخدمة الاجتماعية وعلم النفس والإرشاد والتقييم والتدريب المهني.">
+  <div className="portal-callout"><ShieldCheck size={17}/> تتم إتاحة تنزيل الكتب الرقمية بعد تأكيد الدفع فقط، ووفق ترخيص الاستخدام الموضح لكل كتاب. معاينة الكتب متاحة وفق حقوق الناشر.</div>
+  <div className="scientific-library-toolbar"><label><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="ابحث عن كتاب أو مؤلف أو موضوع..."/></label><span><Library size={16}/> {visible.length} كتاب</span></div>
+  <div className="scientific-categories">{categories.map(c=><button type="button" key={c} className={category===c?"active":""} onClick={()=>setCategory(c)}>{c}</button>)}</div>
+  {error&&<div className="portal-card" role="alert">{error}</div>}
+  {loading?<div className="portal-card">جارٍ تحميل الكتب والمراجع...</div>:visible.length===0?<div className="portal-card scientific-empty"><BookOpen size={28}/><strong>لا توجد كتب منشورة في هذا التصنيف حالياً</strong><span>سيظهر هنا كل كتاب ينشره فريق المكتبة العلمية.</span></div>:<div className="scientific-book-grid">{visible.map(book=><article className="portal-card scientific-book" key={book.bookId}>
+   <div className="scientific-book-cover" style={book.coverUrl?{backgroundImage:"linear-gradient(180deg,rgba(10,30,34,.05),rgba(10,30,34,.72)),url("+JSON.stringify(book.coverUrl)+")"}:undefined}><BookOpen size={35}/><span>{book.category}</span></div>
+   <div className="scientific-book-body"><div className="scientific-book-tags"><span>{book.format}</span><span>{book.productType==="digital"?"إلكتروني":"ورقي"}</span></div><h3>{book.title}</h3><small>{book.author||"مرجع اتزان"}</small><p>{book.description}</p>
+    <div className="scientific-book-bottom"><strong>{Number(book.price).toLocaleString("ar-SA")} {book.currency||"SAR"}</strong>{book.productType==="physical"&&<small>{Number(book.stock)>0?"متاح: "+book.stock:"غير متوفر حالياً"}</small>}</div>
+    <div className="scientific-book-actions">{book.previewUrl&&<button className="portal-button secondary" type="button" onClick={()=>setPreview(book)}><Eye size={14}/> معاينة</button>}<button className="portal-button" type="button" disabled={book.productType==="physical"&&!(Number(book.stock)>0)} onClick={()=>{setSelected(book);setQuantity(1)}}><ShoppingBag size={14}/> شراء الكتاب</button></div>
+    <small className="scientific-rights">{book.rightsNote||"الاستخدام وفق حقوق الناشر."}</small>
+   </div>
+  </article>)}</div>}
+  {selected&&<div className="scientific-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null)}}><section className="portal-card scientific-purchase-modal" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><button className="scientific-modal-close" onClick={()=>setSelected(null)} aria-label="إغلاق"><X size={18}/></button><span className="portal-chip">إتمام طلب الكتاب</span><h2 id="purchase-title">{selected.title}</h2><p>{selected.description}</p><strong>{Number(selected.price).toLocaleString("ar-SA")} {selected.currency||"SAR"} للنسخة</strong>{selected.productType==="physical"&&<label className="scientific-quantity">الكمية<input type="number" min={1} max={Math.max(1,Math.min(10,Number(selected.stock)||1))} value={quantity} onChange={e=>setQuantity(Math.max(1,Math.min(10,Number(selected.stock)||1,Number(e.target.value)||1)))}/></label>}
+   <PlatformRequestForm key={selected.bookId+"-"+quantity} kind="book_order" title="بيانات المشتري والطلب" description="سيُراجع الطلب ويُعتمد إجماليه، ثم يصلك رابط الدفع الإلكتروني الآمن." initialData={{items:[{bookId:selected.bookId,quantity}]}} fields={[{name:"deliveryRegion",label:selected.productType==="physical"?"المدينة / منطقة التسليم":"المدينة (اختياري)",type:"text",required:selected.productType==="physical",placeholder:"اكتب المدينة"},{name:"orderNote",label:"ملاحظة للطلب (اختياري)",type:"textarea",placeholder:"أي تفاصيل إضافية..."}]} submitLabel="إرسال طلب الشراء"/>
+  </section></div>}
+  {preview&&<div className="scientific-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setPreview(null)}}><section className="portal-card scientific-preview-modal" role="dialog" aria-modal="true"><div className="scientific-preview-heading"><div><span className="portal-chip">معاينة مرخصة</span><h2>{preview.title}</h2></div><button className="scientific-modal-close" onClick={()=>setPreview(null)} aria-label="إغلاق المعاينة"><X size={18}/></button></div>{preview.previewUrl?<iframe src={preview.previewUrl} title={"معاينة "+preview.title} sandbox="allow-same-origin allow-scripts" referrerPolicy="no-referrer"/>:<p>لا تتوفر معاينة لهذا الكتاب.</p>}<small>{preview.rightsNote||"المعاينة للاطلاع فقط وفق حقوق الناشر."}</small></section></div>}
+  <style jsx global>{`
+   .scientific-library-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:20px 0 13px}.scientific-library-toolbar label{display:flex;align-items:center;gap:9px;flex:1;max-width:560px;padding:10px 13px;background:#f5f8f8;border:1px solid #e2e9e9;border-radius:11px;color:#829398}.scientific-library-toolbar input{border:0;outline:0;background:transparent;width:100%;font:inherit;color:#263e44}.scientific-library-toolbar>span{display:flex;align-items:center;gap:6px;color:#6b8086;font-size:11px}
+   .scientific-categories{display:flex;gap:7px;overflow-x:auto;padding:3px 1px 13px}.scientific-categories button{white-space:nowrap;border:1px solid #e0e8e9;background:#fff;color:#64787e;border-radius:20px;padding:8px 13px;font:inherit;font-size:11px;cursor:pointer}.scientific-categories button.active{background:#eaf6f4;border-color:#8acbc3;color:#147e75;font-weight:700}
+   .scientific-book-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:15px}.scientific-book{overflow:hidden;padding:0;display:flex;flex-direction:column}.scientific-book-cover{height:175px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:linear-gradient(135deg,#e8f2f1,#dce8e7);background-size:cover;background-position:center;color:#397c78}.scientific-book-cover span{font-size:11px;color:#fff;text-shadow:0 1px 4px #263c3c}.scientific-book-body{padding:15px;display:flex;flex-direction:column;flex:1}.scientific-book-tags{display:flex;gap:6px}.scientific-book-tags span{font-size:9px;color:#65817e;background:#edf5f4;padding:5px 8px;border-radius:20px}.scientific-book h3{font-size:15px;line-height:1.7;color:#253d43;margin:10px 0 2px}.scientific-book-body>small{font-size:10px;color:#849499}.scientific-book-body>p{font-size:11px;line-height:1.8;color:#71848a;min-height:58px}.scientific-book-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:auto;gap:8px}.scientific-book-bottom strong{color:#147f76;font-size:14px}.scientific-book-bottom small{font-size:10px;color:#819197}.scientific-book-actions{display:flex;gap:7px;margin-top:12px}.scientific-book-actions button{flex:1;justify-content:center}.scientific-rights{display:block;margin-top:10px;color:#98a5a8;font-size:9px;line-height:1.6}
+   .scientific-empty{display:grid;justify-items:center;gap:10px;padding:40px;color:#829398}.scientific-empty strong{color:#425a60;font-size:13px}.scientific-empty span{font-size:11px}
+   .scientific-modal-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(16,32,36,.58);display:grid;place-items:center;padding:16px;overflow:auto}.scientific-purchase-modal,.scientific-preview-modal{width:min(720px,100%);max-height:92vh;overflow:auto;position:relative;padding:24px}.scientific-modal-close{position:absolute;left:14px;top:14px;border:0;background:#eff4f4;color:#51686d;border-radius:8px;width:34px;height:34px;display:grid;place-items:center;cursor:pointer}.scientific-purchase-modal h2,.scientific-preview-heading h2{font-size:19px;color:#243d43;margin:14px 0 7px}.scientific-purchase-modal>p{font-size:12px;color:#75868c;line-height:1.8}.scientific-purchase-modal>strong{color:#147f76;font-size:14px}.scientific-quantity{display:flex;align-items:center;gap:12px;margin:15px 0;font-size:12px}.scientific-quantity input{width:90px;border:1px solid #dce5e6;border-radius:8px;padding:8px}.scientific-preview-heading{display:flex;justify-content:space-between;gap:20px}.scientific-preview-modal iframe{width:100%;height:68vh;border:1px solid #e1e7e7;border-radius:9px;margin-top:14px}.scientific-preview-modal>small{display:block;color:#819095;margin-top:9px;font-size:10px}
+   @media(max-width:640px){.scientific-library-toolbar{align-items:stretch;flex-direction:column}.scientific-book-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.scientific-purchase-modal,.scientific-preview-modal{padding:17px}.scientific-preview-modal iframe{height:60vh}}
+  `}</style>
+ </PlatformLayout>;
 }
