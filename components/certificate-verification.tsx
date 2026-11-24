@@ -52,6 +52,7 @@ export function CertificateVerificationPage() {
   useEffect(() => {
     const initialCode = new URLSearchParams(window.location.search).get("code");
     if (!initialCode) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect the URL-provided verification code in the form.
     setCode(initialCode);
     void verifyCode(initialCode);
   }, [verifyCode]);
