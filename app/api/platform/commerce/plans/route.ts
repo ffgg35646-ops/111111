@@ -7,7 +7,7 @@ export const runtime="nodejs";
 export async function GET(request:NextRequest){
  const manage=request.nextUrl.searchParams.get("manage")==="1";
  if(manage&&!(await requirePlatformRole(request,["admin","platform_manager","accountant"])))return NextResponse.json({error:"غير مصرح."},{status:403});
- try{const db=await getClinicalDatabase(),saved=await db.collection("platform_membership_plans").find({},{projection:{_id:0}}).toArray();const plans=defaultMembershipPlans.map(base=>{const item=saved.find(row=>row.planId===base.planId);return item?{...base,...item}:base});return NextResponse.json({plans:manage?plans:plans.filter(p=>p.active===true&&Number(p.monthlyPrice)>0&&Number(p.annualPrice)>0)},{headers:{"Cache-Control":"no-store"}})}
+ try{const db=await getClinicalDatabase(),saved=await db.collection("platform_membership_plans").find({},{projection:{_id:0}}).toArray();const plans:Array<{planId:string;name:string;description:string;monthlyPrice:number;annualPrice:number;features:readonly string[];active?:boolean}> = defaultMembershipPlans.map(base=>{const item=saved.find(row=>row.planId===base.planId);return (item?{...base,...item}:base) as {planId:string;name:string;description:string;monthlyPrice:number;annualPrice:number;features:readonly string[];active?:boolean}});return NextResponse.json({plans:manage?plans:plans.filter(p=>p.active===true&&Number(p.monthlyPrice)>0&&Number(p.annualPrice)>0)},{headers:{"Cache-Control":"no-store"}})}
  catch(error){console.error("ETZAN plans GET",error);return NextResponse.json({error:"تعذر تحميل باقات العضوية."},{status:503})}
 }
 export async function PUT(request:NextRequest){
