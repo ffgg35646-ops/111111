@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpenCheck, CheckCircle2, ClipboardList, Info, Scale, ShieldCheck } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import { practiceScales } from "@/lib/platform-catalog";
@@ -12,13 +12,45 @@ const quiz=[
  {question:"ما الممارسة المهنية الصحيحة عند وجود مؤشرات غير واضحة؟",choices:["تأكيد تشخيص من الملاحظة وحدها","جمع معلومات متعددة والتشاور أو الإحالة إلى مختص مخول","تجاهل المعلومات المخالفة"],answer:1,why:"يجب دمج مصادر متعددة واحترام حدود الدور المهني."},
 ];
 
+type Attempt = { attemptId: string; title: string; score: number; total: number; percentage: number; createdAt: string };
+
 export default function AssessmentsPage(){
   const [selected,setSelected]=useState(practiceScales[0].id);
   const [ratings,setRatings]=useState<Record<string,string>>({});
   const [answers,setAnswers]=useState<Record<number,number>>({});
+  const [attempts,setAttempts]=useState<Attempt[]>([]);
+  const [saving,setSaving]=useState(false);
+  const [saveMessage,setSaveMessage]=useState("");
+  const [saveError,setSaveError]=useState("");
   const active=practiceScales.find(item=>item.id===selected)!;
   const answered=Object.keys(answers).length;
   const score=quiz.reduce((sum,item,index)=>sum+(answers[index]===item.answer?1:0),0);
+
+  useEffect(()=>{
+    let activeRequest=true;
+    fetch("/api/learning/assessments",{cache:"no-store"}).then(async response=>{
+      if(!response.ok)return;
+      const data=await response.json();
+      if(activeRequest)setAttempts(data.attempts||[]);
+    }).catch(()=>{});
+    return()=>{activeRequest=false};
+  },[]);
+
+  async function saveAttempt(){
+    if(answered!==quiz.length||saving)return;
+    setSaving(true);setSaveError("");setSaveMessage("");
+    try{
+      const response=await fetch("/api/learning/assessments",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({answers:quiz.map((_,index)=>answers[index])}),
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"تعذر حفظ النتيجة. سجّل الدخول بحساب متدرب.");
+      setAttempts(current=>[data.attempt,...current.filter(item=>item.attemptId!==data.attempt.attemptId)]);
+      setSaveMessage("تم حفظ نتيجتك في سجل الاختبارات بلوحة المتدرب.");
+    }catch(error){setSaveError(error instanceof Error?error.message:"تعذر حفظ النتيجة.");}
+    finally{setSaving(false);}
+  }
 
   return <PlatformLayout title="مختبر دراسة الحالة والمقاييس" description="تعلم كيفية اختيار أدوات التقييم وقراءة خصائصها وتوثيق الملاحظات وصياغة الفرضيات التعليمية مع احترام حدود الاختصاص.">
     <div className="portal-callout"><Info size={16}/> النماذج الموجودة هنا مواد تدريبية أصلية وغير مقننة. لا تنتج تشخيصاً أو درجات معيارية، ولا تستبدل المقاييس المرخصة أو التقييم الذي يجريه مختص مؤهل.</div>
@@ -41,7 +73,13 @@ export default function AssessmentsPage(){
         <div>{item.choices.map((choice,choiceIndex)=><button key={choice} className={answers[index]===choiceIndex?"selected":""} onClick={()=>setAnswers(current=>({...current,[index]:choiceIndex}))}>{choice}</button>)}</div>
         {answers[index]!==undefined&&<p className={answers[index]===item.answer?"correct":"incorrect"}>{answers[index]===item.answer?"إجابة صحيحة. ":"راجع المفهوم. "}{item.why}</p>}
       </article>)}
-      {answered===quiz.length&&<div className="quiz-result"><CheckCircle2 size={18}/> نتيجتك التعليمية: {score} من {quiz.length}</div>}
+      {answered===quiz.length&&<div className="quiz-result"><CheckCircle2 size={18}/> نتيجتك التعليمية: {score} من {quiz.length}<button className="portal-button" disabled={saving} onClick={()=>void saveAttempt()}>{saving?"جارٍ حفظ النتيجة...":"حفظ نتيجتي"}</button></div>}
+      {saveMessage&&<p role="status" style={{color:"#18745e"}}>{saveMessage}</p>}
+      {saveError&&<p role="alert" style={{color:"#a33"}}>{saveError}</p>}
     </section>
+    {attempts.length>0&&<section className="portal-card" style={{marginTop:18}}>
+      <div className="portal-section-title"><div><h2>سجل محاولاتك</h2><p>{attempts.length} محاولات محفوظة</p></div></div>
+      {attempts.slice(0,8).map(attempt=><div key={attempt.attemptId} style={{padding:"10px 0",borderBottom:"1px solid #edf1f3"}}><strong>{attempt.score} من {attempt.total} · {attempt.percentage}%</strong><p style={{margin:"4px 0",fontSize:12,color:"#758493"}}>{new Date(attempt.createdAt).toLocaleString("ar-EG")}</p></div>)}
+    </section>}
   </PlatformLayout>;
 }
