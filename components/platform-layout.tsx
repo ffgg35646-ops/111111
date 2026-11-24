@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
-import { Activity, ArrowUpLeft, BookOpen, Brain, ClipboardList, FileBadge, Glasses, GraduationCap, HeartHandshake, LayoutDashboard, Library, ShieldCheck, Video, Users, Newspaper } from "lucide-react";
+import { Activity, ArrowUpLeft, BookOpen, Brain, ClipboardList, FileBadge, Glasses, GraduationCap, HeartHandshake, LayoutDashboard, Library, ShieldCheck, Video, Users, Newspaper, Sparkles } from "lucide-react";
 const navigation=[
 {href:"/specialties",label:"المسارات التخصصية",icon:Brain},{href:"/academy",label:"الأكاديمية",icon:GraduationCap},
-{href:"/cases",label:"الحالات التدريبية",icon:Brain},{href:"/assessments",label:"المقاييس والاختبارات",icon:ClipboardList},
+{href:"/cases",label:"الحالات التدريبية",icon:Brain},{href:"/assistant",label:"مساعد اتزان الذكي",icon:Sparkles},{href:"/assessments",label:"المقاييس والاختبارات",icon:ClipboardList},
 {href:"/classrooms",label:"الفصول المباشرة",icon:Video},{href:"/consultations",label:"الاستشارات",icon:HeartHandshake},
 {href:"/books",label:"المكتبة العلمية والكتب",icon:Library},{href:"/tools",label:"النماذج المهنية",icon:ClipboardList},
 {href:"/membership",label:"العضويات",icon:ShieldCheck},{href:"/articles",label:"المقالات العلمية",icon:Newspaper},

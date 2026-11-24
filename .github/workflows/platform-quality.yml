@@ -11,6 +11,7 @@ on:
       - feature/etzan-platform-buildout-20261123
       - feature/etzan-gap-completion-20261123
       - feature/etzan-professional-community
+      - feature/etzan-ai-final
   pull_request:
     branches:
       - main
