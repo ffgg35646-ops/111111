@@ -11,7 +11,7 @@ export async function GET(request:NextRequest){
  try{
   const db=await getClinicalDatabase(),order=await db.collection("platform_requests").findOne({requestId});
   if(!order)return NextResponse.json({error:"الطلب غير موجود."},{status:404});
-  if(order.paymentStatus==="paid"){if(order.paymentId!==paymentId)return NextResponse.json({error:"الطلب مدفوع بالفعل، لكن رقم العملية لا يطابق السجل."},{status:409});if(order.kind==="book_order")await finalizePaidBookInventory(db,requestId);return NextResponse.json({success:true,paid:true,status:order.status,requestId,kind:order.kind,items:order.kind==="book_order"?order.items:undefined});}
+  if(order.paymentStatus==="paid"){if(order.paymentId!==paymentId)return NextResponse.json({error:"الطلب مدفوع بالفعل، لكن رقم العملية لا يطابق السجل."},{status:409});if(order.kind==="book_order")await finalizePaidBookInventory(db,requestId);return NextResponse.json({success:true,paid:true,status:order.status,requestId,kind:order.kind,items:order.kind==="book_order"?order.items:undefined,zoomMeeting:order.kind==="consultation"?order.zoomMeeting:undefined});}
   const intent=await db.collection("platform_payment_intents").findOne({requestId, ...(typeof order.email==="string"?{email:order.email}:{})},{sort:{createdAt:-1}});
   if(!intent)return NextResponse.json({error:"لا توجد عملية دفع صادرة لهذا الطلب."},{status:404});
   const response=await fetch("https://api.moyasar.com/v1/payments/"+encodeURIComponent(paymentId),{headers:{Authorization:"Basic "+Buffer.from(secret+":").toString("base64"),Accept:"application/json"},cache:"no-store"});
@@ -37,6 +37,6 @@ export async function GET(request:NextRequest){
    });
   }
   await db.collection("platform_audit_logs").insertOne({action:"moyasar_payment_verified",requestId,paymentId,amount:payment.amount,currency:payment.currency,createdAt:new Date()});
-  return NextResponse.json({success:true,paid:true,status:"approved",requestId,kind:order.kind,items:order.kind==="book_order"?order.items:undefined},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({success:true,paid:true,status:"approved",requestId,kind:order.kind,items:order.kind==="book_order"?order.items:undefined,zoomMeeting:order.kind==="consultation"?order.zoomMeeting:undefined},{headers:{"Cache-Control":"no-store"}});
  }catch(error){console.error("Moyasar payment verification failed",error);return NextResponse.json({error:"تعذر إكمال التحقق من الدفع."},{status:503})}
 }
