@@ -97,7 +97,9 @@ export async function createElectronicInvoice(
 ) {
   const paymentId = typeof payment.providerPaymentId === "string" ? payment.providerPaymentId : "";
   if (!paymentId) return null;
-  const existing = await db.collection("platform_invoices").findOne({ providerPaymentId: paymentId }, { projection: { _id: 0, invoiceId: 1 } });
+  const invoices = db.collection("platform_invoices");
+  await invoices.createIndex({ providerPaymentId: 1 }, { unique: true });
+  const existing = await invoices.findOne({ providerPaymentId: paymentId }, { projection: { _id: 0, invoiceId: 1 } });
   if (existing) return existing.invoiceId;
 
   const now = new Date();
