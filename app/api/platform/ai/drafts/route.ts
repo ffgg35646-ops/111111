@@ -52,8 +52,13 @@ export async function POST(request: NextRequest) {
     const draft = await drafts.findOne({ draftId, status: "pending_review" });
     if (!draft) return NextResponse.json({ error: "المسودة غير موجودة أو سبق مراجعتها." }, { status: 404 });
     if (action === "reject_quiz") {
-      await drafts.updateOne({ draftId, status: "pending_review" }, { $set: { status: "rejected", reviewedBy: actor.userId, reviewedAt: new Date() } });
-      await db.collection("platform_audit_logs").insertOne({ action: "ai_quiz_draft_rejected", actorUserId: actor.userId, draftId, createdAt: new Date() });
+      const reviewedAt = new Date();
+      const rejected = await drafts.updateOne(
+        { draftId, status: "pending_review" },
+        { $set: { status: "rejected", reviewedBy: actor.userId, reviewedAt } },
+      );
+      if (!rejected.modifiedCount) return NextResponse.json({ error: "تمت مراجعة المسودة بالفعل. حدّث الصفحة." }, { status: 409 });
+      await db.collection("platform_audit_logs").insertOne({ action: "ai_quiz_draft_rejected", actorUserId: actor.userId, draftId, createdAt: reviewedAt });
       return NextResponse.json({ success: true, status: "rejected" });
     }
 
