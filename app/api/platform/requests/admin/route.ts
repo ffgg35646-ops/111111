@@ -50,7 +50,14 @@ export async function PATCH(request: NextRequest) {
     if (action === "reject") {
       await collection.updateOne({ requestId, status: "pending_review" }, { $set: { status: "rejected", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin" } });
       if (record.kind === "book_order") await releasePendingBookInventory(db,requestId);
-      if (record.kind === "consultation" && typeof record.slotId === "string") await db.collection("platform_consultant_slots").updateOne({ slotId: record.slotId, reservationId: requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
+      if (record.kind === "consultation" && typeof record.slotId === "string") {
+        await db.collection("platform_consultant_slots").updateOne({ slotId: record.slotId, reservationId: requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
+        await sendConsultationNotice(db, {
+          requestId, email: String(record.email || ""), recipientName: String(record.name || "عميل اتزان"),
+          subject: "تحديث طلب الاستشارة - اتزان",
+          message: "نعتذر، لم تتم الموافقة على طلب الاستشارة. " + (adminNote || "يمكنك التواصل مع فريق اتزان لمزيد من المعلومات.") + " رقم الطلب: " + requestId,
+        });
+      }
       return NextResponse.json({ success: true, status: "rejected" });
     }
 
