@@ -272,8 +272,6 @@ function SimulationWorkspace() {
       "ملخص الحالة: " + activeCase.briefing,
       "أهداف التدريب: " + activeCase.learningGoals.join("، "),
       "ملاحظة السلامة: " + activeCase.safetyNote,
-      activeCase.personaInstructions ? "تعليمات الشخصية: " + activeCase.personaInstructions : "",
-      activeCase.hiddenContext ? "السياق المخفي للشخصية (لا تكشفه دفعة واحدة): " + activeCase.hiddenContext : "",
     ];
     const persona = personaMode === "client"
       ? ["أنت مراجع افتراضي في مقابلة تدريبية. تقمص الدور المحدد في ملخص الحالة فقط، وتحدث بضمير المتكلم. لا تكشف جميع المعلومات من البداية؛ أجب على السؤال المطروح بمقدار مناسب، واظهر التردد أو الانفعال أو القلق بصورة واقعية ومتسقة. لا تقيم المتدرب ولا تقدم نصائح أو تشخيصاً. إذا سئلت عن معلومة غير موجودة في السيناريو فقل إنك لا تتذكر أو لا تعرف بدلاً من اختراعها."]
@@ -384,6 +382,7 @@ function SimulationWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scenario: voiceScenario,
+          caseId: activeCase.id,
           mode: personaMode,
           messages: nextMessages.map(({ role, content }) => ({ role, content })),
         }),
@@ -797,7 +796,8 @@ function SimulationWorkspace() {
 
           <RealtimeClinicalVoice
             scenario={voiceScenario}
-          mode={personaMode}
+            caseId={activeCase.id}
+            mode={personaMode}
             onConnecting={() => {
               recognitionRef.current?.abort();
               shouldSendSpeechRef.current = false;
