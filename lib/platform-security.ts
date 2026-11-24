@@ -75,6 +75,30 @@ export async function verifyClassroomAccessToken(token: string) {
   };
 }
 
+
+export async function createCourseVideoAccessUrl(courseId: string, userId: string) {
+  const token = await new SignJWT({ action: "course_video", courseId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuer("etzan-secure-course-video")
+    .setAudience("etzan-course-video")
+    .setSubject(userId)
+    .setJti(randomUUID())
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(mediaSecret());
+  return "/api/learning/courses/" + encodeURIComponent(courseId) + "/video?token=" + encodeURIComponent(token);
+}
+
+export async function verifyCourseVideoAccessToken(token: string) {
+  const { payload } = await jwtVerify(token, mediaSecret(), {
+    algorithms: ["HS256"],
+    issuer: "etzan-secure-course-video",
+    audience: "etzan-course-video",
+  });
+  if (typeof payload.sub !== "string" || typeof payload.courseId !== "string" || payload.action !== "course_video") return null;
+  return { userId: payload.sub, courseId: payload.courseId };
+}
+
 export function allowedCourseVideoUrl(value: unknown) {
   if (typeof value !== "string" || value.length > 3000) return false;
   try {

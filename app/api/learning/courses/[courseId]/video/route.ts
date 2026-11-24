@@ -2,13 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
-import { allowedCourseVideoUrl, recordSecurityEvent } from "@/lib/platform-security";
+import { allowedCourseVideoUrl, recordSecurityEvent, verifyCourseVideoAccessToken } from "@/lib/platform-security";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 type Context = { params: Promise<{ courseId: string }> };
 async function resolveMedia(request: NextRequest, courseId: string) {
   const actor = await requirePlatformRole(request, ["trainee"]);
   if (!actor) return { response: NextResponse.json({ error: "سجّل الدخول بحساب المتدرب." }, { status: 401 }) };
+  const token = request.nextUrl.searchParams.get("token") || "";
+  try {
+    const grant = await verifyCourseVideoAccessToken(token);
+    if (!grant || grant.userId !== actor.userId || grant.courseId !== courseId) {
+      return { response: NextResponse.json({ error: "انتهت صلاحية رابط الفيديو. جدّد الرابط من المشغل." }, { status: 401 }) };
+    }
+  } catch {
+    return { response: NextResponse.json({ error: "انتهت صلاحية رابط الفيديو. جدّد الرابط من المشغل." }, { status: 401 }) };
+  }
   if (!courses.some(c => c.id === courseId)) return { response: NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 }) };
   try {
     const db = await getClinicalDatabase();
