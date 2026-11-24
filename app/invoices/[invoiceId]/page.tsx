@@ -4,7 +4,7 @@ import {useParams} from "next/navigation";
 import Link from "next/link";
 import {QRCodeSVG} from "qrcode.react";
 import {PlatformLayout} from "@/components/platform-layout";
-type Invoice={invoiceId:string;invoiceNumber:string;requestId:string;customerName:string;customerEmail:string;customerPhone?:string;sellerName:string;sellerVatNumber?:string;sellerAddress?:string;sellerCommercialRegistration?:string;currency:string;subtotalAmount:number;discountAmount:number;taxAmount:number;vatRateBps:number;totalAmount:number;providerFee?:number|null;paymentMethod?:string;lines:Array<{description:string;quantity:number;unitPrice:number;lineTotal:number}>;invoiceType:string;zatcaPhase2Integrated:boolean;qrCodeBase64?:string;issuedAt:string;paidAt:string};
+type Invoice={invoiceId:string;invoiceNumber:string;requestId:string;customerName:string;customerEmail:string;customerPhone?:string;sellerName:string;sellerVatNumber?:string;sellerAddress?:string;sellerCommercialRegistration?:string;currency:string;subtotalAmount:number;discountAmount:number;taxAmount:number;vatRateBps:number;pricesIncludeVat?:boolean;totalAmount:number;providerFee?:number|null;paymentMethod?:string;lines:Array<{description:string;quantity:number;unitPrice:number;lineTotal:number}>;invoiceType:string;zatcaPhase2Integrated:boolean;qrCodeBase64?:string;issuedAt:string;paidAt:string};
 export default function InvoicePage(){
  const params=useParams<{invoiceId:string}>(),id=Array.isArray(params.invoiceId)?params.invoiceId[0]:params.invoiceId;
  const [invoice,setInvoice]=useState<Invoice|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState("");
@@ -26,9 +26,9 @@ export default function InvoicePage(){
   <tbody>{invoice.lines.map((line,i)=><tr key={i} style={{borderBottom:"1px solid #edf0f0"}}><td style={{padding:10}}>{line.description}</td><td style={{padding:10}}>{line.quantity}</td><td style={{padding:10}}>{Number(line.unitPrice).toFixed(2)} {invoice.currency}</td><td style={{padding:10}}>{Number(line.lineTotal).toFixed(2)} {invoice.currency}</td></tr>)}</tbody>
  </table></div>
  <div style={{display:"grid",justifyContent:"end",gap:7,marginTop:18,fontSize:12}}>
-  <div>الإجمالي قبل الخصم: {invoice.subtotalAmount.toFixed(2)} {invoice.currency}</div>
+  <div>{invoice.pricesIncludeVat&&invoice.taxAmount>0?"المجموع قبل الخصم (شامل الضريبة):":"المجموع قبل الخصم:"} {invoice.subtotalAmount.toFixed(2)} {invoice.currency}</div>
   {invoice.discountAmount>0&&<div>الخصم: −{invoice.discountAmount.toFixed(2)} {invoice.currency}</div>}
-  {invoice.taxAmount>0&&<div>ضريبة القيمة المضافة ({(invoice.vatRateBps/100).toFixed(2)}%): {invoice.taxAmount.toFixed(2)} {invoice.currency}</div>}
+  {invoice.taxAmount>0&&<div>ضريبة القيمة المضافة ({(invoice.vatRateBps/100).toFixed(2)}%): {invoice.taxAmount.toFixed(2)} {invoice.currency}{invoice.pricesIncludeVat?" (ضمن الإجمالي)":" (تضاف إلى الإجمالي)"}</div>}
   <strong style={{fontSize:18}}>الإجمالي المدفوع: {invoice.totalAmount.toFixed(2)} {invoice.currency}</strong>
  </div>
  <div style={{display:"flex",justifyContent:"space-between",gap:16,flexWrap:"wrap",alignItems:"center",marginTop:24,paddingTop:18,borderTop:"1px solid #dde5e7"}}>
