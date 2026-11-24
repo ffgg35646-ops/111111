@@ -65,6 +65,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "أدخل إجمالي السعر بالريال السعودي قبل اعتماد الطلب." }, { status: 400 });
     }
 
+    if (record.kind === "consultation") {
+      const liveHold = await db.collection("platform_consultant_slots").findOne({
+        slotId: record.slotId, reservationId: requestId, status: "reserved", reservedUntil: { $gt: new Date() },
+      }, { projection: { _id: 1 } });
+      if (!liveHold) return NextResponse.json({ error: "انتهت مهلة حجز الفترة. اطلب من العميل اختيار موعد متاح جديداً." }, { status: 409 });
+    }
+
     let zoomMeeting: Awaited<ReturnType<typeof createZoomMeeting>> | undefined;
     if (["classroom_registration", "consultation", "room_rental"].includes(String(record.kind))) {
       if (!(record.preferredAt instanceof Date) || record.preferredAt.getTime() < Date.now() + 5 * 60 * 1000) {
