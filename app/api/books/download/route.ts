@@ -9,7 +9,7 @@ export async function GET(request:NextRequest){
   const db=await getClinicalDatabase();
   const order=await db.collection("platform_requests").findOne({requestId,kind:"book_order",status:"approved",paymentStatus:"paid"});
   if(!order||!Array.isArray(order.items)||!order.items.some((item:Record<string,unknown>)=>item.bookId===bookId))return NextResponse.json({error:"التنزيل متاح فقط بعد تأكيد دفع طلب يحتوي على هذا الكتاب."},{status:403});
-  const book=await db.collection("etzan_books").findOne({bookId,published:true,productType:"digital"});
+  const book=await db.collection("etzan_books").findOne({bookId,productType:"digital"});
   if(!book||typeof book.downloadUrl!=="string")return NextResponse.json({error:"ملف الكتاب غير متاح حالياً."},{status:404});
   const source=new URL(book.downloadUrl);
   if(source.protocol!=="https:")return NextResponse.json({error:"مصدر الملف غير آمن."},{status:502});
