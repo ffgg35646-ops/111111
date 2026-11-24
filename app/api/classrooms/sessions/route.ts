@@ -17,10 +17,18 @@ export async function GET(request:NextRequest){
  try{
   const db=await getClinicalDatabase();
   const filter:Record<string,unknown>={status:{$ne:"cancelled"}};
-  if(actor.role==="trainer") filter.createdBy=actor.userId;
+  if(actor.role==="trainer"){
+   const assignments=await db.collection("platform_trainer_course_assignments").find(
+    {trainerId:actor.userId},
+    {projection:{_id:0,courseId:1}},
+   ).toArray();
+   const assignedCourseIds=[...new Set(assignments.map(row=>String(row.courseId||"")).filter(Boolean))];
+   if(!assignedCourseIds.length)return NextResponse.json({sessions:[],canManage:true},{headers:{"Cache-Control":"no-store"}});
+   filter.courseId={$in:assignedCourseIds};
+  }
   if(actor.role==="trainee"){
    const registrations=await db.collection("platform_requests").find(
-    {email:actor.email.toLowerCase(),kind:"classroom_registration",status:"approved"},
+    {email:actor.email.toLowerCase(),kind:"classroom_registration",status:"approved",paymentStatus:"paid"},
     {projection:{_id:0,courseId:1}},
    ).toArray();
    const courseIds=[...new Set(registrations.map(r=>String(r.courseId||"")).filter(Boolean))];
@@ -85,7 +93,7 @@ export async function PATCH(request:NextRequest){
  try{
   const db=await getClinicalDatabase(),collection=db.collection("platform_classroom_sessions"),session=await collection.findOne({sessionId});
   if(!session)return NextResponse.json({error:"الجلسة غير موجودة."},{status:404});
-  if(actor.role==="trainer"&&session.createdBy!==actor.userId)return NextResponse.json({error:"لا يمكنك تعديل جلسة أنشأها مدرب آخر."},{status:403});
+  if(actor.role==="trainer"&&!(await isTrainerCourseOwner(db,String(session.courseId||""),actor.userId)))return NextResponse.json({error:"لا يمكنك تعديل جلسة لدورة غير مسندة إلى حسابك."},{status:403});
   if(action==="cancel"){
    if(session.status==="cancelled")return NextResponse.json({success:true,status:"cancelled"});
    try{await deleteZoomMeeting(String(session.meetingId||""));}

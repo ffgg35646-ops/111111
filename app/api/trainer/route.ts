@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     const registrations = await db.collection("platform_requests").find(
-      { kind: { $in: ["course_enrollment", "classroom_registration"] }, courseId, status: "approved" },
+      { kind: { $in: ["course_enrollment", "classroom_registration"] }, courseId, status: "approved", paymentStatus: "paid" },
       { projection: { _id: 0, requestId: 1, email: 1, name: 1, paymentStatus: 1, createdAt: 1 } },
     ).sort({ createdAt: -1 }).toArray();
 

@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "لا يمكنك إدارة حضور دورة غير مسندة إلى حسابك." }, { status: 403 });
     }
     const requests = await db.collection("platform_requests").find(
-      { kind: "classroom_registration", courseId, status: "approved" },
+      { kind: "classroom_registration", courseId, status: "approved", paymentStatus: "paid" },
       { projection: { _id: 0, email: 1, name: 1, requestId: 1 } },
     ).toArray();
     const emails = [...new Set(requests.map((item) => String(item.email || "").toLowerCase()).filter(Boolean))];
     const users = emails.length ? await db.collection("platform_users").find(
-      { email: { $in: emails }, status: "active" },
+      { email: { $in: emails }, role: "trainee", status: "active" },
       { projection: { _id: 0, userId: 1, email: 1, name: 1 } },
     ).toArray() : [];
     const attendance = await db.collection("platform_classroom_attendance").find(
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "لا يمكنك تسجيل حضور دورة غير مسندة إلى حسابك." }, { status: 403 });
     }
     const user = await db.collection("platform_users").findOne(
-      { userId, status: "active" },
+      { userId, role: "trainee", status: "active" },
       { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1 } },
     );
     if (!user) return NextResponse.json({ error: "حساب المتدرب غير موجود أو غير نشط." }, { status: 404 });
