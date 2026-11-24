@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       courseId,
       email: String(user.email).toLowerCase(),
       status: "approved",
+      paymentStatus: "paid",
     });
     if (!registration) {
       return NextResponse.json({ error: "لا يوجد طلب التحاق معتمد لهذا المتدرب في الدورة." }, { status: 409 });
