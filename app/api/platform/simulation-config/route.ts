@@ -136,7 +136,7 @@ function normaliseRubric(data: Record<string, unknown>, existing?: Record<string
     criteria,
     status: data.isActive === false ? "inactive" : "active",
     version: Number(existing?.version || 0) + 1,
-    createdAt: existing?.createdAt || now,
+    createdAt: (existing?.createdAt as Date | undefined) || now,
     updatedAt: now,
   };
 }
