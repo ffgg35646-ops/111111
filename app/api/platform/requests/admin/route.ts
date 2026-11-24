@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const records = await db.collection("platform_requests")
-      .find({}, { projection: { _id: 0, requestId: 1, kind: 1, name: 1, email: 1, phone: 1, status: 1, courseId: 1, courseTitle: 1, serviceId: 1, preferredAt: 1, requestNote: 1, consent: 1, durationMinutes: 1, attendees: 1, roomPurpose: 1, items: 1, deliveryRegion: 1, orderNote: 1, expectedAmount: 1, adminNote: 1, zoomMeeting: 1, quotedAmount: 1, currency: 1, paymentStatus: 1, createdAt: 1, reviewedAt: 1 } })
+      .find({}, { projection: { _id: 0, requestId: 1, kind: 1, name: 1, email: 1, phone: 1, status: 1, courseId: 1, courseTitle: 1, serviceId: 1, preferredAt: 1, requestNote: 1, consent: 1, durationMinutes: 1, attendees: 1, roomPurpose: 1, items: 1, deliveryRegion: 1, orderNote: 1, expectedAmount: 1, adminNote: 1, zoomMeeting: 1, quotedAmount: 1, currency: 1, paymentStatus: 1, paymentId: 1, cancellationRequestedAt: 1, cancellationRefundStatus: 1, rescheduledAt: 1, createdAt: 1, reviewedAt: 1 } })
       .sort({ createdAt: -1 }).limit(250).toArray();
     return NextResponse.json({ requests: records }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
