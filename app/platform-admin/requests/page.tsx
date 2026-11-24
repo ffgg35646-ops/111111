@@ -9,7 +9,7 @@ type RequestRecord = {
   requestId: string; kind: string; name: string; email: string; phone?: string; status: string;
   courseTitle?: string; serviceId?: string; preferredAt?: string; requestNote?: string;
   durationMinutes?: number; attendees?: number; roomPurpose?: string;
-  items?: { bookId: string; quantity: number }[]; deliveryRegion?: string; orderNote?: string;
+  items?: { bookId: string; quantity: number; title?: string; productType?: string; unitPrice?: number }[]; deliveryRegion?: string; orderNote?: string; expectedAmount?: number;
   adminNote?: string; quotedAmount?: number; currency?: string; paymentStatus?: string;
   zoomMeeting?: { joinUrl?: string; startTime?: string }; createdAt?: string;
 };
@@ -50,7 +50,7 @@ export default function PlatformRequestManagementPage() {
       const data=await response.json();
       if(response.status===401||response.status===403){router.replace("/login?next=/platform-admin/requests");return;}
       if(!response.ok)throw new Error(data.error||"تعذر تحميل الطلبات.");
-      setRequests(Array.isArray(data.requests)?data.requests:[]);
+      setRequests(Array.isArray(data.requests)?data.requests:[]);\n      setPrices(current=>({...Object.fromEntries((data.requests||[]).filter((item:RequestRecord)=>Number(item.expectedAmount)>0).map((item:RequestRecord)=>[item.requestId,String(item.expectedAmount)])),...current}));
       setAuthenticated(true);
     } catch(cause){setError(cause instanceof Error?cause.message:"حدث خطأ غير متوقع.");}
     finally{setLoading(false);}
@@ -118,11 +118,11 @@ export default function PlatformRequestManagementPage() {
           {item.preferredAt&&<div>الموعد المطلوب: {new Date(item.preferredAt).toLocaleString("ar-EG")}</div>}
           {item.durationMinutes&&<div>المدة: {item.durationMinutes} دقيقة · الحضور: {item.attendees||"—"}</div>}
           {item.roomPurpose&&<div>الغرض: {item.roomPurpose}</div>}
-          {item.items&&<div>الكتب: {item.items.map(row=>(bookNames[row.bookId]||row.bookId)+" × "+row.quantity).join("، ")}</div>}
+          {item.items&&<div>الكتب: {item.items.map(row=>(row.title||bookNames[row.bookId]||row.bookId)+" × "+row.quantity).join("، ")}</div>}
           {item.deliveryRegion&&<div>منطقة التسليم: {item.deliveryRegion}</div>}
           {item.requestNote&&<div>ملاحظات: {item.requestNote}</div>}
           {item.orderNote&&<div>ملاحظة الطلب: {item.orderNote}</div>}
-          {item.quotedAmount&&<div>الإجمالي: {item.quotedAmount} {item.currency||"SAR"} · حالة الدفع: {item.paymentStatus==="payment_due"?"بانتظار الدفع":item.paymentStatus||"غير محدد"}</div>}
+          {(item.quotedAmount||item.expectedAmount)&&<div>الإجمالي: {item.quotedAmount||item.expectedAmount} {item.currency||"SAR"} · حالة الدفع: {item.paymentStatus==="payment_due"?"بانتظار الدفع":item.paymentStatus||"غير محدد"}</div>}
           {item.adminNote&&<div>ملاحظة الإدارة: {item.adminNote}</div>}
           {item.zoomMeeting?.joinUrl&&<a href={item.zoomMeeting.joinUrl} target="_blank" rel="noreferrer">رابط اجتماع Zoom</a>}
         </div>
@@ -134,7 +134,7 @@ export default function PlatformRequestManagementPage() {
             <button className="portal-button secondary" disabled={busy===item.requestId} onClick={()=>review(item,"reject")}><X size={15}/> رفض الطلب</button>
             {busy===item.requestId&&<small>جارٍ تنفيذ الإجراء...</small>}
           </div>
-          {item.kind==="book_order"&&<small style={{color:"#8a7a60"}}>اعتماد الطلب يسجل السعر ويجعله بانتظار الدفع؛ لا توجد بوابة دفع مهيأة في إعدادات المشروع حالياً.</small>}
+          {item.kind==="book_order"&&<small style={{color:"#8a7a60"}}>اعتماد الطلب يثبت السعر ويتيح للمشتري الدفع الإلكتروني عبر Moyasar بعد تهيئة مفاتيح التاجر في إعدادات الخادم.</small>}
         </div>}
       </article>)}
     </div>
