@@ -138,7 +138,8 @@ export function CertificateVerificationPage() {
         push("xref\n0 6\n0000000000 65535 f \n");
         for (let id = 1; id <= 5; id++) push(String(offsets[id]).padStart(10, "0") + " 00000 n \n");
         push("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xrefOffset + "\n%%EOF");
-        const pdfUrl = URL.createObjectURL(new Blob(chunks, { type: "application/pdf" }));
+        const pdfParts: BlobPart[] = chunks.map((chunk) => { const copy = new Uint8Array(chunk.byteLength); copy.set(chunk); return copy.buffer; });
+        const pdfUrl = URL.createObjectURL(new Blob(pdfParts, { type: "application/pdf" }));
         const anchor = document.createElement("a");
         anchor.href = pdfUrl;
         anchor.download = "ETZAN-Certificate-" + certificate.serial + ".pdf";
