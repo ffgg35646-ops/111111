@@ -16,6 +16,26 @@ const configured = () => Boolean(process.env.AI_GATEWAY_API_KEY || process.env.V
 const modelName = () => process.env.CLINICAL_AI_MODEL || "openai/gpt-6-astra";
 
 type SourceDocument = { type: string; title: string; href: string; text: string; score?: number };
+async function allowAiRequest(userId: string) {
+  const db = await getClinicalDatabase();
+  const collection = db.collection("platform_ai_rate_limits");
+  await collection.createIndex({ key: 1 }, { unique: true });
+  await collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  const windowStart = Math.floor(Date.now() / 600000) * 600000;
+  const key = userId + ":" + windowStart;
+  try {
+    const result = await collection.updateOne(
+      { key, count: { $lt: 16 } },
+      { $inc: { count: 1 }, $setOnInsert: { key, userId, windowStart, expiresAt: new Date(windowStart + 3600000) } },
+      { upsert: true },
+    );
+    return Boolean(result.modifiedCount || result.upsertedCount);
+  } catch (error) {
+    if ((error as { code?: number })?.code === 11000) return false;
+    throw error;
+  }
+}
+
 function normalizeArabic(value: string) {
   return value.toLowerCase().replace(/[\u064B-\u065F\u0670]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
 }
@@ -111,6 +131,12 @@ export async function POST(request: NextRequest) {
   const task = clean(data.task, 20), prompt = clean(data.prompt, 1200);
   if (!prompt || prompt.length < 3) return NextResponse.json({ error: "اكتب سؤالك أو وصف المطلوب." }, { status: 400 });
   const model = modelName();
+  try {
+    if (!(await allowAiRequest(actor.userId))) return NextResponse.json({ error: "وصلت إلى حد استخدام المساعد مؤقتاً. حاول بعد انتهاء نافذة الاستخدام." }, { status: 429 });
+  } catch (error) {
+    console.error("AI assistant rate-limit check failed", error);
+    return NextResponse.json({ error: "تعذر التحقق من حد الاستخدام. أعد المحاولة." }, { status: 503 });
+  }
 
   try {
     if (task === "ask" || task === "explain") {
