@@ -5,6 +5,7 @@ import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { createZoomMeeting, deleteZoomMeeting, getZoomMeetingRecording } from "@/lib/zoom";
 import { isTrainerCourseOwner } from "@/lib/platform-trainer";
+import { createClassroomAccessUrl } from "@/lib/platform-security";
 export const runtime="nodejs";
 const managers=["admin","platform_manager","supervisor","trainer"] as const;
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
@@ -38,13 +39,15 @@ export async function GET(request:NextRequest){
   const rows=await db.collection("platform_classroom_sessions").find(filter,{
    projection:{_id:0,sessionId:1,courseId:1,courseTitle:1,topic:1,startTime:1,durationMinutes:1,timezone:1,meetingId:1,joinUrl:1,hostStartUrl:1,recordingAllowed:1,recordingStatus:1,recordingUrl:1,status:1,createdAt:1},
   }).sort({startTime:1}).limit(150).toArray();
-  const sessions=rows.map(row=>({
+  const sessions=await Promise.all(rows.map(async row=>({
    sessionId:row.sessionId,courseId:row.courseId,courseTitle:row.courseTitle,topic:row.topic,
    startTime:row.startTime,durationMinutes:row.durationMinutes,timezone:row.timezone||"Africa/Cairo",
-   status:row.status,recordingAllowed:row.recordingAllowed===true,joinUrl:row.joinUrl,
+   status:row.status,recordingAllowed:row.recordingAllowed===true,
+   joinUrl:actor.role==="trainee"?await createClassroomAccessUrl(String(row.sessionId),actor.userId,"join"):row.joinUrl,
    ...(canManage(actor.role)?{hostStartUrl:row.hostStartUrl,recordingStatus:row.recordingStatus}:{}),
-   ...(row.recordingAllowed===true&&row.recordingStatus==="published"&&typeof row.recordingUrl==="string"?{recordingUrl:row.recordingUrl}:{}),
-  }));
+   ...(row.recordingAllowed===true&&row.recordingStatus==="published"&&typeof row.recordingUrl==="string"
+     ?{recordingUrl:actor.role==="trainee"?await createClassroomAccessUrl(String(row.sessionId),actor.userId,"recording"):row.recordingUrl}:{}),
+  })));
   return NextResponse.json({sessions,canManage:canManage(actor.role)},{headers:{"Cache-Control":"no-store"}});
  }catch(error){console.error("classroom sessions GET",error);return NextResponse.json({error:"تعذر تحميل جلسات التدريب المباشر."},{status:503});}
 }

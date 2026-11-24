@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
+import { allowedCourseVideoUrl } from "@/lib/platform-security";
 import { ensurePlatformCourseCertificate } from "@/lib/platform-certificates";
 import { getPlatformCourseQuiz, scorePlatformCourseQuiz, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
 
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
         { status: 402 },
       );
     }
-    const [record, certificate, quizDocument] = await Promise.all([
+    const [record, certificate, quizDocument, media] = await Promise.all([
       db.collection("platform_course_progress").findOne(
         { userId: actor.userId, courseId },
         { projection: { _id: 0, completedLessons: 1, reflection: 1, quizAnswers: 1, quizChecked: 1, updatedAt: 1 } },
@@ -63,10 +64,14 @@ export async function GET(request: NextRequest) {
         { courseId },
         { projection: { _id: 0, questions: 1 } },
       ),
+      db.collection("platform_course_media").findOne(
+        { courseId, status: "published" },
+        { projection: { _id: 0, sourceUrl: 1 } },
+      ),
     ]);
     const quiz = getPlatformCourseQuiz(course.trackId, Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null);
     return NextResponse.json(
-      { ...(record || { completedLessons: [], reflection: "", quizAnswers: {}, quizChecked: false }), certificate, quiz },
+      { ...(record || { completedLessons: [], reflection: "", quizAnswers: {}, quizChecked: false }), certificate, quiz, hasProtectedVideo: Boolean(media && allowedCourseVideoUrl(media.sourceUrl)) },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

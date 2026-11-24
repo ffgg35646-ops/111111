@@ -8,6 +8,7 @@ import { PlatformLayout } from "@/components/platform-layout";
 import PlatformRequestForm from "@/components/platform-request-form";
 import { courses } from "@/lib/platform-catalog";
 import { platformQuizByTrack, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
+import { ProtectedCourseVideo } from "@/components/protected-course-video";
 import "./learning.css";
 
 type Guide = { intro: string; points: string[]; exercise: string };
@@ -52,7 +53,7 @@ export default function CourseLearningPage() {
   const [completed,setCompleted] = useState<number[]>([]);
   const [answers,setAnswers] = useState<Record<number,number>>({});
   const [checked,setChecked] = useState(false);
-  const [recordingError,setRecordingError] = useState(false);
+  const [hasProtectedRecording,setHasProtectedRecording] = useState(false);
   const [reflection,setReflection] = useState("");
   const [savedReflection,setSavedReflection] = useState(false);
   const [progressHydrated,setProgressHydrated] = useState(false);
@@ -83,6 +84,7 @@ export default function CourseLearningPage() {
           const done=Array.isArray(saved.completedLessons)?saved.completedLessons.filter((n:number)=>Number.isInteger(n)&&n>=0&&n<course.lessons.length):[];
           const note=typeof saved.reflection==="string"?saved.reflection:"";
           if(Array.isArray(saved.quiz)&&saved.quiz.length>=3)setCustomQuiz(saved.quiz as PlatformQuizQuestion[]);
+          setHasProtectedRecording(saved.hasProtectedVideo===true);
           setCompleted(done);setReflection(note);setAnswers(saved.quizAnswers&&typeof saved.quizAnswers==="object"?saved.quizAnswers:{});setChecked(saved.quizChecked===true);
           if(saved.certificate&&typeof saved.certificate.serial==="string")setIssuedCertificate({serial:saved.certificate.serial,status:String(saved.certificate.status||"issued")});
           localStorage.setItem("clinical-course-progress:"+course.id,JSON.stringify({completed:done,reflection:note,updatedAt:new Date().toISOString()}));
@@ -139,7 +141,7 @@ export default function CourseLearningPage() {
       </aside>
       <section className="learning-main">
         <div className="learning-lesson-heading"><span>الوحدة {activeLesson+1} من {course.lessons.length}</span><h2>{course.lessons[activeLesson]}</h2></div>
-        {course.recordingUrl ? <div className="learning-video"><video controls preload="metadata" src={course.recordingUrl} onError={()=>setRecordingError(true)}/>{recordingError&&<p>تعذر تشغيل التسجيل. راجع رابط الفيديو وصلاحية الوصول.</p>}</div> : <div className="learning-video-placeholder"><CirclePlay size={24}/><strong>{course.mode==="live"?"محتوى الفصل المباشر":"المادة التعليمية لهذه الوحدة"}</strong><span>{course.mode==="live"?"سيظهر تسجيل اللقاء هنا بعد رفعه من المدرب.":"لم يُرفق تسجيل فيديو لهذه الدورة بعد؛ يمكنك دراسة المادة والتمرين أدناه."}</span></div>}
+        {hasProtectedRecording ? <div className="learning-video"><ProtectedCourseVideo courseId={course.id} title={course.title}/></div> : <div className="learning-video-placeholder"><CirclePlay size={24}/><strong>{course.mode==="live"?"محتوى الفصل المباشر":"المادة التعليمية لهذه الوحدة"}</strong><span>{course.mode==="live"?"سيظهر تسجيل اللقاء هنا بعد رفعه من المدرب.":"لم يُرفق تسجيل فيديو لهذه الدورة بعد؛ يمكنك دراسة المادة والتمرين أدناه."}</span></div>}
         <article className="learning-guide"><h3>ملخص الوحدة</h3><p>{guide.intro}</p><ul>{guide.points.map(point=><li key={point}>{point}</li>)}</ul><div className="learning-exercise"><strong>تطبيق عملي</strong><p>{guide.exercise}</p><textarea value={reflection} onChange={event=>{setReflection(event.target.value);setSavedReflection(false);}} rows={3} placeholder="اكتب إجابتك باستخدام حالة افتراضية فقط..."/><button onClick={()=>setSavedReflection(true)}>حفظ الملاحظة على هذا الجهاز</button>{savedReflection&&<small>تم حفظ الملاحظة محلياً في هذا المتصفح.</small>}</div></article>
         <div className="learning-actions"><button className="portal-button secondary" disabled={activeLesson===0} onClick={()=>{setActiveLesson(n=>n-1);setChecked(false);}}>الوحدة السابقة</button><button className="portal-button" onClick={toggleLesson}>{completed.includes(activeLesson)?"إلغاء إكمال الوحدة":"اعتماد إكمال الوحدة"} <CheckCircle2 size={15}/></button><button className="portal-button secondary" disabled={activeLesson===course.lessons.length-1} onClick={()=>{setActiveLesson(n=>n+1);setChecked(false);}}>الوحدة التالية <ChevronLeft size={15}/></button></div>
       </section>
