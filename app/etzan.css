@@ -67,3 +67,13 @@
 .etzan-footer .etzan-mark{background:#f8f6ef}
 @media(max-width:950px){.etzan-scene-grid{grid-template-columns:1fr 1fr}.etzan-scene-grid figure:first-child{grid-column:1/-1}}
 @media(max-width:650px){.etzan-nav-actions{gap:7px}.etzan-language{padding:8px 9px}.etzan-nav-actions .etzan-cta{display:none}.etzan-scene-grid{grid-template-columns:1fr}.etzan-scene-grid figure:first-child{grid-column:auto}.etzan-scene-grid figure img{height:230px}}
+
+.etzan-en{font-family:Inter,"IBM Plex Sans Arabic",Arial,sans-serif}
+.etzan-en .etzan-nav nav a,.etzan-en .etzan-footer a{font-size:12px}
+.etzan-en .etzan-hero h1{letter-spacing:-2.5px}
+.etzan-en .etzan-section-head>p,.etzan-en .etzan-service p,.etzan-en .etzan-simulation p{line-height:1.9}
+.etzan-en .etzan-supervisor{max-width:860px}
+.etzan-en .etzan-supervisor span{font-size:10px}
+.etzan-en .etzan-supervisor h3{font-size:17px}
+.etzan-en .etzan-supervisor p{font-size:11px}
+@media(max-width:650px){.etzan-en .etzan-hero h1{font-size:46px}.etzan-en .etzan-nav-actions .etzan-cta{display:inline-flex;font-size:9px;padding:10px}.etzan-en .etzan-language{font-size:9px}}
