@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { generateText } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
-import { getCaseById, practiceScales } from "@/lib/platform-catalog";
+import { getCaseById, practiceScales, type TrainingCase } from "@/lib/platform-catalog";
+import { DEFAULT_SIMULATION_RUBRIC, type SimulationRubric } from "@/lib/simulation-rubrics";
 import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
@@ -194,8 +195,42 @@ export async function POST(request: NextRequest) {
 
   const data = body as Record<string, unknown>;
   const caseId = typeof data.caseId === "string" ? data.caseId.slice(0, 80) : "";
-  const item = getCaseById(caseId);
-  if (item.id !== caseId) return NextResponse.json({ error: "الحالة التدريبية غير موجودة." }, { status: 404 });
+  let database: Awaited<ReturnType<typeof getClinicalDatabase>> | null = null;
+  let item: TrainingCase = getCaseById(caseId);
+  if (item.id !== caseId) {
+    try {
+      database = await getClinicalDatabase();
+      const custom = await database.collection("platform_simulation_scenarios").findOne({ scenarioId: caseId, status: "active" });
+      if (!custom) return NextResponse.json({ error: "الحالة التدريبية غير موجودة أو غير مفعّلة." }, { status: 404 });
+      item = {
+        id: String(custom.id || custom.scenarioId), title: String(custom.title || ""), track: String(custom.track || ""),
+        ageGroup: String(custom.ageGroup || ""), setting: String(custom.setting || ""), briefing: String(custom.briefing || ""),
+        learningGoals: Array.isArray(custom.learningGoals) ? custom.learningGoals : [],
+        steps: Array.isArray(custom.steps) ? custom.steps : [], safetyNote: String(custom.safetyNote || ""),
+        personaInstructions: typeof custom.personaInstructions === "string" ? custom.personaInstructions : undefined,
+        hiddenContext: typeof custom.hiddenContext === "string" ? custom.hiddenContext : undefined,
+        avatarModelUrl: typeof custom.avatarModelUrl === "string" ? custom.avatarModelUrl : undefined,
+        avatarLabel: typeof custom.avatarLabel === "string" ? custom.avatarLabel : undefined,
+      } as TrainingCase;
+    } catch (error) {
+      console.error("Unable to load custom simulation scenario", error);
+      return NextResponse.json({ error: "تعذر تحميل السيناريو المخصص من قاعدة البيانات." }, { status: 503 });
+    }
+  }
+
+  const requestedRubricId = typeof data.rubricId === "string" ? data.rubricId.slice(0, 80) : DEFAULT_SIMULATION_RUBRIC.rubricId;
+  let selectedRubric: SimulationRubric = DEFAULT_SIMULATION_RUBRIC;
+  if (requestedRubricId && requestedRubricId !== DEFAULT_SIMULATION_RUBRIC.rubricId) {
+    try {
+      database ??= await getClinicalDatabase();
+      const customRubric = await database.collection("platform_simulation_rubrics").findOne({ rubricId: requestedRubricId, status: "active" });
+      if (!customRubric) return NextResponse.json({ error: "معيار التقييم المختار غير موجود أو غير مفعّل." }, { status: 400 });
+      selectedRubric = customRubric as unknown as SimulationRubric;
+    } catch (error) {
+      console.error("Unable to load custom simulation rubric", error);
+      return NextResponse.json({ error: "تعذر تحميل معيار التقييم المختار." }, { status: 503 });
+    }
+  }
 
   const answers = Array.isArray(data.answers) ? data.answers.slice(0, 20).flatMap((answer) => {
     if (!answer || typeof answer !== "object") return [];
@@ -282,7 +317,7 @@ export async function POST(request: NextRequest) {
   };
   const conversationTurns = normaliseConversationTurns(data.conversationTurns);
   const personaMode = data.personaMode === "client" ? "client" : "supervisor";
-  let aiReview: { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string } | null = null;
+  let aiReview: { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string; rubricScores?: { key: string; label: string; score: number; evidence: string }[] } | null = null;
   let aiReviewUsage: { model: string; inputTokens: number; outputTokens: number; generatedAt: Date } | null = null;
   if (conversationTurns.length > 0 && (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1")) {
     try {
@@ -291,11 +326,12 @@ export async function POST(request: NextRequest) {
         model,
         temperature: 0.2,
         maxOutputTokens: 650,
-        system: "أنت مقيم تعليمي لمهارات المقابلة المهنية في محاكاة خيالية. لا تشخص ولا تقترح علاجاً لحالة حقيقية. قيّم فقط ما يظهر في الحوار والحقول المقدمة، ولا تفترض معلومات غير موجودة. فرّق بين جودة أسئلة المتدرب وسلوك الشخصية الافتراضية. أعد JSON صالحاً فقط بالمفاتيح summary (string), strengths (string[]), improvements (string[]), safetyObservations (string[]), nextPractice (string). لا تمنح ترخيصاً أو درجة نهائية، ولا تعتبر هذا التقييم بديلاً عن المشرف البشري.",
+        system: "أنت مقيم تعليمي لمهارات المقابلة المهنية في محاكاة خيالية. لا تشخص ولا تقترح علاجاً لحالة حقيقية. قيّم فقط ما يظهر في الحوار والحقول المقدمة، ولا تفترض معلومات غير موجودة. فرّق بين جودة أسئلة المتدرب وسلوك الشخصية الافتراضية. قيّم كل محور في rubricScores بدرجة من 0 إلى 5 مع دليل نصي موجز، واستخدم المفاتيح المقدمة كما هي. إذا لم يوجد دليل كافٍ فامنح درجة منخفضة واذكر ذلك في evidence. أعد JSON صالحاً فقط بالمفاتيح summary (string), strengths (string[]), improvements (string[]), safetyObservations (string[]), nextPractice (string), rubricScores (array of {key,label,score,evidence}). لا تمنح ترخيصاً أو درجة نهائية، ولا تعتبر هذا التقييم بديلاً عن المشرف البشري.",
         prompt: JSON.stringify({
           caseTitle: item.title,
           caseTrack: item.track,
           simulationMode: personaMode,
+          rubric: { rubricId: selectedRubric.rubricId, title: selectedRubric.title, criteria: selectedRubric.criteria },
           choices: answers.map((answer) => ({ stepId: answer.stepId, earned: answer.earned, maximum: answer.max })),
           formulation: clinicalFormulation,
           conversation: conversationTurns,
@@ -311,6 +347,13 @@ export async function POST(request: NextRequest) {
         improvements: list(parsed.improvements),
         safetyObservations: list(parsed.safetyObservations),
         nextPractice: typeof parsed.nextPractice === "string" ? parsed.nextPractice.slice(0, 500) : "",
+        rubricScores: Array.isArray(parsed.rubricScores) ? parsed.rubricScores.flatMap((entry) => {
+          if (!entry || typeof entry !== "object") return [];
+          const row = entry as Record<string, unknown>;
+          const criterion = selectedRubric.criteria.find((candidate) => candidate.key === row.key);
+          const score = Number(row.score);
+          return criterion && Number.isFinite(score) ? [{ key: criterion.key, label: criterion.label, score: Math.max(0, Math.min(5, Math.round(score))), evidence: typeof row.evidence === "string" ? row.evidence.slice(0, 500) : "" }] : [];
+        }) : [],
       };
       aiReviewUsage = { model, inputTokens: Number(review.usage.inputTokens)||0, outputTokens: Number(review.usage.outputTokens)||0, generatedAt: new Date() };
     } catch (error) {
@@ -322,6 +365,8 @@ export async function POST(request: NextRequest) {
     trainee: { userId: actor.userId, name: actor.name, email: actor.email, role: actor.role },
     caseId: item.id,
     caseTitle: item.title,
+    rubricId: selectedRubric.rubricId,
+    rubricSnapshot: { rubricId: selectedRubric.rubricId, title: selectedRubric.title, trackId: selectedRubric.trackId, criteria: selectedRubric.criteria, version: selectedRubric.version || 1 },
     answers,
     clinicalFormulation: {
       ...clinicalFormulation,
@@ -357,8 +402,8 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const db = await getClinicalDatabase();
-    const result = await db.collection("platform_learning_activities").insertOne(record);
+    database ??= await getClinicalDatabase();
+    const result = await database.collection("platform_learning_activities").insertOne(record);
     return NextResponse.json({
       success: true,
       activityId: record.activityId,
