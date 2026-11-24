@@ -77,3 +77,21 @@
 .etzan-en .etzan-supervisor h3{font-size:17px}
 .etzan-en .etzan-supervisor p{font-size:11px}
 @media(max-width:650px){.etzan-en .etzan-hero h1{font-size:46px}.etzan-en .etzan-nav-actions .etzan-cta{display:inline-flex;font-size:9px;padding:10px}.etzan-en .etzan-language{font-size:9px}}
+
+/* Homepage content architecture: testimonials and section rhythm */
+.etzan-testimonials{background:#f4f5f2}
+.etzan-testimonial-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.etzan-testimonial{position:relative;display:flex;flex-direction:column;min-height:205px;padding:23px 22px 19px;border:1px solid #e3e6e0;border-radius:12px;background:linear-gradient(145deg,#fff,#fbfaf6);box-shadow:0 12px 30px #172a4309}
+.etzan-quote-mark{font-family:Georgia,serif;font-size:46px;line-height:.8;color:#c4a46a}
+.etzan-testimonial>p{flex:1;margin:14px 0 23px;color:#43576a;font-size:12px;line-height:2}
+.etzan-testimonial>div{display:flex;flex-direction:column;gap:4px;border-top:1px solid #e9ece8;padding-top:12px}
+.etzan-testimonial>div b{font-size:11px;color:#20364b}
+.etzan-testimonial>div small{font-size:9px;color:#87949a}
+.etzan-testimonials-empty{display:flex;align-items:center;gap:14px;padding:23px;border:1px dashed #c9d3cf;border-radius:11px;background:#fff;color:#2a8f86}
+.etzan-testimonials-empty>div{display:flex;flex-direction:column;gap:5px}
+.etzan-testimonials-empty b{font-size:12px;color:#253b4e}
+.etzan-testimonials-empty span{font-size:10px;color:#7d8c91;line-height:1.8}
+.etzan-knowledge{scroll-margin-top:90px}
+.etzan-home section[id]{scroll-margin-top:90px}
+@media(max-width:850px){.etzan-testimonial-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.etzan-testimonial-grid{grid-template-columns:1fr}.etzan-testimonial{min-height:175px}}
