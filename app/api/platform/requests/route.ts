@@ -171,15 +171,31 @@ export async function POST(request: NextRequest) {
   }
 
   let reservedSlotId = "";
+  const reservedBooks: {bookId:string;quantity:number}[] = [];
   try {
     const db = await getClinicalDatabase();
+    if (kind === "book_order" && Array.isArray(record.items)) {
+      for (const raw of record.items as {bookId:string;quantity:number;productType:string}[]) {
+        if (raw.productType !== "physical") continue;
+        const reserved = await db.collection("etzan_books").updateOne(
+          {bookId:raw.bookId,productType:"physical",published:true,stock:{$gte:raw.quantity}},
+          {$inc:{stock:-raw.quantity,reserved:raw.quantity},$set:{updatedAt:new Date()}},
+        );
+        if (reserved.modifiedCount !== 1) {
+          for (const item of reservedBooks) await db.collection("etzan_books").updateOne({bookId:item.bookId},{$inc:{stock:item.quantity,reserved:-item.quantity}});
+          return NextResponse.json({error:"نفدت الكمية المتاحة من أحد الكتب الورقية أثناء تنفيذ الطلب. حدّث المكتبة وحاول مجدداً."},{status:409});
+        }
+        reservedBooks.push({bookId:raw.bookId,quantity:raw.quantity});
+      }
+      record.inventoryStatus = reservedBooks.length ? "reserved" : "none";
+    }
     if (kind === "consultation") {
       const slotId = String(record.slotId), now = new Date();
       const availabilityFilter = { slotId, serviceIds: String(record.serviceId), startsAt: { $gt: now }, $or: [{ status: "open" }, { status: "reserved", reservedUntil: { $lt: now } }] };
       const slot = await db.collection("platform_consultant_slots").findOne(availabilityFilter);
-      if (!slot) return NextResponse.json({ error: "هذا الموعد لم يعد متاحاً. حدّث قائمة المواعيد واختر وقتاً آخر." }, { status: 409 });
+      if (!slot) { for (const item of reservedBooks) await db.collection("etzan_books").updateOne({bookId:item.bookId},{$inc:{stock:item.quantity,reserved:-item.quantity}}); return NextResponse.json({ error: "هذا الموعد لم يعد متاحاً. حدّث قائمة المواعيد واختر وقتاً آخر." }, { status: 409 }); }
       const reserve = await db.collection("platform_consultant_slots").updateOne({ _id: slot._id, ...availabilityFilter }, { $set: { status: "reserved", reservationId: record.requestId, reservedUntil: new Date(now.getTime() + 90 * 60 * 1000) } });
-      if (!reserve.modifiedCount) return NextResponse.json({ error: "سبق حجز هذا الموعد. اختر موعداً آخر." }, { status: 409 });
+      if (!reserve.modifiedCount) { for (const item of reservedBooks) await db.collection("etzan_books").updateOne({bookId:item.bookId},{$inc:{stock:item.quantity,reserved:-item.quantity}}); return NextResponse.json({ error: "سبق حجز هذا الموعد. اختر موعداً آخر." }, { status: 409 }); }
       reservedSlotId = slotId;
       record.preferredAt = slot.startsAt;
       record.providerUserId = slot.providerUserId;
@@ -190,6 +206,7 @@ export async function POST(request: NextRequest) {
     try { result = await db.collection("platform_requests").insertOne(record); }
     catch (error) {
       if (reservedSlotId) await db.collection("platform_consultant_slots").updateOne({ slotId: reservedSlotId, reservationId: record.requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
+      for (const item of reservedBooks) await db.collection("etzan_books").updateOne({bookId:item.bookId},{$inc:{stock:item.quantity,reserved:-item.quantity}});
       throw error;
     }
     return NextResponse.json({
