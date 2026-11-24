@@ -147,7 +147,7 @@ export default function AdminDashboardPage() {
       <section className="main-area">
         <header className="topbar">
           <div className="topbar-start">
-            {!sidebarOpen && <button className="icon-button" onClick={() => setSidebarOpen(true)} aria-label="إظهار القائمة"}>☰</button>}
+            {!sidebarOpen && <button className="icon-button" onClick={() => setSidebarOpen(true)} aria-label="إظهار القائمة">☰</button>}
             <div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div>
           </div>
           <div className="topbar-actions">
