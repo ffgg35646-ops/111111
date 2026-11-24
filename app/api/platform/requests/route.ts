@@ -167,6 +167,10 @@ export async function POST(request: NextRequest) {
     record.items = enriched;
     record.expectedAmount = Math.round(enriched.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0)*100)/100;
     if (Number(record.expectedAmount) <= 0 || Number(record.expectedAmount) > 10000000) return NextResponse.json({error:"إجمالي قيمة طلب الكتب يجب أن يكون أكبر من صفر ولا يتجاوز 10,000,000 ريال."},{status:400});
+    record.status = "awaiting_payment";
+    record.paymentStatus = "payment_due";
+    record.quotedAmount = record.expectedAmount;
+    record.currency = "SAR";
     record.deliveryRegion = cleanText(data.deliveryRegion, 80);
     record.orderNote = cleanText(data.orderNote, 300);
   }
@@ -214,6 +218,9 @@ export async function POST(request: NextRequest) {
       success: true,
       requestId: record.requestId,
       status: record.status,
+      quotedAmount: record.quotedAmount,
+      currency: record.currency,
+      paymentStatus: record.paymentStatus,
       createdAt: record.createdAt,
       recordId: String(result.insertedId),
     }, { status: 201, headers: { "Cache-Control": "no-store" } });
