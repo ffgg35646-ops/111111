@@ -36,6 +36,6 @@ export async function POST(request:NextRequest){
   const expiresAt=payload.expires_at?new Date(payload.expires_at):new Date(Date.now()+60*60*1000);
   await intents.insertOne({intentId:payload.id,clientSecretEncrypted:encryptPlatformSecret(payload.client_secret),requestId,email,amount,currency:"SAR",description,callbackUrl:callback.toString(),status:"created",expiresAt,createdAt:new Date()});
   await db.collection("platform_requests").updateOne({requestId,email,status:"awaiting_payment",paymentStatus:{$in:["payment_due","payment_initiated","failed"]}},{$set:{paymentStatus:"payment_initiated",paymentIntentId:payload.id,paymentInitiatedAt:new Date()}});
-  return NextResponse.json({id:payload.id,clientSecret:payload.client_secret,amount,currency:"SAR",description,publishableApiKey:publishable,callbackUrl:callback.toString()},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({id:payload.id,clientSecret:payload.client_secret,amount,currency:"SAR",description,publishableApiKey:publishable,callbackUrl:callback.toString(),saveCard:order.kind==="membership"},{headers:{"Cache-Control":"no-store"}});
  }catch(error){console.error("Moyasar payment intent error",error);return NextResponse.json({error:"تعذر تجهيز الدفع حالياً."},{status:503})}
 }
