@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
   if(typeof d.category==="string"){if(!categories.includes(d.category))return NextResponse.json({error:"التصنيف غير صالح."},{status:400});set.category=d.category;}
   if(d.productType==="digital"||d.productType==="physical")set.productType=d.productType;
   if(d.published!==undefined)set.published=d.published===true;
-  if(d.price!==undefined){const price=Number(d.price);if(!Number.isFinite(price)||price<0||price>1000000)return NextResponse.json({error:"السعر غير صالح."},{status:400});set.price=price;}
+  if(d.price!==undefined){const price=Number(d.price);if(!Number.isFinite(price)||price<=0||price>1000000)return NextResponse.json({error:"السعر غير صالح ويجب أن يكون أكبر من صفر."},{status:400});set.price=price;}
   for(const key of ["coverUrl","previewUrl","downloadUrl"] as const)if(d[key]!==undefined){const url=safeUrl(d[key]);if(d[key]&&!url)return NextResponse.json({error:"الرابط يجب أن يكون HTTPS صحيحاً."},{status:400});set[key]=url;}
   if(d.stock!==undefined){const stock=Number(d.stock);if(!Number.isInteger(stock)||stock<0||stock>1000000)return NextResponse.json({error:"المخزون يجب أن يكون عدداً صحيحاً غير سالب."},{status:400});set.stock=stock;}
   try{
