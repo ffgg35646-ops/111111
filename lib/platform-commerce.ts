@@ -146,6 +146,8 @@ export async function createElectronicInvoice(
     customerPhone: String(order.phone || ""),
     sellerName: legalName,
     sellerVatNumber: isVatInvoice ? vatNumber : "",
+    sellerVatRegistered: isVatInvoice,
+    qrCodeBase64: isVatInvoice ? buildZatcaQrPayload({ sellerName: legalName, sellerVatNumber: vatNumber, issuedAt: now, totalAmount, taxAmount }) : "",
     sellerAddress: process.env.ETZAN_MERCHANT_ADDRESS || "",
     sellerCommercialRegistration: process.env.ETZAN_MERCHANT_CR || "",
     currency: String(payment.currency || "SAR"),
@@ -164,6 +166,28 @@ export async function createElectronicInvoice(
     createdAt: now,
   });
   return invoiceId;
+}
+
+
+export function buildZatcaQrPayload(invoice: {
+  sellerName: string;
+  sellerVatNumber: string;
+  issuedAt: Date | string;
+  totalAmount: number;
+  taxAmount: number;
+}) {
+  const fields: Array<[number, string]> = [
+    [1, invoice.sellerName],
+    [2, invoice.sellerVatNumber],
+    [3, (invoice.issuedAt instanceof Date ? invoice.issuedAt : new Date(invoice.issuedAt)).toISOString()],
+    [4, money(invoice.totalAmount).toFixed(2)],
+    [5, money(invoice.taxAmount).toFixed(2)],
+  ];
+  const chunks = fields.map(([tag, value]) => {
+    const bytes = Buffer.from(value, "utf8");
+    return Buffer.concat([Buffer.from([tag, bytes.length]), bytes]);
+  });
+  return Buffer.concat(chunks).toString("base64");
 }
 
 export function addBillingPeriod(date: Date, period: "monthly" | "annual") {
@@ -219,7 +243,7 @@ export async function activatePaidMembership(db: Db, order: Record<string, unkno
 }
 
 export async function settleRecurringPayment(db: Db, payment: {
-  id: string; status: string; amount: number; currency: string; fee?: number; source?: { company?: string; type?: string };
+  id: string; status: string; amount: number; currency: string; fee?: number; description?: string; source?: { company?: string; type?: string };
 }) {
   const match = payment.description?.match(/^ETZAN Subscription ([0-9a-f-]{36}) ([0-9a-f-]{36})$/i);
   if (!match) return false;
