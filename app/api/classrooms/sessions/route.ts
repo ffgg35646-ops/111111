@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
-import { requirePlatformRole, PLATFORM_ROLES } from "@/lib/platform-auth";
+import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { createZoomMeeting, deleteZoomMeeting, getZoomMeetingRecording } from "@/lib/zoom";
 export const runtime="nodejs";
@@ -11,7 +11,7 @@ const canManage=(role:string)=>managers.includes(role as typeof managers[number]
 function sameOrigin(request:NextRequest){const origin=request.headers.get("origin");return !origin||origin===request.nextUrl.origin;}
 
 export async function GET(request:NextRequest){
- const actor=await requirePlatformRole(request,[...PLATFORM_ROLES]);
+ const actor=await requirePlatformRole(request,[...managers,"trainee"]);
  if(!actor)return NextResponse.json({error:"سجّل الدخول بحساب المنصة لعرض جلسات التدريب."},{status:401});
  try{
   const db=await getClinicalDatabase();
