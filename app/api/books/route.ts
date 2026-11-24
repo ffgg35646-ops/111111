@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
+import { expireStaleBookReservations } from "@/lib/book-orders";
 
 export const runtime = "nodejs";
 const editors = ["admin", "platform_manager", "content_manager"] as const;
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
   if (manage && !(await requirePlatformRole(request, [...editors]))) return NextResponse.json({error:"لا تملك صلاحية إدارة المكتبة العلمية."},{status:403});
   try {
     const db = await getClinicalDatabase();
+    await expireStaleBookReservations(db);
     const filter = manage ? {} : {published:true};
     const books = await db.collection("etzan_books").find(filter,{projection:{_id:0,...(manage?{}:{downloadUrl:0})}}).sort({updatedAt:-1}).limit(300).toArray();
     return NextResponse.json({books},{headers:{"Cache-Control":"no-store"}});
