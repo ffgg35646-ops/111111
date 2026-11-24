@@ -1,11 +1,128 @@
 "use client";
-import {useEffect,useState} from "react";
-type Slot={slotId:string;providerName:string;startsAt:string;durationMinutes:number};
-export default function ConsultationBookingForm({serviceId,title}:{serviceId:string;title:string}){
- const [slots,setSlots]=useState<Slot[]>([]),[slotId,setSlotId]=useState(""),[name,setName]=useState(""),[email,setEmail]=useState(""),[phone,setPhone]=useState(""),[note,setNote]=useState(""),[consent,setConsent]=useState(false),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[success,setSuccess]=useState("");
- async function load(){setLoading(true);setError("");try{const r=await fetch("/api/platform/consultation-slots?serviceId="+encodeURIComponent(serviceId),{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error);setSlots(d.slots||[]);if(!slotId&&d.slots?.length)setSlotId(d.slots[0].slotId)}catch(e){setError(e instanceof Error?e.message:"تعذر تحميل المواعيد")}finally{setLoading(false)}}
- useEffect(()=>{let active=true;fetch("/api/platform/consultation-slots?serviceId="+encodeURIComponent(serviceId),{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error);if(active){setSlots(d.slots||[]);setSlotId(d.slots?.[0]?.slotId||"")}}).catch(e=>{if(active)setError(e instanceof Error?e.message:"تعذر تحميل المواعيد")}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[serviceId]);
- async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();if(!consent){setError("يلزم الموافقة على استخدام بيانات التواصل.");return}setBusy(true);setError("");try{const r=await fetch("/api/platform/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind:"consultation",serviceId,slotId,name,email,phone,requestNote:note,consent})});const d=await r.json();if(!r.ok)throw new Error(d.error);setSuccess(d.requestId)}catch(e){setError(e instanceof Error?e.message:"تعذر إرسال الحجز")}finally{setBusy(false)}}
- if(success)return <div className="request-success"><strong>تم حجز الموعد مبدئياً وإرساله للمراجعة</strong><p>رقم المتابعة: <b>{success}</b></p><small>سيتم اعتماد السعر ثم إرسال رابط الدفع. لا يُعد الموعد مؤكداً قبل الدفع.</small><button onClick={()=>{setSuccess("");void load()}}>طلب موعد آخر</button></div>;
- return <form className="platform-request-form" onSubmit={submit}><div className="request-form-heading"><strong>{title}</strong><p>اختر موعداً منشوراً من مقدم الخدمة. يتم حجز الموعد مؤقتاً لمنع الحجز المزدوج.</p></div><div className="request-form-grid"><label>الاسم الكامل<input required minLength={2} maxLength={100} value={name} onChange={e=>setName(e.target.value)}/></label><label>البريد الإلكتروني<input required type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>رقم التواصل<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label><label>الموعد المتاح<select required value={slotId} onChange={e=>setSlotId(e.target.value)} disabled={loading||!slots.length}><option value="">{loading?"جارٍ تحميل المواعيد":"اختر موعداً متاحاً"}</option>{slots.map(s=><option key={s.slotId} value={s.slotId}>{new Date(s.startsAt).toLocaleString("ar-SA")} — {s.providerName} ({s.durationMinutes} دقيقة)</option>)}</select></label><label className="request-field-wide">ملاحظة تنظيمية اختيارية<textarea maxLength={500} rows={3} value={note} onChange={e=>setNote(e.target.value)} placeholder="لا تكتب بيانات مرضى أو تفاصيل صحية حساسة."/></label><label className="request-checkbox"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>أوافق على استخدام بيانات التواصل لمراجعة الطلب وتنسيق الموعد.</span></label></div>{error&&<p role="alert" className="request-error">{error}</p>}<button className="request-submit" disabled={busy||loading||!slots.length||!slotId}>{busy?"جارٍ إرسال الطلب...":"حجز الموعد وطلب الاستشارة"}</button><button type="button" className="portal-button secondary" onClick={()=>void load()}>تحديث المواعيد</button></form>
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { CalendarDays, Clock3, Video } from "lucide-react";
+
+type Slot = { slotId: string; providerUserId: string; providerName: string; startsAt: string; durationMinutes: number };
+type Provider = { userId: string; name: string };
+
+function localDateValue() {
+  const date = new Date();
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
+
+export default function ConsultationBookingForm({ serviceId, title }: { serviceId: string; title: string }) {
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [providerUserId, setProviderUserId] = useState("");
+  const [date, setDate] = useState(localDateValue());
+  const [slotId, setSlotId] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [note, setNote] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [manageUrl, setManageUrl] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    const query = new URLSearchParams({ serviceId, date });
+    if (providerUserId) query.set("providerUserId", providerUserId);
+    fetch("/api/platform/consultation-slots?" + query.toString(), { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل المواعيد.");
+        if (!active) return;
+        const availableProviders = Array.isArray(data.providers) ? data.providers : [];
+        setProviders(availableProviders);
+        if (!providerUserId && availableProviders.length) {
+          setProviderUserId(availableProviders[0].userId);
+          return;
+        }
+        const availableSlots = Array.isArray(data.slots) ? data.slots : [];
+        setSlots(availableSlots);
+        setSlotId((current) => availableSlots.some((slot: Slot) => slot.slotId === current) ? current : availableSlots[0]?.slotId || "");
+      })
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "تعذر تحميل المواعيد."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [serviceId, date, providerUserId]);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!consent) { setError("يلزم الموافقة على استخدام بيانات التواصل."); return; }
+    if (!slotId) { setError("اختر موعداً متاحاً قبل إرسال الطلب."); return; }
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/platform/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "consultation", serviceId, slotId, name, email, phone, requestNote: note, consent }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر إرسال الحجز.");
+      const url = new URL("/my-consultations", window.location.origin);
+      url.searchParams.set("requestId", data.requestId);
+      url.searchParams.set("email", email);
+      setManageUrl(url.pathname + url.search);
+      setSuccess(data.requestId);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر إرسال الحجز.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (success) return (
+    <div className="request-success" role="status">
+      <strong>تم استلام طلب الاستشارة بنجاح</strong>
+      <p>رقم المتابعة: <b>{success}</b></p>
+      <p>سيتم اعتماد قيمة الاستشارة أولاً، ثم يمكنك إتمام الدفع المسبق. الموعد محجوز مؤقتاً لمدة 90 دقيقة.</p>
+      <Link className="portal-button" href={manageUrl}>متابعة الطلب والدفع وإدارة الموعد</Link>
+      <button type="button" onClick={() => { setSuccess(""); setManageUrl(""); setName(""); setEmail(""); setPhone(""); setNote(""); void Promise.resolve(); }}>طلب موعد آخر</button>
+    </div>
+  );
+
+  return (
+    <form className="platform-request-form" onSubmit={submit}>
+      <div className="request-form-heading">
+        <strong>{title}</strong>
+        <p>اختر مقدم الخدمة والتاريخ والوقت المناسب. لا يصبح الحجز نهائياً إلا بعد اعتماد السعر والدفع المسبق.</p>
+      </div>
+      <div className="request-form-grid">
+        <label>مقدم الخدمة
+          <select required value={providerUserId} onChange={(event) => setProviderUserId(event.target.value)} disabled={loading || !providers.length}>
+            <option value="">{loading ? "جارٍ تحميل مقدمي الخدمة..." : "لا يوجد مقدم خدمة متاح لهذا المجال"}</option>
+            {providers.map((provider) => <option key={provider.userId} value={provider.userId}>{provider.name}</option>)}
+          </select>
+        </label>
+        <label><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><CalendarDays size={14}/> تاريخ الاستشارة</span>
+          <input required type="date" min={localDateValue()} value={date} onChange={(event) => setDate(event.target.value)} />
+        </label>
+        <label className="request-field-wide"><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Clock3 size={14}/> الوقت المتاح</span>
+          <select required value={slotId} onChange={(event) => setSlotId(event.target.value)} disabled={loading || !slots.length}>
+            <option value="">{loading ? "جارٍ تحميل الأوقات..." : "لا توجد أوقات متاحة في هذا اليوم"}</option>
+            {slots.map((slot) => <option key={slot.slotId} value={slot.slotId}>{new Date(slot.startsAt).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })} — {slot.durationMinutes} دقيقة</option>)}
+          </select>
+        </label>
+        <div className="request-field-wide portal-callout" style={{ margin: 0 }}><Video size={16}/> نوع التنفيذ: استشارة مرئية عبر Zoom. يظهر رابط الدخول بعد تأكيد الدفع.</div>
+        <label>الاسم الكامل<input required minLength={2} maxLength={100} value={name} onChange={(event) => setName(event.target.value)} /></label>
+        <label>البريد الإلكتروني<input required type="email" maxLength={180} value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+        <label>رقم التواصل<input type="tel" maxLength={40} value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
+        <label className="request-field-wide">ملاحظة تنظيمية اختيارية<textarea maxLength={500} rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="لا تكتب بيانات مرضى أو تفاصيل صحية حساسة." /></label>
+        <label className="request-checkbox"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span>أوافق على استخدام بيانات التواصل لمراجعة الطلب وتنسيق الموعد وفق سياسة الخصوصية.</span></label>
+      </div>
+      {error && <p role="alert" className="request-error">{error}</p>}
+      <button className="request-submit" disabled={busy || loading || !slots.length || !slotId}>{busy ? "جارٍ إرسال الطلب..." : "إرسال طلب الحجز"}</button>
+      <button type="button" className="portal-button secondary" onClick={() => { setProviderUserId(""); setDate(localDateValue()); setSlotId(""); }}>إعادة تحميل خيارات الحجز</button>
+    </form>
+  );
 }
