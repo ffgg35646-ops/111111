@@ -344,9 +344,11 @@ export async function POST(request: NextRequest) {
   };
   const conversationTurns = normaliseConversationTurns(data.conversationTurns);
   const personaMode = data.personaMode === "client" ? "client" : "supervisor";
+  const aiReviewEnabled = Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1");
+  let aiReviewStatus = aiReviewEnabled ? "pending" : "not_configured";
   let aiReview: { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string; rubricScores?: { key: string; label: string; score: number; evidence: string }[]; rubricWeightedScore?: number } | null = null;
   let aiReviewUsage: { model: string; inputTokens: number; outputTokens: number; generatedAt: Date } | null = null;
-  if (conversationTurns.length > 0 && (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1")) {
+  if (aiReviewEnabled) {
     try {
       const model = process.env.CLINICAL_AI_MODEL || "openai/gpt-6-astra";
       const review = await generateText({
@@ -387,8 +389,10 @@ export async function POST(request: NextRequest) {
         rubricWeightedScore,
       };
       aiReviewUsage = { model, inputTokens: Number(review.usage.inputTokens)||0, outputTokens: Number(review.usage.outputTokens)||0, generatedAt: new Date() };
+      aiReviewStatus = "completed";
     } catch (error) {
       console.warn("AI simulation review unavailable; saving session without automated review", error);
+      aiReviewStatus = "unavailable";
     }
   }
   const record = {
@@ -415,7 +419,7 @@ export async function POST(request: NextRequest) {
     conversationTurns,
     simulationMode: personaMode,
     aiReview,
-    aiReviewStatus: aiReview ? "completed" : conversationTurns.length ? "unavailable" : "no_conversation",
+    aiReviewStatus,
     aiReviewUsage,
     avatarModelSource: data.avatarModelSource === "custom-glb"
       ? "custom-glb"
