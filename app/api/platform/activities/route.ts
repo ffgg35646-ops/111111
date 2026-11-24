@@ -319,7 +319,7 @@ export async function POST(request: NextRequest) {
   };
   const conversationTurns = normaliseConversationTurns(data.conversationTurns);
   const personaMode = data.personaMode === "client" ? "client" : "supervisor";
-  let aiReview: { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string; rubricScores?: { key: string; label: string; score: number; evidence: string }[] } | null = null;
+  let aiReview: { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string; rubricScores?: { key: string; label: string; score: number; evidence: string }[]; rubricWeightedScore?: number } | null = null;
   let aiReviewUsage: { model: string; inputTokens: number; outputTokens: number; generatedAt: Date } | null = null;
   if (conversationTurns.length > 0 && (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL === "1")) {
     try {
@@ -327,7 +327,7 @@ export async function POST(request: NextRequest) {
       const review = await generateText({
         model,
         temperature: 0.2,
-        maxOutputTokens: 650,
+        maxOutputTokens: 1200,
         system: "أنت مقيم تعليمي لمهارات المقابلة المهنية في محاكاة خيالية. لا تشخص ولا تقترح علاجاً لحالة حقيقية. قيّم فقط ما يظهر في الحوار والحقول المقدمة، ولا تفترض معلومات غير موجودة. فرّق بين جودة أسئلة المتدرب وسلوك الشخصية الافتراضية. قيّم كل محور في rubricScores بدرجة من 0 إلى 5 مع دليل نصي موجز، واستخدم المفاتيح المقدمة كما هي. إذا لم يوجد دليل كافٍ فامنح درجة منخفضة واذكر ذلك في evidence. أعد JSON صالحاً فقط بالمفاتيح summary (string), strengths (string[]), improvements (string[]), safetyObservations (string[]), nextPractice (string), rubricScores (array of {key,label,score,evidence}). لا تمنح ترخيصاً أو درجة نهائية، ولا تعتبر هذا التقييم بديلاً عن المشرف البشري.",
         prompt: JSON.stringify({
           caseTitle: item.title,
@@ -343,19 +343,23 @@ export async function POST(request: NextRequest) {
       const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
       const parsed = JSON.parse(json) as Record<string, unknown>;
       const list = (value: unknown) => Array.isArray(value) ? value.filter((x): x is string => typeof x === "string").slice(0, 5).map(x => x.slice(0, 320)) : [];
+      const rubricScores = Array.isArray(parsed.rubricScores) ? parsed.rubricScores.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const row = entry as Record<string, unknown>;
+        const criterion = selectedRubric.criteria.find((candidate) => candidate.key === row.key);
+        const score = Number(row.score);
+        return criterion && Number.isFinite(score) ? [{ key: criterion.key, label: criterion.label, score: Math.max(0, Math.min(5, Math.round(score))), evidence: typeof row.evidence === "string" ? row.evidence.slice(0, 500) : "" }] : [];
+      }) : [];
+      const scoresByKey = new Map(rubricScores.map((entry) => [entry.key, entry.score]));
+      const rubricWeightedScore = Math.round(selectedRubric.criteria.reduce((sum, criterion) => sum + ((scoresByKey.get(criterion.key) ?? 0) / 5) * criterion.weight, 0));
       aiReview = {
         summary: typeof parsed.summary === "string" ? parsed.summary.slice(0, 900) : "اكتمل التحليل التعليمي.",
         strengths: list(parsed.strengths),
         improvements: list(parsed.improvements),
         safetyObservations: list(parsed.safetyObservations),
         nextPractice: typeof parsed.nextPractice === "string" ? parsed.nextPractice.slice(0, 500) : "",
-        rubricScores: Array.isArray(parsed.rubricScores) ? parsed.rubricScores.flatMap((entry) => {
-          if (!entry || typeof entry !== "object") return [];
-          const row = entry as Record<string, unknown>;
-          const criterion = selectedRubric.criteria.find((candidate) => candidate.key === row.key);
-          const score = Number(row.score);
-          return criterion && Number.isFinite(score) ? [{ key: criterion.key, label: criterion.label, score: Math.max(0, Math.min(5, Math.round(score))), evidence: typeof row.evidence === "string" ? row.evidence.slice(0, 500) : "" }] : [];
-        }) : [],
+        rubricScores,
+        rubricWeightedScore,
       };
       aiReviewUsage = { model, inputTokens: Number(review.usage.inputTokens)||0, outputTokens: Number(review.usage.outputTokens)||0, generatedAt: new Date() };
     } catch (error) {
