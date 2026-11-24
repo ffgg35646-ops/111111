@@ -1,9 +1,10 @@
 import {randomUUID} from "node:crypto";
 import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
+import {defaultMembershipPlans} from "@/lib/membership-plans";
 import {requirePlatformRole} from "@/lib/platform-auth";
 import {calculateCommercePrice} from "@/lib/platform-commerce";
-import {defaultMembershipPlans} from "@/app/api/platform/commerce/plans/route";
+
 export const runtime="nodejs";
 export async function POST(request:NextRequest){
  const actor=await requirePlatformRole(request,["trainee","trainer","consultant","supervisor","admin","platform_manager"]);if(!actor)return NextResponse.json({error:"سجّل الدخول إلى حساب اتزان قبل الاشتراك."},{status:401});
