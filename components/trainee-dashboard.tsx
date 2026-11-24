@@ -45,7 +45,7 @@ function SectionHeading({ title, description, href, linkLabel }: { title: string
 }
 
 function Metric({ icon: Icon, label, value, hint }: { icon: LucideIcon; label: string; value: number | string; hint: string }) {
-  return <article className="portal-card" style={{ padding: 18, minHeight: 126 }}>
+  return <article className="portal-card trainee-metric-card" style={{ padding: 18, minHeight: 126 }}>
     <span className="track-icon"><Icon size={19}/></span>
     <div style={{ fontSize: 25, fontWeight: 800, marginTop: 10, lineHeight: 1.2 }}>{value}</div>
     <strong style={{ display: "block", marginTop: 5 }}>{label}</strong>
@@ -73,7 +73,8 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
 
   const totalActivities = data?.summary.simulations || 0;
   return <PlatformLayout title="لوحة المتدرب" description="مساحة موحدة لدوراتك ومساراتك واختباراتك وشهاداتك ومدفوعاتك ومواعيدك وتقدمك العملي.">
-    <section className="portal-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
+    <div className="trainee-dashboard">
+    <section className="portal-card trainee-welcome-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
       <div><span style={{ color: "#168b86", fontSize: 12, fontWeight: 700 }}>مرحباً بك في اتزان</span><h2 style={{ margin: "4px 0" }}>{name}</h2><p style={{ margin: 0, color: "#758493", fontSize: 12 }}>{email}</p></div>
       <Link className="portal-button" href="/academy">استكشف الدورات <GraduationCap size={15}/></Link>
     </section>
@@ -81,7 +82,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
     {error && <div className="portal-callout" role="alert">{error}</div>}
     {loading && <div className="portal-empty">جارٍ تحميل مؤشرات التعلم وحسابك...</div>}
     {data && <>
-      <div className="portal-grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12 }}>
+      <div className="portal-grid trainee-metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12 }}>
         <Metric icon={BookOpen} label="دوراتي النشطة" value={data.summary.enrolledCourses} hint={"منها " + data.summary.completedCourses + " مكتملة"}/>
         <Metric icon={TrendingUp} label="تقدم التعلم" value={data.summary.progressPercent + "%"} hint={data.summary.completedLessons + " من " + data.summary.totalLessons + " وحدة"}/>
         <Metric icon={Award} label="الشهادات السارية" value={data.summary.certificates} hint="شهادات إتمام موثقة"/>
@@ -93,7 +94,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
       <section style={{ marginTop: 24 }}>
         <SectionHeading title="دوراتي" description="الدورات التي تقدمت للالتحاق بها وحالة التسجيل والتقدم." href="/academy" linkLabel="كتالوج الدورات"/>
         <div className="portal-grid">
-          {data.courses.map((course) => <article className="portal-card" key={course.id}>
+          {data.courses.map((course) => <article className="portal-card trainee-course-card" key={course.id}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}><span className="portal-chip">{course.trackTitle}</span><span className="portal-chip">{course.paid ? "ملتحق" : stateLabel[course.status] || "قيد الإجراء"}</span></div>
             <h3>{course.title}</h3>
             <p>{course.mode === "recorded" ? "تعلم ذاتي مسجل" : course.mode === "hybrid" ? "تعلم مباشر ومسجل" : "تعلم مباشر"}</p>
@@ -108,7 +109,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
       <section style={{ marginTop: 24 }}>
         <SectionHeading title="المسارات التخصصية" description="المجالات المهنية المتاحة، مع تمييز المسارات التي بدأت فيها." href="/specialties" linkLabel="كل المسارات"/>
         <div className="portal-grid">
-          {data.tracks.map((track) => <article className="portal-card" key={track.id}>
+          {data.tracks.map((track) => <article className="portal-card trainee-track-card" key={track.id}>
             <span className="track-icon"><GraduationCap size={18}/></span><h3>{track.title}</h3><p>{track.summary}</p>
             <small style={{ color: "#758493" }}>{track.enrolledCount ? "بدأت هذا المسار في " + track.enrolledCount + " دورة" : "لم تبدأ هذا المسار بعد"}</small>
             <div style={{ marginTop: 12 }}><Link className="portal-link-button secondary" href={"/academy?track=" + encodeURIComponent(track.id)}>استعراض دورات المسار</Link></div>
@@ -169,5 +170,6 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
         </section>
       </div>
     </>}
+    </div>
   </PlatformLayout>;
 }
