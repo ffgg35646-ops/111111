@@ -294,7 +294,7 @@ export function RealtimeClinicalVoice({
       setError(cause instanceof Error ? cause.message : "تعذر تشغيل الصوت الحي.");
       onEvent?.("realtime_voice_failed", "فشل إنشاء الاتصال الصوتي الحي.");
     }
-  }, [cleanup, onConnecting, onEvent, onSpeakingChange, onSpeechLevelChange, onTranscript, scenario, status, mode]);
+  }, [cleanup, onConnecting, onEvent, onSpeakingChange, onSpeechLevelChange, onTranscript, scenario, status, mode, caseId]);
 
   const toggleMute = useCallback(() => {
     const nextMuted = !muted;
