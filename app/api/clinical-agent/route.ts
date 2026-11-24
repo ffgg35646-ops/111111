@@ -2,6 +2,7 @@ import { streamText } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { getClinicalDatabase } from "@/lib/mongodb";
+import { recordPlatformAiUsage } from "@/lib/platform-ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -15,7 +16,8 @@ const DOCTOR_IDENTITY = [
 ].join("\n");
 
 export async function POST(request: NextRequest) {
-  if (!(await requirePlatformRole(request, ["admin", "supervisor", "trainer", "trainee", "consultant"]))) {
+  const actor = await requirePlatformRole(request, ["admin", "platform_manager", "supervisor", "trainer", "trainee", "consultant"]);
+  if (!actor) {
     return NextResponse.json({ error: "سجّل الدخول إلى حسابك قبل بدء المحاكاة الصوتية." }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
   if (!process.env.AI_GATEWAY_API_KEY && process.env.VERCEL !== "1") {
@@ -97,6 +99,12 @@ ${roleRules}
       system,
       messages: messages.map((message) => ({ role: message.role, content: message.content })),
       temperature: 0.4,
+      onFinish: async ({ usage, providerMetadata }) => {
+        await recordPlatformAiUsage({
+          feature: "clinical_chat", actorUserId: actor.userId, actorRole: actor.role,
+          model: process.env.CLINICAL_AI_MODEL || "openai/gpt-6-astra", usage, providerMetadata,
+        });
+      },
     });
     return result.toTextStreamResponse({
       headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
