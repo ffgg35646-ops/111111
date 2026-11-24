@@ -10,7 +10,7 @@ type RequestRecord = {
   courseTitle?: string; serviceId?: string; preferredAt?: string; requestNote?: string;
   durationMinutes?: number; attendees?: number; roomPurpose?: string;
   items?: { bookId: string; quantity: number; title?: string; productType?: string; unitPrice?: number }[]; deliveryRegion?: string; orderNote?: string; expectedAmount?: number;
-  adminNote?: string; quotedAmount?: number; currency?: string; paymentStatus?: string;
+  adminNote?: string; quotedAmount?: number; currency?: string; paymentStatus?: string; paymentId?: string; cancellationRequestedAt?: string; cancellationRefundStatus?: string; rescheduledAt?: string;
   zoomMeeting?: { joinUrl?: string; startTime?: string }; createdAt?: string;
 };
 
@@ -40,6 +40,7 @@ export default function PlatformRequestManagementPage() {
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState("");
   const [error,setError]=useState("");
+  const [notice,setNotice]=useState("");
   const [authenticated,setAuthenticated]=useState(false);
   const [canReview,setCanReview]=useState(false);
 
@@ -75,6 +76,20 @@ export default function PlatformRequestManagementPage() {
     router.refresh();
   }
 
+  async function refundConsultation(item:RequestRecord) {
+    if(!item.paymentId)return;
+    if(!window.confirm("تأكيد استرداد قيمة الاستشارة عبر Moyasar؟"))return;
+    setBusy(item.requestId);setError("");setNotice("");
+    try {
+      const response=await fetch("/api/platform/payments/refund",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({paymentId:item.paymentId})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"تعذر تنفيذ الاسترداد.");
+      setNotice("تم إرسال الاسترداد إلى Moyasar. الحالة: "+data.status);
+      await load();
+    } catch(cause) { setError(cause instanceof Error?cause.message:"تعذر تنفيذ الاسترداد."); }
+    finally { setBusy(""); }
+  }
+
   async function review(item:RequestRecord,action:"approve"|"reject") {
     if(action==="approve"&&!(Number(prices[item.requestId])>0)){
       setError("أدخل إجمالي السعر بالريال السعودي قبل اعتماد الطلب.");return;
@@ -103,7 +118,7 @@ export default function PlatformRequestManagementPage() {
         <button className="portal-button secondary" onClick={()=>void logout()}><LogOut size={15}/> تسجيل الخروج</button>
       </div>
     </section>
-    {error&&<p role="alert" style={{color:"#b64b48",fontSize:12,margin:"0 0 12px"}}>{error}</p>}
+    {error&&<p role="alert" style={{color:"#b64b48",fontSize:12,margin:"0 0 12px"}}>{error}</p>}{notice&&<p role="status" className="portal-callout">{notice}</p>}
     {loading&&!authenticated&&<div className="portal-card"><LoaderCircle size={16}/> جارٍ التحقق من صلاحية الحساب...</div>}
     {authenticated&&<div className="portal-section-title"><div><h2>طلبات قيد المراجعة ({pending.length})</h2><p>إجمالي الطلبات المعروضة: {requests.length}</p></div></div>}
     {authenticated&&requests.length===0&&!loading&&<div className="portal-card"><p>لا توجد طلبات حتى الآن.</p></div>}
@@ -111,7 +126,7 @@ export default function PlatformRequestManagementPage() {
       {requests.map(item=><article className="portal-card" key={item.requestId} style={{padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",alignItems:"center"}}>
           <div><span className="portal-chip">{kindNames[item.kind]||item.kind}</span><h3 style={{margin:"9px 0 4px"}}>{item.name}</h3><small style={{color:"#71808d"}}>{item.email}{item.phone?" · "+item.phone:""}</small></div>
-          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"?"تم الدفع والاعتماد":item.status==="awaiting_payment"?"بانتظار الدفع":item.status==="rejected"?"مرفوض":item.status==="provisioning"?"جارٍ تجهيز الاجتماع":"بانتظار المراجعة"}</strong>
+          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"?"تم الدفع والاعتماد":item.status==="awaiting_payment"?"بانتظار الدفع":item.status==="rejected"?"مرفوض":item.status==="cancellation_requested"?"طلب إلغاء بانتظار الاسترداد":item.status==="cancelled"?"ملغي":item.status==="refunded"?"مسترد":item.status==="provisioning"?"جارٍ تجهيز الاجتماع":"بانتظار المراجعة"}</strong>
         </div>
         <div style={{display:"grid",gap:5,fontSize:12,color:"#536a75",marginTop:12}}>
           {item.courseTitle&&<div>الدورة: {item.courseTitle}</div>}
@@ -127,6 +142,7 @@ export default function PlatformRequestManagementPage() {
           {item.adminNote&&<div>ملاحظة الإدارة: {item.adminNote}</div>}
           {item.zoomMeeting?.joinUrl&&<a href={item.zoomMeeting.joinUrl} target="_blank" rel="noreferrer">رابط اجتماع Zoom</a>}
         </div>
+        {item.status==="cancellation_requested"&&canReview&&item.paymentStatus==="paid"&&item.paymentId&&<div style={{marginTop:14}}><p style={{fontSize:11,color:"#8a6541"}}>طلب العميل إلغاء الموعد. تنفيذ الاسترداد سيعيد إتاحة الفترة في تقويم مقدم الخدمة.</p><button className="portal-button secondary" disabled={busy===item.requestId} onClick={()=>void refundConsultation(item)}>تنفيذ الاسترداد وإتاحة الموعد</button></div>}
         {item.status==="pending_review"&&canReview&&<div style={{display:"grid",gap:9,marginTop:14}}>
           <label style={{fontSize:11,color:"#536a75"}}>السعر النهائي بالريال السعودي (SAR)<input type="number" min="1" step="0.01" value={prices[item.requestId]||""} onChange={e=>setPrices(v=>({...v,[item.requestId]:e.target.value}))} style={{display:"block",width:"100%",padding:10,border:"1px solid #dce5e9",borderRadius:8,marginTop:5}}/></label>
           <textarea rows={2} maxLength={1000} value={notes[item.requestId]||""} onChange={e=>setNotes(v=>({...v,[item.requestId]:e.target.value}))} placeholder="ملاحظة إدارية أو تعليمات للعميل..." style={{width:"100%",padding:10,border:"1px solid #dce5e9",borderRadius:8}}/>
