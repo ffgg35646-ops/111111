@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         courseAssignment: true,
         courseCatalogEditing: false,
         licensedScaleEditing: false,
-        recurringSubscriptions: Boolean(process.env.MOYASAR_SECRET_KEY && process.env.PLATFORM_TOKEN_ENCRYPTION_KEY && process.env.CRON_SECRET),
+        recurringSubscriptions: false,
         electronicInvoicing: false,
         paymentsProvider: "Moyasar integration code is present; live processing depends on merchant credentials and acceptance testing.",
       },
