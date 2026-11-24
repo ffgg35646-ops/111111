@@ -15,6 +15,7 @@ type UsageRow = {
 type UsageData = {
   totals: { totalCalls: number; inputTokens: number; outputTokens: number; reportedSpendUsd: number; reportedCostCalls: number; pendingCostCalls: number; unavailableCostCalls: number };
   pendingQuizDrafts: number; inactiveAiScenarios: number; rows: UsageRow[];
+  config: { gatewayConfigured: boolean; textModel: string; realtimeConfigured: boolean; realtimeModel: string };
 };
 
 const featureLabels: Record<string, string> = {
@@ -71,12 +72,12 @@ export default function AdminAiPage() {
 
     <section className="portal-card" style={{ marginTop: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div><h2 style={{ margin: 0 }}>حالة مكونات الذكاء الاصطناعي</h2><small>الموديل النصي يختار من CLINICAL_AI_MODEL عبر Vercel AI Gateway.</small></div>
+        <div><h2 style={{ margin: 0 }}>حالة مكونات الذكاء الاصطناعي</h2><small>النموذج النصي الحالي: {data?.config.textModel || "CLINICAL_AI_MODEL"}</small></div>
         <button type="button" className="portal-button secondary" onClick={load} disabled={loading}><RefreshCw size={15}/> تحديث السجل</button>
       </div>
       <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <div><strong>المساعد والشرح وإنشاء المحتوى:</strong> يعتمد على AI Gateway ومفتاح الخادم AI_GATEWAY_API_KEY أو مصادقة Vercel OIDC.</div>
-        <div><strong>الصوت الحي:</strong> مسار منفصل يحتاج OPENAI_API_KEY وإعدادات CLINICAL_REALTIME_MODEL وCLINICAL_REALTIME_VOICE. يسجل النظام بدء الجلسة، لكن لا يسجل تكلفتها الفعلية بعد؛ تظهر تكلفة الاستخدام من لوحة مزود الصوت.</div>
+        <div><strong>المساعد والشرح وإنشاء المحتوى:</strong> {data?.config.gatewayConfigured ? "الاتصال مهيأ على الخادم." : "الاتصال غير مهيأ بعد."} النموذج المحدد: {data?.config.textModel || "—"}. يمكن تبديل المزود بتغيير معرف النموذج وبياناته في إعدادات AI Gateway.</div>
+        <div><strong>الصوت الحي:</strong> {data?.config.realtimeConfigured ? "الاتصال مهيأ على الخادم." : "مفتاح الصوت غير مهيأ."} النموذج: {data?.config.realtimeModel || "—"}. يحتاج هذا المسار OPENAI_API_KEY وCLINICAL_REALTIME_MODEL وCLINICAL_REALTIME_VOICE. يسجل النظام بدء الجلسة، لكن لا يسجل تكلفتها الفعلية بعد؛ تظهر تكلفة الاستخدام من لوحة مزود الصوت.</div>
         <div><strong>المحاكاة وتقييم الأداء:</strong> يستخدمان نموذج CLINICAL_AI_MODEL نفسه، مع بقاء مراجعة المدرب/المشرف مستقلة عن التقييم الآلي.</div>
       </div>
       <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 16 }}>
