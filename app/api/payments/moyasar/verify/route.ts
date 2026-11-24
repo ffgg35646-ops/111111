@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
 import {finalizePaidBookInventory} from "@/lib/book-orders";
+import {sendConsultationNotice} from "@/lib/consultation-notifications";
 export const runtime="nodejs";
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
 export async function GET(request:NextRequest){
@@ -26,6 +27,15 @@ export async function GET(request:NextRequest){
   await db.collection("platform_consultant_slots").updateOne({reservationId:requestId,status:"reserved"},{$set:{status:"booked",bookedAt:new Date(),paymentId}});
   await db.collection("platform_payment_intents").updateOne({intentId:intent.intentId},{$set:{status:"fulfilled"}});
   if(order.kind==="book_order") await finalizePaidBookInventory(db,requestId);
+  if(order.kind==="consultation") {
+   const meetingUrl=typeof order.zoomMeeting?.joinUrl==="string"?order.zoomMeeting.joinUrl:"";
+   await sendConsultationNotice(db,{
+    requestId,email:intent.email,recipientName:String(order.name||"عميل اتزان"),
+    subject:"تم تأكيد حجز الاستشارة والدفع - اتزان",
+    message:"تم تأكيد الدفع المسبق وحجز موعدك المرئي بتاريخ "+(order.preferredAt instanceof Date?order.preferredAt.toLocaleString("ar-SA"):"الموعد المحدد")+". "+(meetingUrl?"رابط الدخول إلى الجلسة: "+meetingUrl:"سيظهر رابط الجلسة في صفحة متابعة الموعد بعد استكمال إعداد الاجتماع.")+" رقم الطلب: "+requestId,
+    actionUrl:new URL("/my-consultations?requestId="+encodeURIComponent(requestId)+"&email="+encodeURIComponent(intent.email),request.nextUrl.origin).toString(),
+   });
+  }
   await db.collection("platform_audit_logs").insertOne({action:"moyasar_payment_verified",requestId,paymentId,amount:payment.amount,currency:payment.currency,createdAt:new Date()});
   return NextResponse.json({success:true,paid:true,status:"approved",requestId,kind:order.kind,items:order.kind==="book_order"?order.items:undefined},{headers:{"Cache-Control":"no-store"}});
  }catch(error){console.error("Moyasar payment verification failed",error);return NextResponse.json({error:"تعذر إكمال التحقق من الدفع."},{status:503})}
