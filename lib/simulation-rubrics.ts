@@ -14,6 +14,8 @@ export type SimulationRubric = {
   criteria: SimulationRubricCriterion[];
   status?: "active" | "inactive";
   version?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 export const DEFAULT_SIMULATION_RUBRIC: SimulationRubric = {
