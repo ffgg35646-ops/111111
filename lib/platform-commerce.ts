@@ -265,13 +265,18 @@ export async function settleRecurringPayment(db: Db, payment: {
       const period = subscription.billingPeriod === "annual" ? "annual" : "monthly";
       const paidThrough = addBillingPeriod(subscription.paidThrough instanceof Date && subscription.paidThrough > now ? subscription.paidThrough : now, period);
       await subscriptions.updateOne({ subscriptionId, lastPaymentId: { $ne: payment.id } }, { $set: {
-        status: "active", autoRenewEnabled: true, recurringStatus: "enabled", paidThrough,
-        nextBillingAt: paidThrough, lastPaymentId: payment.id, lastPaidAt: now, updatedAt: now,
+        status: "active", recurringStatus: subscription.autoRenewEnabled === true ? "enabled" : "cancelled", paidThrough,
+        nextBillingAt: paidThrough, lastPaymentId: payment.id, lastPaidAt: now, renewalAttempts: 0, updatedAt: now,
       }, $unset: { renewalLockUntil: "" } });
     }
   } else if (payment.status === "failed") {
-    await subscriptions.updateOne({ subscriptionId, lastPaymentId: { $ne: payment.id } }, { $set: {
-      status: "past_due", recurringStatus: "payment_failed", lastFailureAt: new Date(), updatedAt: new Date(),
+    const attempts = Number(subscription.renewalAttempts || 0) + 1;
+    const now = new Date();
+    await subscriptions.updateOne({ subscriptionId, lastPaymentId: { $ne: payment.id }, autoRenewEnabled: true }, { $set: {
+      status: "past_due", recurringStatus: attempts >= 3 ? "retry_limit_reached" : "payment_failed",
+      renewalAttempts: attempts, autoRenewEnabled: attempts < 3,
+      nextBillingAt: new Date(now.getTime() + (attempts >= 3 ? 7 : 1) * 24 * 60 * 60 * 1000),
+      lastFailureAt: now, updatedAt: now,
     }, $unset: { renewalLockUntil: "" } });
   }
   return true;
