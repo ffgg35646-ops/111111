@@ -114,7 +114,7 @@ export default function SimulationActivityReviewPage() {
         body: JSON.stringify({ activityId: activity.activityId, scores, feedbackNotes: draft.feedbackNotes }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "تعذر حفظ مراجعة المشرف.");
+      if (!response.ok) throw new Error(result.error || "تعذر حفظ مراجعة المدرب.");
       setNotice("تم حفظ مراجعة المشرف وربطها بتقرير دراسة الحالة.");
       await loadActivities();
     } catch (cause) {
@@ -141,7 +141,7 @@ export default function SimulationActivityReviewPage() {
       {notice && <div className="portal-callout"><ClipboardCheck size={15} /> {notice}</div>}
       {activities.length > 0 && <div className="portal-section-title"><div><h2>جلسات المحاكاة المحفوظة</h2><p>يعرض النظام آخر {activities.length} جلسة مسجلة.</p></div></div>}
       {activities.map((activity) => {
-        const draft = drafts[activity.activityId] || emptyDraft();
+        const draft = drafts[activity.activityId] || emptyDraft(activity);
         const reviewed = activity.supervisorReview;
         return (
           <article className="portal-card" key={activity.activityId} style={{ marginBottom: 14, padding: 18 }}>
@@ -179,7 +179,7 @@ export default function SimulationActivityReviewPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10, marginTop: 10 }}>
                 {getReviewFields(activity).map((field) => <label key={field.key} style={{ display: "grid", gap: 5, fontSize: 10, color: "#60777c" }}>{field.label}<select value={draft.scores[field.key] || ""} onChange={(event) => updateDraft(activity, { scores: { ...draft.scores, [field.key]: event.target.value } })} style={{ padding: 9, border: "1px solid #dce5e9", borderRadius: 7, background: "#fff" }}><option value="">اختر الدرجة</option>{[0,1,2,3,4,5].map((score) => <option key={score} value={score}>{score} / 5</option>)}</select></label>)}
               </div>
-              <label style={{ display: "grid", gap: 6, marginTop: 11, fontSize: 10, color: "#60777c" }}>ملاحظات المشرف ونقاط التحسين<textarea value={draft.feedbackNotes} onChange={(event) => updateDraft(activity, { feedbackNotes: event.target.value })} rows={3} maxLength={2000} placeholder="اذكر ما أُنجز جيداً، وما يحتاج إلى تطوير، وسؤالاً تدريبياً للمتدرب." style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 7, lineHeight: 1.8 }} /></label>
+              <label style={{ display: "grid", gap: 6, marginTop: 11, fontSize: 10, color: "#60777c" }}>ملاحظات المدرب ونقاط التحسين<textarea value={draft.feedbackNotes} onChange={(event) => updateDraft(activity, { feedbackNotes: event.target.value })} rows={3} maxLength={2000} placeholder="اذكر ما أُنجز جيداً، وما يحتاج إلى تطوير، وسؤالاً تدريبياً للمتدرب." style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 7, lineHeight: 1.8 }} /></label>
               {reviewed && <p style={{ color: "#60817a", fontSize: 10 }}>آخر متوسط إشرافي: {reviewed.overallScore}/5 · {reviewed.weightedScore ?? "—"}/100 موزون · {new Date(reviewed.reviewedAt).toLocaleString("ar-EG")}</p>}
               <button className="portal-button" onClick={() => void saveReview(activity)} disabled={savingId === activity.activityId || getReviewFields(activity).some((field) => !draft.scores[field.key]) || draft.feedbackNotes.trim().length < 10} style={{ marginTop: 10 }}>
                 {savingId === activity.activityId ? <LoaderCircle size={15} /> : <Save size={15} />} حفظ مراجعة المشرف
