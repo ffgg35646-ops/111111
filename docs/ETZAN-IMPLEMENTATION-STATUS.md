@@ -21,10 +21,13 @@ This document separates implemented application behavior from integrations that 
 - Simulation can switch between an AI clinical supervisor and a first-person virtual client/parent role in text and realtime voice modes.
 - Authenticated personal certificate wallet at `/certificates/mine`; public QR verification remains available.
 - Downloadable starter templates for intake, case study, follow-up, and referral forms. These are generic training templates, not licensed psychometric instruments.
-- Membership overview page with explicit payment-not-enabled notice.
-- Finance workspace for the Moyasar transaction ledger and authorized full-refund requests. Request queue access is read-only for accountant/support roles; approval/rejection and price authorization are restricted to system/platform managers.
+- Membership subscription checkout with monthly/annual professional packages, explicit recurring-consent capture, Moyasar saved-token verification and encrypted token storage, self-service cancellation that preserves prepaid access, and scheduled renewal processing.
+- Administrator screens for course pricing, membership pricing, coupon management, subscription monitoring, invoice records, and payment/refund operations.
+- Finance workspace for the Moyasar transaction ledger and authorized full-refund requests, with provider fees recorded when returned by Moyasar. Request queue access is read-only for accountant/support roles; approval/rejection and price authorization are restricted to system/platform managers.
+- Server-calculated Saudi Riyal checkout for individually priced courses and books, eligible coupon rules, configurable VAT calculations, idempotent coupon consumption on paid orders, and a numbered electronic sales record per confirmed payment.
+- Printable invoice detail view with seller/customer data, line totals, discount, tax, payment details, and a ZATCA Phase 1-style TLV QR payload when a valid seller VAT profile is configured. ZATCA Phase 2 clearance/signing/XML integration is still an external release gate.
 
-- The administration home now reads operational counts from MongoDB; dedicated administration entry points cover account roles, course-to-trainer assignment, articles, books/products, professional-form records, consultation availability, payment ledger, certificates, community moderation, and simulation reports. Subscription renewal and electronic invoicing are shown as not enabled rather than represented as live features.
+- The administration home now reads operational counts from MongoDB; dedicated administration entry points cover account roles, course-to-trainer assignment, articles, books/products, professional-form records, consultation availability, payment ledger, certificates, community moderation, and simulation reports. Dedicated management routes now cover commercial prices, coupons, memberships, invoices, payments, and refunds.
 
 ## Existing integrations that are implemented in code but need live configuration and acceptance tests
 
@@ -37,9 +40,9 @@ This document separates implemented application behavior from integrations that 
 
 ## Not yet production-ready / requires external commercial setup
 
-- Payment collection: a Moyasar integration path is implemented for server-created Payment Intents, card/Mada checkout, server-side payment verification, request payment state changes, and shared-secret authenticated/idempotent webhooks. It is NOT live until the merchant supplies `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, and `MOYASAR_WEBHOOK_SECRET`, configures the webhook URL, and completes test transactions. Apple Pay requires merchant activation and domain verification; recurring subscriptions, refund initiation UI, settlement reconciliation, and electronic invoicing remain incomplete. Never mark a request paid based only on the browser redirect.
-- Membership billing: plans are displayed but recurring billing, saved-card renewal, cancellation, proration, and dunning are not active. The admin subscriptions entry is a readiness/status view, not a live subscription manager.
-- Electronic invoicing: a transaction ledger is available, but invoice-number generation, compliant tax invoice documents, and e-invoicing provider integration are not implemented. The admin invoices page is explicitly a payment-record view, not a legal invoice.
+- Payment collection: Moyasar Payment Intents, Mada/card checkout, conditionally enabled Apple Pay, server-side verification, payment/refund ledger entries, provider-fee capture when returned, and authenticated webhooks are implemented. A merchant account, approved live keys, enabled payment methods, webhook registration, and end-to-end test transactions are still required. Apple Pay appears only after merchant/domain verification and its validation URL are configured. Never mark a request paid based only on the browser redirect.
+- Membership billing: monthly/annual packages are configurable by administrators; customer checkout records explicit recurring consent; only an active Moyasar token enables auto-renewal; recurring charges are scheduled daily; failures are retried with a limited retry policy; customers can cancel renewal and retain access through their paid-through date. Production recurring billing remains inactive until tokenization, cron secret, production webhook, and provider acceptance tests are configured. Proration is not implemented.
+- Electronic invoicing: numbered sales records and printable customer documents are issued after verified payments, with configurable VAT detail and QR data when the seller tax profile is supplied. This implementation does not transmit Phase 2 XML, apply a cryptographic stamp/signature, or request clearance/reporting through ZATCA FATOORA. Do not represent the generated documents as fully Phase 2 compliant until that integration and acceptance work are complete.
 - Books: the current book catalog/request flow is not a connected digital storefront, payment, stock, or shipping system. The admin screen edits catalog records and inventory but does not replace a full commerce/shipping integration.
 - Course catalog editing: the current curriculum and course lessons are maintained in the code catalog. Administration can assign active trainers to courses, but add/edit/archive course curriculum from the UI is not implemented.
 - Permissions: account role assignment and server-side role gates are implemented. A configurable per-action permission matrix (view/create/edit/delete/approve) is not implemented; the admin permissions page documents current role boundaries and links to role assignment.
@@ -59,7 +62,8 @@ Use hosting environment variables only. Never commit real credentials.
 - Live rooms: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `SUPERVISION_TOKEN_SECRET`.
 - Zoom: `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_HOST_USER_ID`.
 - VR avatar: `NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL` (public asset URL only; never place secrets in a NEXT_PUBLIC variable).
-- Payments (Moyasar): `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_WEBHOOK_SECRET`, `PLATFORM_TOKEN_ENCRYPTION_KEY` (32 random bytes, hex or base64; encrypts single-use payment client secrets at rest). Start with test keys; move to live keys only after merchant approval, HTTPS, allowed-IP configuration where required, and end-to-end acceptance tests.
+- Payments (Moyasar): `MOYASAR_SECRET_KEY`, `NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_WEBHOOK_SECRET`, `PLATFORM_TOKEN_ENCRYPTION_KEY` (32 random bytes, hex or base64; encrypts client secrets and saved payment tokens at rest), `CRON_SECRET`, `NEXT_PUBLIC_APP_URL`, and optional `NEXT_PUBLIC_MOYASAR_APPLE_PAY_VALIDATE_MERCHANT_URL` for merchant-approved Apple Pay.
+- Seller invoicing: `ETZAN_VAT_REGISTERED`, `ETZAN_VAT_RATE_BPS`, `ETZAN_PRICES_INCLUDE_VAT`, `ETZAN_MERCHANT_LEGAL_NAME`, `ETZAN_MERCHANT_VAT_NUMBER`, `ETZAN_MERCHANT_ADDRESS`, and `ETZAN_MERCHANT_CR` as applicable. Do not enable VAT or issue tax invoices without verifying the seller registration and supply treatment.
 
 ## Release gates
 
@@ -70,12 +74,13 @@ Use hosting environment variables only. Never commit real credentials.
 5. Test Zoom and LiveKit using real host and attendee accounts.
 6. Test browser WebXR on the exact target headsets; commission and test a native Unreal/OpenXR client separately if it is required.
 7. Test recorded-course auto certificate issuance, live-course attendance gating, personal certificate wallet, QR scan, and revocation.
-7. Complete payment-provider onboarding and run successful, failed, duplicate-webhook, refund, and subscription-renewal tests.
-8. Verify certificate issue, QR scan, public verification, and revocation.
-9. Complete Saudi privacy/security review before production personal or clinical data is entered.
-10. Only after acceptance should the production domain be connected and deployment enabled.
+7. Complete payment-provider onboarding and run course, book, coupon, successful/failed payment, duplicate-webhook, refund, saved-card, renewal, failed-renewal, and cancellation tests.
+8. Confirm seller tax details and complete ZATCA Phase 2 integration/acceptance before representing invoices as fully compliant.
+9. Verify certificate issue, QR scan, public verification, and revocation.
+10. Complete Saudi privacy/security review before production personal or clinical data is entered.
+11. Only after acceptance should the production domain be connected and deployment enabled.
 
-No Vercel production deployment is performed by this implementation branch. The Moyasar checkout remains disabled until all three environment variables above are configured and test-mode payments are verified.
+No Vercel production deployment is performed by this implementation branch. Moyasar checkout is disabled until provider keys are configured and test-mode payments are verified. The daily renewal route is registered in `vercel.json` but runs only after a production deployment; scheduled functions require `CRON_SECRET`.
 
 ## Professional community — feature/etzan-professional-community
 
