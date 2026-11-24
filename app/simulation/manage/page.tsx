@@ -90,6 +90,7 @@ export default function SimulationManagementPage() {
     finally { setLoading(false); }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial async configuration load.
   useEffect(() => { void load(); }, [load]);
 
   const resetScenario = () => {

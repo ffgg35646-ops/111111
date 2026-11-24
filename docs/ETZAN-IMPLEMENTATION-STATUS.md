@@ -71,3 +71,16 @@ Use hosting environment variables only. Never commit real credentials.
 10. Only after acceptance should the production domain be connected and deployment enabled.
 
 No Vercel production deployment is performed by this implementation branch. The Moyasar checkout remains disabled until all three environment variables above are configured and test-mode payments are verified.
+
+## Professional community — feature/etzan-professional-community
+
+- Practitioner profiles backed by MongoDB, including specialty, professional title, organization, location, qualifications, interests, website, LinkedIn, and a member-directory visibility control.
+- Searchable practitioner directory; directory responses omit account email addresses and hide profiles whose owners opt out.
+- Specialty groups with persistent join/leave memberships and membership counts.
+- Professional discussions are stored in MongoDB and remain pending moderation until an authorized moderator approves them.
+- Members can share text experiences, safe HTTP(S) resource links, and PDF/Word/PowerPoint/PNG/JPEG attachments up to 5 MB. Attachments are stored with the post and served only to signed-in members when the post is published, its author, or an authorized moderator.
+- Authenticated members can like published discussions and add comments. Each post is limited to 200 comments; the feed returns the latest 20 comments.
+- Members can submit one open report per post. Reports can be resolved or dismissed by authorized moderators.
+- The moderation workspace filters posts by status, searches content, approves/rejects/hides posts, reviews reports, and records moderation actions in the existing audit collection.
+- Community APIs require an active platform session and validate allowed roles, post status, category values, attachment MIME type/size, and external resource protocols.
+- This implementation adds application behavior only. It does not trigger a Vercel production deployment; MongoDB production availability and GitHub quality checks must still be verified in the target environment.

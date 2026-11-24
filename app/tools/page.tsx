@@ -35,6 +35,7 @@ export default function ToolsPage(){
    else if(f.status!==401){const d=await f.json().catch(()=>({}));setError(d.error||"تعذر تحميل الملفات.");}
   }catch{setError("تعذر الاتصال بالخادم.");}finally{setLoading(false);}
  }
+ // eslint-disable-next-line react-hooks/set-state-in-effect -- initial async data load.
  useEffect(()=>{void reload();},[]);
  function choose(id:string){setSelected(id);setValues({});setCode("");setNotes("");setError("");setMessage("");}
  async function save(e:FormEvent<HTMLFormElement>){
