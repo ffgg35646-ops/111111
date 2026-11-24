@@ -47,14 +47,23 @@ export async function POST(request: NextRequest) {
     })) return NextResponse.json({ error: "محتوى المسودة لا يجتاز التحقق النهائي." }, { status: 400 });
 
     const now = new Date();
-    await db.collection("platform_course_quizzes").createIndex({ courseId: 1 }, { unique: true });
-    await db.collection("platform_course_quizzes").updateOne(
-      { courseId },
-      { $set: { courseId, trainerId: actor.userId, questions, updatedAt: now, updatedBy: actor.userId }, $setOnInsert: { createdAt: now } },
-      { upsert: true },
+    const reviewClaim = await drafts.updateOne(
+      { draftId, status: "pending_review" },
+      { $set: { status: "approving", reviewedBy: actor.userId, reviewedAt: now } },
     );
-    const reviewUpdate = await drafts.updateOne({ draftId, status: "pending_review" }, { $set: { status: "approved", reviewedBy: actor.userId, reviewedAt: now, publishedAt: now } });
-    if (!reviewUpdate.modifiedCount) return NextResponse.json({ error: "تمت مراجعة المسودة بالفعل. حدّث الصفحة." }, { status: 409 });
+    if (!reviewClaim.modifiedCount) return NextResponse.json({ error: "تمت مراجعة المسودة بالفعل. حدّث الصفحة." }, { status: 409 });
+    try {
+      await db.collection("platform_course_quizzes").createIndex({ courseId: 1 }, { unique: true });
+      await db.collection("platform_course_quizzes").updateOne(
+        { courseId },
+        { $set: { courseId, trainerId: actor.userId, questions, updatedAt: now, updatedBy: actor.userId }, $setOnInsert: { createdAt: now } },
+        { upsert: true },
+      );
+      await drafts.updateOne({ draftId, status: "approving" }, { $set: { status: "approved", publishedAt: now } });
+    } catch (error) {
+      await drafts.updateOne({ draftId, status: "approving" }, { $set: { status: "pending_review" }, $unset: { reviewedBy: "", reviewedAt: "" } });
+      throw error;
+    }
     await db.collection("platform_audit_logs").insertOne({ action: "ai_quiz_draft_approved", actorUserId: actor.userId, draftId, courseId, questionCount: questions.length, createdAt: now });
     return NextResponse.json({ success: true, status: "approved", questionCount: questions.length, courseId });
   } catch (error) {
