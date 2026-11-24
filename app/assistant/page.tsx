@@ -11,7 +11,7 @@ type Role = "admin" | "platform_manager" | "supervisor" | "trainer" | "trainee" 
 type Task = "ask" | "explain" | "quiz" | "scenario";
 type QuizQuestion = { q: string; options: string[]; correct: number; why: string };
 type Source = { type: string; title: string; href: string };
-type QuizDraft = { draftId: string; courseTitle: string; questions: QuizQuestion[] };
+type QuizDraft = { draftId: string; courseId?: string; courseTitle: string; questions: QuizQuestion[] };
 type ScenarioDraft = { scenarioId: string; title: string; track: string; status: string };
 
 const canAuthor = (role: Role | null) => Boolean(role && ["admin", "platform_manager", "supervisor", "trainer"].includes(role));
@@ -27,6 +27,7 @@ export default function AssistantPage() {
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [quizDraft, setQuizDraft] = useState<QuizDraft | null>(null);
+  const [pendingDrafts, setPendingDrafts] = useState<QuizDraft[]>([]);
   const [scenarioDraft, setScenarioDraft] = useState<ScenarioDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
@@ -50,6 +51,11 @@ export default function AssistantPage() {
         }
         if (!active) return;
         setRole(currentRole);
+        if (["admin", "platform_manager", "supervisor", "trainer"].includes(currentRole)) {
+          const draftResponse = await fetch("/api/platform/ai/drafts", { cache: "no-store" });
+          const draftData = await draftResponse.json();
+          if (draftResponse.ok && active) setPendingDrafts(Array.isArray(draftData.drafts) ? draftData.drafts as QuizDraft[] : []);
+        }
         if (currentRole === "trainer") {
           const trainerResponse = await fetch("/api/trainer", { cache: "no-store" });
           const trainerData = await trainerResponse.json();
@@ -88,7 +94,9 @@ export default function AssistantPage() {
         setAnswer(String(data.answer || ""));
         setSources(Array.isArray(data.sources) ? data.sources as Source[] : []);
       } else if (task === "quiz") {
-        setQuizDraft({ draftId: data.draftId, courseTitle: data.courseTitle, questions: data.questions || [] });
+        const draft = { draftId: data.draftId, courseId: data.courseId, courseTitle: data.courseTitle, questions: data.questions || [] };
+        setQuizDraft(draft);
+        setPendingDrafts((current) => [draft, ...current.filter((item) => item.draftId !== draft.draftId)]);
       } else {
         setScenarioDraft({ scenarioId: data.scenarioId, title: data.title, track: data.track, status: data.status });
       }
@@ -113,6 +121,7 @@ export default function AssistantPage() {
       setNotice(action === "approve_quiz"
         ? "تم اعتماد الأسئلة وإدراجها في اختبار المقرر."
         : "تم رفض المسودة وحفظ قرار المراجعة.");
+      setPendingDrafts((current) => current.filter((item) => item.draftId !== quizDraft.draftId));
       setQuizDraft(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذرت مراجعة المسودة.");
@@ -192,6 +201,15 @@ export default function AssistantPage() {
       <p><strong>{scenarioDraft.title}</strong> · {scenarioDraft.track}</p>
       <p>حُفظ السيناريو بحالة غير مفعّلة؛ لن يظهر للمتدربين حتى يراجعه المدرب أو المشرف ويفعّله يدوياً.</p>
       <Link href="/simulation/manage" className="portal-button">مراجعة السيناريو وتفعيله</Link>
+    </section>}
+    {canAuthor(role) && pendingDrafts.length > 0 && <section className="portal-card" style={{ marginTop: 16 }}>
+      <h2 style={{ marginTop: 0 }}>مسودات الاختبارات بانتظار المراجعة</h2>
+      <div style={{ display: "grid", gap: 9 }}>
+        {pendingDrafts.map((draft) => <div key={draft.draftId} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--portal-border, #e5eaed)", paddingTop: 10 }}>
+          <div><strong>{draft.courseTitle}</strong><br/><small>{draft.questions.length} أسئلة · مسودة محفوظة</small></div>
+          <button type="button" className="portal-button secondary" onClick={() => { setQuizDraft(draft); setTask("quiz"); setNotice(""); setError(""); }}>فتح للمراجعة</button>
+        </div>)}
+      </div>
     </section>}
     <p style={{ marginTop: 16, fontSize: 13, opacity: 0.78 }}>ملاحظة: البحث الحالي يفهرس المقالات والكتب المنشورة وفهرس الدورات والمسارات والحالات المضافة في المنصة. لا يمثل بعد فهرسة دلالية كاملة لكل ملف أو مرفق.</p>
   </PlatformLayout>;
