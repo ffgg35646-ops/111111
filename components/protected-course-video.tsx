@@ -43,7 +43,7 @@ export function ProtectedCourseVideo({ courseId, title }: { courseId: string; ti
     refreshStamp();
     const stampTimer = window.setInterval(refreshStamp, 60000);
     const tokenTimer = window.setInterval(() => { if (active) void refreshAccess(true); }, 8 * 60 * 1000);
-    void refreshAccess(false);
+    const initialAccessTimer = window.setTimeout(() => { void refreshAccess(false); }, 0);
     fetch("/api/auth/session", { cache: "no-store" }).then(async response => {
       if (!response.ok) return;
       const data = await response.json();
@@ -56,6 +56,7 @@ export function ProtectedCourseVideo({ courseId, title }: { courseId: string; ti
       active = false;
       window.clearInterval(stampTimer);
       window.clearInterval(tokenTimer);
+      window.clearTimeout(initialAccessTimer);
     };
   }, [refreshAccess]);
 
