@@ -88,6 +88,7 @@ export default function PlatformRequestForm({
       setSuccess(result.requestId);
       setRequestStatus(result.status || "pending_review");
       setRequestJoinUrl("");
+      setQuote(typeof result.quotedAmount==="number"?{amount:result.quotedAmount,currency:typeof result.currency==="string"?result.currency:"SAR",paymentStatus:typeof result.paymentStatus==="string"?result.paymentStatus:"payment_due"}:null);
       setValues({});
     } catch(cause) {
       setError(cause instanceof Error?cause.message:"تعذر إرسال الطلب.");
