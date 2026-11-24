@@ -15,6 +15,8 @@ This document distinguishes code already present from services and hardware that
 - Individual account foundation with admin-managed roles, scrypt password hashes, signed HttpOnly sessions, forced first-login password change, registered device sessions, a configurable concurrent-device limit, active-session revocation, and security audit events.
 - Protected course-video streaming route that hides the private source URL, checks the account and paid enrollment on each request, supports range requests for seeking, and overlays a per-user/session watermark.
 - Five-minute signed classroom join/recording access links that recheck the paid enrollment and session status before redirecting to Zoom.
+- Ten-minute signed course-video URLs that refresh automatically during playback and preserve the current playback position.
+- Authenticated data-subject privacy request intake with account ownership, a 30-day response due date, administrator tracking, and a single documented extension of up to 30 additional days after recording the prior notice.
 - Exact-host allowlisting for protected course media, TLS by default for non-local MongoDB connections, and browser security response headers.
 - Account security page for reviewing/revoking sessions; platform-admin security audit and protected-media management screens.
 

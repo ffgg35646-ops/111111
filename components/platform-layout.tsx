@@ -26,6 +26,7 @@ function PlatformChrome(){
   <nav className="portal-nav">
    {user&&<Link href="/dashboard"><LayoutDashboard size={15}/>لوحة العمل</Link>}
    {user&&<Link href="/account/security"><ShieldCheck size={15}/>أمان الحساب</Link>}
+   {user&&<Link href="/account/privacy"><FileBadge size={15}/>طلباتي للخصوصية</Link>}
    {navigation.map(({href,label,icon:Icon})=><Link href={href} key={href}><Icon size={15}/>{label}</Link>)}
   </nav>
   <Link href="/platform-admin" className="portal-admin-link">لوحة الإدارة <ArrowUpLeft size={15}/></Link>

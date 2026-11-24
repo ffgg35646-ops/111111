@@ -46,6 +46,7 @@ const routeByLabel: Record<string,string> = {
   "إدارة الصلاحيات": "/platform-admin/permissions",
   "الأمان والخصوصية": "/platform-admin/security",
   "الفيديوهات المحمية": "/platform-admin/media",
+  "طلبات الخصوصية": "/platform-admin/privacy-requests",
   "طلبات المنصة والحجوزات": "/platform-admin/requests",
   "إتاحة مواعيد الاستشارات": "/platform-admin/availability",
   "الفصول المباشرة عبر Zoom": "/classrooms",
@@ -88,6 +89,7 @@ const adminShortcuts = [
   {label:"إدارة الصلاحيات",description:"الأدوار وحدود الوصول",href:"/platform-admin/permissions",icon:Settings},
   {label:"الأمان والخصوصية",description:"الأجهزة والجلسات وسجل التدقيق",href:"/platform-admin/security",icon:ShieldCheck},
   {label:"الفيديوهات المحمية",description:"إدارة مصادر الفيديو والبث المحمي",href:"/platform-admin/media",icon:Video},
+  {label:"طلبات الخصوصية",description:"طلبات أصحاب البيانات ومواعيد الاستجابة",href:"/platform-admin/privacy-requests",icon:ShieldCheck},
 ] as const;
 
 export default function HomePage() {

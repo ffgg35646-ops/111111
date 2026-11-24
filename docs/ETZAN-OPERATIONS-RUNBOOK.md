@@ -38,6 +38,8 @@ If Moyasar sends a `webhook_verification` event, open `/platform-admin/payments`
 - Community moderation: `/platform-admin/community`
 - Simulation supervisor review: `/platform-admin/activities`
 - Account devices and session revocation: `/account/security`
+- Data subject privacy request intake: `/account/privacy`
+- Privacy request administration and response deadlines: `/platform-admin/privacy-requests`
 - Security audit and privacy readiness: `/platform-admin/security`
 - Protected course video setup: `/platform-admin/media`
 
