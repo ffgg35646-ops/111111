@@ -100,7 +100,7 @@ function normaliseScenarioDraft(parsed: Record<string, unknown>, trackFallback: 
     throw new Error("السيناريو الناتج غير مكتمل. أعد التوليد مع إضافة وصف وهدفين تعليميين وملاحظة سلامة.");
   }
   if (!Array.isArray(parsed.steps) || parsed.steps.length < 3 || parsed.steps.length > 12) throw new Error("يجب أن يحتوي السيناريو على 3 إلى 12 مرحلة.");
-  const steps = parsed.steps.map((entry) => {
+  const steps = parsed.steps.map((entry, index) => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("إحدى مراحل السيناريو غير صالحة.");
     const step = entry as Record<string, unknown>;
     const stepTitle = clean(step.title, 120), focus = clean(step.focus, 120), prompt = clean(step.prompt, 700);
