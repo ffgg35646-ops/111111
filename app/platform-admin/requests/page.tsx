@@ -50,7 +50,8 @@ export default function PlatformRequestManagementPage() {
       const data=await response.json();
       if(response.status===401||response.status===403){router.replace("/login?next=/platform-admin/requests");return;}
       if(!response.ok)throw new Error(data.error||"تعذر تحميل الطلبات.");
-      setRequests(Array.isArray(data.requests)?data.requests:[]);\n      setPrices(current=>({...Object.fromEntries((data.requests||[]).filter((item:RequestRecord)=>Number(item.expectedAmount)>0).map((item:RequestRecord)=>[item.requestId,String(item.expectedAmount)])),...current}));
+      setRequests(Array.isArray(data.requests)?data.requests:[]);
+      setPrices(current=>({...Object.fromEntries((data.requests||[]).filter((item:RequestRecord)=>Number(item.expectedAmount)>0).map((item:RequestRecord)=>[item.requestId,String(item.expectedAmount)])),...current}));
       setAuthenticated(true);
     } catch(cause){setError(cause instanceof Error?cause.message:"حدث خطأ غير متوقع.");}
     finally{setLoading(false);}
