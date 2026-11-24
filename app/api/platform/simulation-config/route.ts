@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     const rubricFilter = manage ? {} : { status: "active" };
     const [scenarios, customRubrics] = await Promise.all([
       db.collection("platform_simulation_scenarios")
-        .find(scenarioFilter, { projection: { _id: 0, scenarioId: 0, createdBy: 0, updatedBy: 0 } })
+        .find(scenarioFilter, { projection: { _id: 0, createdBy: 0, updatedBy: 0 } })
         .sort({ updatedAt: -1 })
         .limit(200)
         .toArray(),
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
       const scenario = normaliseScenario({ ...data, actorId: actor.userId }, existing as Record<string, unknown> | null ?? undefined);
       await db.collection("platform_simulation_scenarios").updateOne(
         { scenarioId: scenario.scenarioId },
-        { $set: scenario, $setOnInsert: { createdAt: scenario.createdAt } },
+        { $set: scenario },
         { upsert: true },
       );
       return NextResponse.json({ success: true, kind, scenario }, { status: 201, headers: { "Cache-Control": "no-store" } });
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     const rubric = normaliseRubric(data, existing as Record<string, unknown> | null ?? undefined);
     await db.collection("platform_simulation_rubrics").updateOne(
       { rubricId: rubric.rubricId },
-      { $set: rubric, $setOnInsert: { createdAt: rubric.createdAt } },
+      { $set: rubric },
       { upsert: true },
     );
     return NextResponse.json({ success: true, kind, rubric }, { status: 201, headers: { "Cache-Control": "no-store" } });
