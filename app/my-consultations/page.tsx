@@ -66,6 +66,11 @@ export default function MyConsultationsPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر العثور على الموعد.");
       setAppointment(data);
+      if (data.preferredAt) {
+        const local = new Date(data.preferredAt);
+        setDate([local.getFullYear(), String(local.getMonth() + 1).padStart(2, "0"), String(local.getDate()).padStart(2, "0")].join("-"));
+      }
+      setProviderUserId(data.providerUserId || "");
     } catch (cause) {
       setAppointment(null);
       setError(cause instanceof Error ? cause.message : "تعذر تحميل الموعد.");
