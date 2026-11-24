@@ -97,3 +97,8 @@ The shared web avatar now renders a three-dimensional Saudi attire layer over th
 - Downloadable professional templates: `/tools`
 
 See [ETZAN platform requirements](docs/ETZAN-PLATFORM-REQUIREMENTS.md) and [implementation status / release blockers](docs/ETZAN-IMPLEMENTATION-STATUS.md).
+
+
+## مختبر المحاكاة الافتراضية
+
+راجع [دليل استوديو المحاكاة وإدارة السيناريوهات ومعايير التقييم](docs/etzan-simulation-studio.md) لتفاصيل `/simulation` و`/simulation/manage` ولوحة مراجعة أداء المتدربين ومتغيرات التشغيل المطلوبة.
