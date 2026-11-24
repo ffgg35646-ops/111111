@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
     }
     record.items = enriched;
     record.expectedAmount = Math.round(enriched.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0)*100)/100;
+    if (Number(record.expectedAmount) <= 0 || Number(record.expectedAmount) > 10000000) return NextResponse.json({error:"إجمالي قيمة طلب الكتب يجب أن يكون أكبر من صفر ولا يتجاوز 10,000,000 ريال."},{status:400});
     record.deliveryRegion = cleanText(data.deliveryRegion, 80);
     record.orderNote = cleanText(data.orderNote, 300);
   }
