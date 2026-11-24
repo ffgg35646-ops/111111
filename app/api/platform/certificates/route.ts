@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     if (!actor) return NextResponse.json({ error: "إدارة الشهادات متاحة لمدير النظام فقط." }, { status: 403 });
     try {
       const db = await getClinicalDatabase();
-      const certificates = await db.collection("platform_certificates").find({}, { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1, status: 1, revokedAt: 1 } }).sort({ issuedAt: -1 }).limit(500).toArray();
+      const certificates = await db.collection("platform_certificates").find({}, { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1, status: 1, revokedAt: 1, source: 1, quizScore: 1, quizTotal: 1, attendanceVerified: 1 } }).sort({ issuedAt: -1 }).limit(500).toArray();
       return NextResponse.json({ certificates }, { headers: { "Cache-Control": "no-store" } });
     } catch (error) {
       console.error("Certificate administration list failed", error);
@@ -34,10 +34,18 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const certificate = await db.collection("platform_certificates").findOne(
-      { serial, status: "issued" },
-      { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1 } },
+      { serial },
+      { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1, status: 1, revokedAt: 1 } },
     );
-    if (!certificate) return NextResponse.json({ valid: false, error: "لم يتم العثور على شهادة صالحة بهذا الرمز." }, { status: 404 });
+    if (!certificate) {
+      return NextResponse.json({ valid: false, error: "لم يتم العثور على شهادة بهذا الرقم التسلسلي." }, { status: 404, headers: { "Cache-Control": "no-store" } });
+    }
+    if (certificate.status !== "issued") {
+      return NextResponse.json(
+        { valid: false, certificate, error: certificate.status === "revoked" ? "هذه الشهادة ملغاة وغير صالحة." : "حالة هذه الشهادة لا تسمح بالتحقق منها." },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     return NextResponse.json({ valid: true, certificate }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Certificate verification failed", error);
