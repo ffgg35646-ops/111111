@@ -42,7 +42,7 @@ export async function recordPlatformAiUsage(input: {
       console.warn("AI Gateway generation cost lookup is not available yet", error);
     }
   }
-  const inputTokens = finiteNumber(usage.inputTokens ?? usage.promptTokens) ?? finiteNumber(generation.promptTokens);
+  const inputTokens = finiteNumber(usage.inputTokens ?? usage.promptTokens ?? usage.tokens) ?? finiteNumber(generation.promptTokens);
   const outputTokens = finiteNumber(usage.outputTokens ?? usage.completionTokens) ?? finiteNumber(generation.completionTokens);
   const totalTokens = finiteNumber(usage.totalTokens) ?? (
     inputTokens !== null || outputTokens !== null ? (inputTokens || 0) + (outputTokens || 0) : null

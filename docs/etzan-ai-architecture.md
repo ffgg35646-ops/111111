@@ -11,13 +11,26 @@
 
 ## Content retrieval boundary
 
-The assistant currently reads only:
-- Published article records from etzan_articles.
-- Published book metadata/descriptions from etzan_books.
-- The static course and track catalog.
-- Public training-case summaries and descriptions of original practice cards.
+The learner assistant is role-protected and uses published materials only:
+- Published article records from `etzan_articles`.
+- Published book metadata/descriptions from `etzan_books`.
+- The static course and track catalog, public training-case summaries, and original practice-tool descriptions.
+- It never indexes unpublished records, hidden persona instructions, private consultation notes, trainee submissions, or licensed assessment items.
 
-It ranks a bounded content sample using Arabic-normalized keyword overlap. It does not read unpublished content, hidden persona instructions, private consultation notes, trainee submissions, or licensed assessment items. The current retrieval system is not a full-text/vector index and does not yet cover every uploaded file or attachment. Any future semantic index must preserve the same visibility rules and add per-document authorization filters before retrieval.
+Two retrieval modes are supported:
+- Keyword retrieval is the safe default and works without an Atlas Vector Search index.
+- Optional semantic retrieval stores chunk embeddings in `platform_ai_knowledge_chunks` and queries Atlas Vector Search. The admin workflow is `/platform-admin/ai-knowledge`; it rebuilds in small batches and switches the active index only after the complete new run finishes. Until the Atlas index and `ETZAN_AI_VECTOR_SEARCH_ENABLED=true` are configured, the assistant automatically falls back to keyword retrieval.
+
+Default embedding configuration:
+- Model: `openai/text-embedding-3-small`.
+- Dimensions: `1536`.
+- Atlas collection: `platform_ai_knowledge_chunks`.
+- Vector index: `etzan_ai_knowledge_vector`.
+- Indexed filter fields: `visibility` and `indexRunId`.
+
+Create an Atlas Vector Search index on `platform_ai_knowledge_chunks` with a vector field named `embedding` using the configured dimensions and cosine similarity, plus filter fields `visibility` and `indexRunId`. After the index becomes queryable, set `ETZAN_AI_VECTOR_SEARCH_ENABLED=true`. If the embedding model or dimensions change, create a matching Atlas index and rebuild the index. The indexing process sends published educational text to the configured embedding provider through AI Gateway; assess provider contracts, data location, and cost before enabling it.
+
+Reindexing is an administrator-triggered operation, not a background sync. Re-run it after publishing or substantially editing content. Attachments and every uploaded file are not automatically indexed yet.
 
 ## AI provider configuration
 

@@ -82,6 +82,7 @@ export default function AdminAiPage() {
       </div>
       <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 16 }}>
         <Link href="/assistant" className="portal-button"><Sparkles size={15}/> تجربة مساعد اتزان</Link>
+        <Link href="/platform-admin/ai-knowledge" className="portal-button secondary">إدارة فهرس المعرفة الدلالي</Link>
         <Link href="/simulation/manage" className="portal-button secondary">إدارة السيناريوهات</Link>
         <Link href="/platform-admin/activities" className="portal-button secondary">مراجعة تقارير المحاكاة</Link>
       </div>
