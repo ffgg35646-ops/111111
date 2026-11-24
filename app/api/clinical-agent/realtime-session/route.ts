@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       if (custom) privateScenarioContext = [
         typeof custom.personaInstructions === "string" ? "تعليمات الشخصية الخاصة: " + custom.personaInstructions : "",
         typeof custom.hiddenContext === "string" ? "السياق المخفي الذي يجب كشفه تدريجياً فقط عند السؤال المناسب: " + custom.hiddenContext : "",
-      ].filter(Boolean).join("\\n");
+      ].filter(Boolean).join("\n");
     } catch (error) {
       console.error("Unable to load private realtime scenario context", error);
       return NextResponse.json({ error: "تعذر تحميل تفاصيل الحالة المحمية. أعد المحاولة." }, { status: 503, headers: { "Cache-Control": "no-store" } });
