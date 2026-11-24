@@ -274,7 +274,7 @@ export async function settleRecurringPayment(db: Db, payment: {
       await subscriptions.updateOne({ subscriptionId, lastPaymentId: { $ne: payment.id } }, { $set: {
         status: "active", recurringStatus: subscription.autoRenewEnabled === true ? "enabled" : "cancelled", paidThrough,
         nextBillingAt: paidThrough, lastPaymentId: payment.id, lastPaidAt: now, renewalAttempts: 0, updatedAt: now,
-      }, $unset: { renewalLockUntil: "" } });
+      }, $unset: { renewalLockUntil: "", renewalPaymentId: "", currentChargeId: "" } });
     }
   } else if (payment.status === "failed") {
     const attempts = Number(subscription.renewalAttempts || 0) + 1;
@@ -284,7 +284,7 @@ export async function settleRecurringPayment(db: Db, payment: {
       renewalAttempts: attempts, autoRenewEnabled: attempts < 3,
       nextBillingAt: new Date(now.getTime() + (attempts >= 3 ? 7 : 1) * 24 * 60 * 60 * 1000),
       lastFailureAt: now, updatedAt: now,
-    }, $unset: { renewalLockUntil: "" } });
+    }, $unset: { renewalLockUntil: "", renewalPaymentId: "", currentChargeId: "" } });
   }
   return true;
 }
