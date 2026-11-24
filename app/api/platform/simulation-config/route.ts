@@ -93,7 +93,7 @@ function normaliseScenario(data: Record<string, unknown>, existing?: Record<stri
     version,
     createdAt: existing?.createdAt || now,
     updatedAt: now,
-    createdBy: existing?.createdBy || cleanText(data.createdBy, 100),
+    createdBy: existing?.createdBy || cleanText(data.actorId, 100),
     updatedBy: cleanText(data.actorId, 100),
   };
 }
