@@ -16,7 +16,7 @@ const sections = [
     ["إدارة الكتب والمنتجات",ShoppingBag],["إدارة المقاييس والنماذج",ClipboardCheck],
     ["إدارة الاستشارات",MessageCircle],["إدارة الاشتراكات",CreditCard],
     ["المدفوعات",Wallet],["الفواتير",FileText],["إدارة الشهادات",ShieldCheck],
-    ["المجتمع والبلاغات",MessageCircle],["التقارير والإحصائيات",ChartNoAxesCombined],["إدارة الصلاحيات",Settings],
+    ["المجتمع والبلاغات",MessageCircle],["التقارير والإحصائيات",ChartNoAxesCombined],["إدارة الصلاحيات",Settings],["الذكاء الاصطناعي",Brain],
   ] },
   { title:"تشغيل الخدمات", items:[
     ["طلبات المنصة والحجوزات",ClipboardCheck],["إتاحة مواعيد الاستشارات",CalendarDays],
@@ -44,6 +44,7 @@ const routeByLabel: Record<string,string> = {
   "المجتمع والبلاغات": "/platform-admin/community",
   "التقارير والإحصائيات": "/platform-admin/reports",
   "إدارة الصلاحيات": "/platform-admin/permissions",
+  "الذكاء الاصطناعي": "/platform-admin/ai",
   "طلبات المنصة والحجوزات": "/platform-admin/requests",
   "إتاحة مواعيد الاستشارات": "/platform-admin/availability",
   "الفصول المباشرة عبر Zoom": "/classrooms",
@@ -84,6 +85,7 @@ const adminShortcuts = [
   {label:"المجتمع والبلاغات",description:"المشاركات والتقارير المفتوحة",href:"/platform-admin/community",icon:MessageCircle},
   {label:"التقارير والإحصائيات",description:"مؤشرات التشغيل والأداء",href:"/platform-admin/reports",icon:ChartNoAxesCombined},
   {label:"إدارة الصلاحيات",description:"الأدوار وحدود الوصول",href:"/platform-admin/permissions",icon:Settings},
+  {label:"إدارة الذكاء الاصطناعي",description:"المساعد والنماذج وسجل التكلفة",href:"/platform-admin/ai",icon:Brain},
 ] as const;
 
 export default function HomePage() {
