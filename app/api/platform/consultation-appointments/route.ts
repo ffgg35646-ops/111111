@@ -36,6 +36,11 @@ export async function POST(request: NextRequest) {
         message: "طلب مقدم الخدمة إلغاء موعدك. سيُراجع فريق المنصة الاسترداد المالي، وسيصلك إشعار عند اكتمال المعالجة. رقم الطلب: " + requestId,
       });
     } else {
+      const startsAt = appointment.preferredAt instanceof Date ? appointment.preferredAt : new Date(String(appointment.preferredAt || ""));
+      const durationMinutes = Number(appointment.durationMinutes) || 50;
+      if (!Number.isFinite(startsAt.getTime()) || startsAt.getTime() + durationMinutes * 60000 > now.getTime()) {
+        return NextResponse.json({ error: "لا يمكن تسجيل اكتمال الجلسة قبل انتهاء موعدها." }, { status: 409 });
+      }
       const result = await db.collection("platform_requests").updateOne(
         { _id: appointment._id, status: "approved", paymentStatus: "paid" },
         { $set: { status: "completed", completedAt: now, completedBy: actor.userId } },
