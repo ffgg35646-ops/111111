@@ -64,6 +64,7 @@ const FORMULATION_REQUIREMENTS = [
 ] as const;
 
 type ConversationTurn = { role: "user" | "assistant"; content: string };
+type SimulationAiReview = { summary: string; strengths: string[]; improvements: string[]; safetyObservations: string[]; nextPractice: string; rubricWeightedScore?: number; rubricScores?: { key: string; label: string; score: number; evidence: string }[] };
 type RoomEvent = { type: string; label: string; occurredAt: string };
 type RecognitionAlternative = { transcript: string };
 type RecognitionResult = { isFinal: boolean; 0: RecognitionAlternative };
@@ -175,6 +176,8 @@ function SimulationWorkspace() {
   const [completed, setCompleted] = useState(false);
   const [savedScore, setSavedScore] = useState<number | null>(null);
   const [savedActivityId, setSavedActivityId] = useState<string | null>(null);
+  const [savedAiReview, setSavedAiReview] = useState<SimulationAiReview | null>(null);
+  const [savedAiReviewStatus, setSavedAiReviewStatus] = useState<string>("");
   const [clinicalFormulation, setClinicalFormulation] = useState<ClinicalFormulation>(() => ({ ...EMPTY_CLINICAL_FORMULATION }));
   const [vrHeadTrackingSamples, setVrHeadTrackingSamples] = useState(0);
   const [vrHeadMetrics, setVrHeadMetrics] = useState<{ averageHeadAngleDegrees: number | null; averageDistanceCm: number | null; orientedWithin30DegreesPercent: number | null } | null>(null);
@@ -541,6 +544,8 @@ function SimulationWorkspace() {
     setCompleted(false);
     setSavedScore(null);
     setSavedActivityId(null);
+    setSavedAiReview(null);
+    setSavedAiReviewStatus("");
     setClinicalFormulation({ ...EMPTY_CLINICAL_FORMULATION });
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
@@ -602,6 +607,8 @@ function SimulationWorkspace() {
       if (!response.ok) throw new Error(result.error || "تعذر حفظ نتيجة التدريب.");
       setSavedScore(result.score);
       setSavedActivityId(typeof result.activityId === "string" ? result.activityId : null);
+      setSavedAiReview(result.aiReview && typeof result.aiReview === "object" ? result.aiReview as SimulationAiReview : null);
+      setSavedAiReviewStatus(typeof result.aiReviewStatus === "string" ? result.aiReviewStatus : "");
       setVrHeadTrackingSamples(Number(result.vrHeadTrackingSamples) || 0);
       setVrHeadMetrics(result.vrHeadMetrics ?? null);
       setVrHandMetrics(result.vrHandMetrics ?? null);
@@ -917,6 +924,7 @@ function SimulationWorkspace() {
                 <div><strong>الخطوات التالية والإحالة</strong><p>{clinicalFormulation.nextSteps}</p></div>
                 <small className="simulation-report-footnote">تم حفظ التقرير لأغراض التعلم والمراجعة. اكتمال الحقول لا يثبت صحة الفرضيات ولا ينتج تشخيصاً رسمياً.</small>
               </section>}
+              {savedAiReview ? <section className="simulation-saved-report" style={{ marginTop: 14 }}><b>تحليل الأداء بالذكاء الاصطناعي</b><p>{savedAiReview.summary}</p><div className="simulation-result-breakdown"><div><b>نقاط القوة</b><small>{savedAiReview.strengths.join(" · ") || "لم تُحدد نقاط قوة كافية من الأدلة."}</small></div><div><b>جوانب التحسين</b><small>{savedAiReview.improvements.join(" · ") || "لم تُحدد جوانب تحسين إضافية."}</small></div><div><b>ملاحظات السلامة المهنية</b><small>{savedAiReview.safetyObservations.join(" · ") || "لا توجد ملاحظات سلامة مسجلة."}</small></div></div>{savedAiReview.rubricScores?.length ? <p><strong>نتيجة المعيار الموزونة:</strong> {savedAiReview.rubricWeightedScore ?? "—"}/100</p> : null}<p><strong>التدريب التالي المقترح:</strong> {savedAiReview.nextPractice}</p><small>تقييم تعليمي آلي مساعد مبني على نص الحوار والحقول المسجلة، ويظل خاضعاً لمراجعة المدرب.</small></section> : conversation.length > 0 ? <p className="simulation-report-footnote">حُفظ الحوار، لكن لم يتوفر التحليل الآلي لهذه الجلسة ({savedAiReviewStatus || "غير متاح"}). يمكن للمدرب مراجعة الأداء يدوياً.</p> : null}
               {immersiveMode && <div className="simulation-vr-evidence"><b>بيانات النظارة المسجلة</b><span>{vrHeadTrackingSamples} عينة لاتجاه الرأس والمسافة من موضع الحالة</span>{vrHeadMetrics && <><span>متوسط زاوية اتجاه الرأس: {vrHeadMetrics.averageHeadAngleDegrees ?? "—"}°</span><span>متوسط المسافة من الحالة: {vrHeadMetrics.averageDistanceCm ?? "—"} سم</span><span>نسبة العينات ضمن زاوية 30°: {vrHeadMetrics.orientedWithin30DegreesPercent ?? "—"}%</span></>}<span>رصد اليدين: {vrHandMetrics?.samples ?? 0} عينة؛ تفاعلات القرص: {vrHandMetrics?.pinchInteractions ?? 0}</span><span>اليد المرصودة: {vrHandMetrics?.handsObserved?.map((hand) => hand === "left" ? "اليسرى" : "اليمنى").join("، ") || "لم تُرصد يد خلال الجلسة"}</span><small>مؤشرات وضع الرأس والإيماءات المكانية لا تقيس حركة العين أو التواصل البصري ولا تمثل حكماً سريرياً. قد لا تظهر بيانات اليدين إذا لم يدعم الجهاز أو المتصفح تتبع اليد.</small></div>}
               <div className="simulation-result-breakdown">
                 {activeCase.steps.map((step) => {
