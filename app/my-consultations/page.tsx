@@ -33,6 +33,7 @@ const statusLabels: Record<string, string> = {
   cancellation_requested: "طلب الإلغاء قيد المراجعة المالية",
   cancelled: "تم إلغاء الموعد",
   refunded: "تم الاسترداد",
+  completed: "اكتملت الاستشارة",
   rejected: "الطلب غير معتمد",
 };
 
