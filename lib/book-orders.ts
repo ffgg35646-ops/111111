@@ -4,7 +4,7 @@ export async function finalizePaidBookInventory(db:Db,requestId:string){
  const order=await requests.findOne({requestId,kind:"book_order",paymentStatus:"paid"});
  if(!order||!Array.isArray(order.items))return {status:"not_applicable" as const};
  const wasReserved=order.inventoryStatus==="reserved";
- const claim=await requests.updateOne({requestId,kind:"book_order",paymentStatus:"paid",inventoryStatus:{$nin:["processing","deducted","issue"]}},{$set:{inventoryStatus:"processing",inventoryProcessingAt:new Date()}});
+ const claim=await requests.updateOne({requestId,kind:"book_order",paymentStatus:"paid",inventoryStatus:{$nin:["processing","deducted","issue","releasing"]}},{$set:{inventoryStatus:"processing",inventoryProcessingAt:new Date()}});
  if(claim.modifiedCount!==1)return {status:"already_processing" as const};
  try{
   for(const raw of order.items){
@@ -51,12 +51,20 @@ export async function expireStaleBookReservations(db:Db){
  const expired=await db.collection("platform_requests").find({kind:"book_order",inventoryStatus:"reserved",paymentStatus:{$ne:"paid"},status:{$in:["pending_review","awaiting_payment"]},createdAt:{$lt:cutoff}},{projection:{_id:0,requestId:1}}).limit(100).toArray();
  for(const row of expired){
   if(typeof row.requestId!=="string")continue;
-  await db.collection("platform_requests").updateOne({requestId:row.requestId,inventoryStatus:"reserved",paymentStatus:{$ne:"paid"}},{$set:{status:"expired",inventoryStatus:"released",inventoryReleasedAt:new Date(),expiredAt:new Date()}});
-  const order=await db.collection("platform_requests").findOne({requestId:row.requestId},{projection:{items:1}});
+  const requestId=row.requestId;
+  const claimed=await db.collection("platform_requests").updateOne({requestId,inventoryStatus:"reserved",paymentStatus:{$ne:"paid"}},{$set:{status:"expired",inventoryStatus:"releasing",expiredAt:new Date()}});
+  if(claimed.modifiedCount!==1)continue;
+  const order=await db.collection("platform_requests").findOne({requestId},{projection:{items:1}});
   if(Array.isArray(order?.items))for(const raw of order.items){
    if(!raw||typeof raw!=="object")continue;
    const item=raw as Record<string,unknown>,bookId=typeof item.bookId==="string"?item.bookId:"",quantity=Number(item.quantity);
-   if(item.productType==="physical"&&bookId&&Number.isInteger(quantity)&&quantity>0)await db.collection("etzan_books").updateOne({bookId,reserved:{$gte:quantity}},{$inc:{stock:quantity,reserved:-quantity},$set:{updatedAt:new Date()}});
+   if(item.productType==="physical"&&bookId&&Number.isInteger(quantity)&&quantity>0){
+    const released=await db.collection("etzan_books").updateOne({bookId,reserved:{$gte:quantity}},{$inc:{stock:quantity,reserved:-quantity},$set:{updatedAt:new Date()}});
+    if(released.modifiedCount!==1)console.error("Unable to release expired ETZAN book reservation",requestId,bookId);
+   }
   }
+  await db.collection("platform_requests").updateOne({requestId,inventoryStatus:"releasing"},{$set:{inventoryStatus:"released",inventoryReleasedAt:new Date()}});
+  const latest=await db.collection("platform_requests").findOne({requestId},{projection:{paymentStatus:1}});
+  if(latest?.paymentStatus==="paid")await finalizePaidBookInventory(db,requestId);
  }
 }
