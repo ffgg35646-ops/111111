@@ -44,6 +44,8 @@ const routeByLabel: Record<string,string> = {
   "المجتمع والبلاغات": "/platform-admin/community",
   "التقارير والإحصائيات": "/platform-admin/reports",
   "إدارة الصلاحيات": "/platform-admin/permissions",
+  "الأمان والخصوصية": "/platform-admin/security",
+  "الفيديوهات المحمية": "/platform-admin/media",
   "طلبات المنصة والحجوزات": "/platform-admin/requests",
   "إتاحة مواعيد الاستشارات": "/platform-admin/availability",
   "الفصول المباشرة عبر Zoom": "/classrooms",
@@ -84,6 +86,8 @@ const adminShortcuts = [
   {label:"المجتمع والبلاغات",description:"المشاركات والتقارير المفتوحة",href:"/platform-admin/community",icon:MessageCircle},
   {label:"التقارير والإحصائيات",description:"مؤشرات التشغيل والأداء",href:"/platform-admin/reports",icon:ChartNoAxesCombined},
   {label:"إدارة الصلاحيات",description:"الأدوار وحدود الوصول",href:"/platform-admin/permissions",icon:Settings},
+  {label:"الأمان والخصوصية",description:"الأجهزة والجلسات وسجل التدقيق",href:"/platform-admin/security",icon:ShieldCheck},
+  {label:"الفيديوهات المحمية",description:"إدارة مصادر الفيديو والبث المحمي",href:"/platform-admin/media",icon:Video},
 ] as const;
 
 export default function HomePage() {
