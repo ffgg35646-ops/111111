@@ -69,10 +69,30 @@ export async function GET(request: NextRequest) {
         courseAssignment: true,
         courseCatalogEditing: false,
         licensedScaleEditing: false,
-        recurringSubscriptions: false,
+        recurringSubscriptions: Boolean(process.env.MOYASAR_SECRET_KEY && process.env.PLATFORM_TOKEN_ENCRYPTION_KEY && process.env.CRON_SECRET),
         electronicInvoicing: false,
         paymentsProvider: "Moyasar integration code is present; live processing depends on merchant credentials and acceptance testing.",
       },
+      integrations: {
+        database: { label: "قاعدة البيانات", configured: true, state: "connected", detail: "نجح الاتصال وقراءة مؤشرات التشغيل." },
+        aiText: { label: "الذكاء الاصطناعي النصي", configured: Boolean(process.env.AI_GATEWAY_API_KEY), state: "configuration", detail: "يتطلب AI_GATEWAY_API_KEY وإتاحة النموذج المحدد." },
+        realtimeVoice: { label: "المحادثة الصوتية", configured: Boolean(process.env.OPENAI_API_KEY), state: "configuration", detail: "يتطلب OPENAI_API_KEY واعتماد النموذج الصوتي." },
+        zoom: { label: "Zoom", configured: Boolean(process.env.ZOOM_ACCOUNT_ID && process.env.ZOOM_CLIENT_ID && process.env.ZOOM_CLIENT_SECRET && process.env.ZOOM_HOST_USER_ID), state: "configuration", detail: "وجود بيانات OAuth لا يغني عن اختبار إنشاء الاجتماع ورابط الدخول." },
+        livekit: { label: "غرف LiveKit", configured: Boolean(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET), state: "configuration", detail: "يتطلب إعداد الخادم ومفاتيح LiveKit واختبار الانضمام." },
+        moyasar: { label: "بوابة الدفع Moyasar", configured: Boolean(process.env.MOYASAR_SECRET_KEY && process.env.NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY && process.env.MOYASAR_WEBHOOK_SECRET), state: "configuration", detail: "وجود المفاتيح لا يثبت تفعيل الحساب التجاري أو نجاح عملية دفع فعلية." },
+        avatar: { label: "نموذج الشخصية ثلاثية الأبعاد", configured: Boolean(process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL), state: "configuration", detail: "يتطلب رابط أصل GLB مرخصًا واختبار ظهوره على الأجهزة المستهدفة." },
+      },
+      operationalGaps: [
+        "إدارة محتوى الدورات من لوحة الإدارة غير متاحة؛ المتاح حاليًا هو إسناد المدربين فقط.",
+        "مصفوفة صلاحيات قابلة للتخصيص لكل عملية (عرض/إضافة/تعديل/حذف/اعتماد) غير منفذة.",
+        "متجر الكتب ليس نظام تجارة وشحن متكاملًا؛ يلزم استكمال الدفع الرقمي وإدارة تنفيذ الطلبات والمخزون والشحن.",
+        "تذكيرات المواعيد ومزامنة تقويم Google وOutlook غير منفذة، وإعادة الجدولة الذاتية تحتاج اختبارات قبول شاملة.",
+        "إخراج الشهادة بصيغة PDF وحدود حضور قابلة للتخصيص لكل دورة غير مكتملين.",
+        "تكامل الفوترة الإلكترونية للمرحلة الثانية مع ZATCA والتوقيع والإرسال غير منفذ.",
+        "حقوق التوزيع والتطبيق الرقمي للمقاييس النفسية المرخصة يجب توفيرها والتحقق منها قبل تفعيلها.",
+        "الواقع الافتراضي الحالي يعتمد WebXR داخل المتصفح؛ لا يوجد عميل أصلي Unreal/OpenXR تم تسليمه والتحقق منه.",
+        "النسخ الاحتياطي التشغيلي، سياسة الاحتفاظ، والاستجابة للحوادث تحتاج اعتمادًا واختبارات في بيئة الإنتاج."
+      ],
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Platform admin overview failed", error);
