@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
 import {requirePlatformRole} from "@/lib/platform-auth";
+import {sendConsultationNotice} from "@/lib/consultation-notifications";
 export const runtime="nodejs";
 export async function POST(request:NextRequest){
  const actor=await requirePlatformRole(request,["admin","platform_manager","accountant"]);if(!actor)return NextResponse.json({error:"غير مصرح بتنفيذ الاسترداد."},{status:403});
@@ -23,7 +24,15 @@ export async function POST(request:NextRequest){
   await payments.updateOne({providerPaymentId:paymentId,status:"refund_processing"},{$set:{status:full?"refunded":"partially_refunded",refundedAmount,refundedAt:new Date(),refundProcessedBy:actor.userId}});
   if(full){
    await db.collection("platform_requests").updateOne({requestId:payment.requestId,email:payment.email},{$set:{status:"refunded",paymentStatus:"refunded",refundedAt:new Date()}});
-   await db.collection("platform_consultant_slots").updateOne({reservationId:payment.requestId,status:"booked"},{$set:{status:"cancelled",cancelledAt:new Date(),cancellationReason:"payment_refunded"}});
+   await db.collection("platform_consultant_slots").updateOne({reservationId:payment.requestId,status:"booked"},{$set:{status:"open",releasedAt:new Date(),cancellationReason:"payment_refunded"},$unset:{reservationId:"",bookedAt:"",paymentId:""}});
+   if(typeof payment.requestId==="string") {
+    const cancelled=await db.collection("platform_requests").findOne({requestId:payment.requestId,kind:"consultation"});
+    if(cancelled) await sendConsultationNotice(db,{
+     requestId:String(payment.requestId),email:String(payment.email),recipientName:String(cancelled.name||"عميل اتزان"),
+     subject:"اكتمل استرداد قيمة الاستشارة - اتزان",
+     message:"اكتمل استرداد قيمة موعد الاستشارة بنجاح إلى وسيلة الدفع الأصلية. رقم الطلب: "+String(payment.requestId),
+    });
+   }
   }
   await db.collection("platform_audit_logs").insertOne({action:"moyasar_payment_refunded",actorUserId:actor.userId,paymentId,refundedAmount,createdAt:new Date()});
   return NextResponse.json({success:true,status:full?"refunded":"partially_refunded",refundedAmount,currency:result.currency||"SAR"});
