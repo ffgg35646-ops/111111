@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         const bootstrap = {
           userId: randomUUID(),
           email,
-          name: "مدير المنصة",
+          name: "مدير النظام",
           role: "admin" as PlatformRole,
           status: "active",
           passwordSalt: parsedHash.salt,
