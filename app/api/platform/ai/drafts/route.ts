@@ -10,6 +10,30 @@ const sameOrigin = (request: NextRequest) => {
   return !origin || origin === request.nextUrl.origin;
 };
 
+export async function GET(request: NextRequest) {
+  const actor = await requirePlatformRole(request, ["admin", "platform_manager", "supervisor", "trainer"]);
+  if (!actor) return NextResponse.json({ error: "عرض مسودات الاختبارات متاح للمدرب والمشرف والإدارة فقط." }, { status: 403 });
+  try {
+    const db = await getClinicalDatabase();
+    let courseFilter: Record<string, unknown> = {};
+    if (actor.role === "trainer") {
+      const assignments = await db.collection("platform_trainer_course_assignments")
+        .find({ trainerId: actor.userId }, { projection: { _id: 0, courseId: 1 } }).toArray();
+      const courseIds = assignments.map((item) => String(item.courseId));
+      if (!courseIds.length) return NextResponse.json({ drafts: [] }, { headers: { "Cache-Control": "no-store" } });
+      courseFilter = { courseId: { $in: courseIds } };
+    }
+    const drafts = await db.collection("platform_ai_quiz_drafts").find(
+      { status: "pending_review", ...courseFilter },
+      { projection: { _id: 0, draftId: 1, courseId: 1, courseTitle: 1, questions: 1, status: 1, createdBy: 1, createdByRole: 1, createdAt: 1 } },
+    ).sort({ createdAt: -1 }).limit(60).toArray();
+    return NextResponse.json({ drafts }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("AI quiz drafts GET failed", error);
+    return NextResponse.json({ error: "تعذر تحميل مسودات الاختبارات." }, { status: 503 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return NextResponse.json({ error: "مصدر الطلب غير صالح." }, { status: 403 });
   const actor = await requirePlatformRole(request, ["admin", "platform_manager", "supervisor", "trainer"]);
