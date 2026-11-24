@@ -5,6 +5,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { getCaseById, practiceScales, type TrainingCase } from "@/lib/platform-catalog";
 import { DEFAULT_SIMULATION_RUBRIC, type SimulationRubric } from "@/lib/simulation-rubrics";
 import { requirePlatformRole } from "@/lib/platform-auth";
+import { recordPlatformAiUsage } from "@/lib/platform-ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -365,6 +366,14 @@ export async function POST(request: NextRequest) {
           formulation: clinicalFormulation,
           conversation: conversationTurns,
         }),
+      });
+      await recordPlatformAiUsage({
+        feature: "simulation_performance_review",
+        actorUserId: actor.userId,
+        actorRole: actor.role,
+        model,
+        usage: review.usage,
+        providerMetadata: (review as unknown as { providerMetadata?: unknown }).providerMetadata,
       });
       const raw = review.text.trim();
       const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
