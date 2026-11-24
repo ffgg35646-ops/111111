@@ -47,6 +47,10 @@ export type TrainingCase = {
   learningGoals: string[];
   steps: CaseStep[];
   safetyNote: string;
+  personaInstructions?: string;
+  hiddenContext?: string;
+  avatarModelUrl?: string;
+  avatarLabel?: string;
 };
 
 export const learningTracks: LearningTrack[] = [
