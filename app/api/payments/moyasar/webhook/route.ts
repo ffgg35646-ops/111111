@@ -39,7 +39,7 @@ export async function POST(request:NextRequest){
       requestId,email:String(intent.email),recipientName:String(order.name||"عميل اتزان"),
       subject:"تم تأكيد حجز الاستشارة والدفع - اتزان",
       message:"تم تأكيد الدفع المسبق وحجز موعدك المرئي. "+(meetingUrl?"رابط الدخول إلى الجلسة: "+meetingUrl:"يمكنك متابعة الموعد من صفحة متابعة الحجز.")+" رقم الطلب: "+requestId,
-      actionUrl:new URL("/my-consultations?requestId="+encodeURIComponent(requestId)+"&email="+encodeURIComponent(String(intent.email)),process.env.NEXT_PUBLIC_APP_URL||"https://etzan.sa").toString(),
+      actionUrl:process.env.NEXT_PUBLIC_APP_URL?new URL("/my-consultations?requestId="+encodeURIComponent(requestId)+"&email="+encodeURIComponent(String(intent.email)),process.env.NEXT_PUBLIC_APP_URL).toString():undefined,
      });
     }
    }
