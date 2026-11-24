@@ -2,6 +2,9 @@ import {NextRequest,NextResponse} from "next/server";
 import {getClinicalDatabase} from "@/lib/mongodb";
 import {requirePlatformRole} from "@/lib/platform-auth";
 import {isTrainerCourseOwner} from "@/lib/platform-trainer";
+import {courses} from "@/lib/platform-catalog";
+import {ensurePlatformCourseCertificate} from "@/lib/platform-certificates";
+import {scorePlatformCourseQuiz,type PlatformQuizQuestion} from "@/lib/platform-quizzes";
 export const runtime="nodejs";
 const managers=["admin","platform_manager","supervisor","trainer"] as const;
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";
@@ -39,6 +42,51 @@ export async function POST(request:NextRequest){
   await collection.createIndex({sessionId:1,userId:1},{unique:true});
   await collection.updateOne({sessionId,userId},{$set:{sessionId,userId,courseId:session.courseId,courseTitle:session.courseTitle,status,markedAt:now,markedBy:actor.userId,registrationId:registration.requestId},$setOnInsert:{createdAt:now}},{upsert:true});
   await db.collection("platform_audit_logs").insertOne({action:"classroom_session_attendance_marked",actorUserId:actor.userId,sessionId,userId,courseId:session.courseId,status,createdAt:now});
-  return NextResponse.json({success:true,sessionId,userId,status,markedAt:now});
+
+  let certificate:Record<string,unknown>|null=null;
+  const course=courses.find(item=>item.id===String(session.courseId||""));
+  if(course&&status==="attended"){
+   const scheduled=await db.collection("platform_classroom_sessions").find(
+    {courseId:course.id,status:{$ne:"cancelled"}},
+    {projection:{_id:0,sessionId:1,startTime:1,durationMinutes:1}},
+   ).toArray();
+   const nowMs=now.getTime();
+   const allSessionsFinished=scheduled.length>0&&scheduled.every(item=>{
+    const endsAt=new Date(item.startTime).getTime()+Number(item.durationMinutes||0)*60*1000;
+    return Number.isFinite(endsAt)&&endsAt<=nowMs;
+   });
+   if(allSessionsFinished){
+    const sessionIds=scheduled.map(item=>String(item.sessionId));
+    const marks=await db.collection("platform_classroom_session_attendance").find(
+     {userId,sessionId:{$in:sessionIds}},
+     {projection:{_id:0,sessionId:1,status:1}},
+    ).toArray();
+    const attendedIds=new Set(marks.filter(item=>item.status==="attended").map(item=>String(item.sessionId)));
+    const attendanceVerified=sessionIds.every(id=>attendedIds.has(id));
+    if(attendanceVerified){
+     const progress=await db.collection("platform_course_progress").findOne(
+      {userId,courseId:course.id},
+      {projection:{_id:0,completedLessons:1,quizAnswers:1,quizChecked:1}},
+     );
+     const completed=Array.isArray(progress?.completedLessons)?progress.completedLessons:[];
+     const answers=progress?.quizAnswers&&typeof progress.quizAnswers==="object"
+      ?progress.quizAnswers as Record<string,unknown>:{};
+     const quizDocument=await db.collection("platform_course_quizzes").findOne(
+      {courseId:course.id},
+      {projection:{_id:0,questions:1}},
+     );
+     const customQuiz=Array.isArray(quizDocument?.questions)?quizDocument.questions as PlatformQuizQuestion[]:null;
+     const quiz=scorePlatformCourseQuiz(course.trackId,answers,progress?.quizChecked===true,customQuiz);
+     if(progress&&completed.length===course.lessons.length&&quiz.passed){
+      certificate=await ensurePlatformCourseCertificate(db,{
+       userId,learnerName:String(user.name||user.email||"المتدرب"),courseId:course.id,
+       courseTitle:course.title,quizScore:quiz.score,quizTotal:quiz.total,
+       attendanceVerified:true,issuedAt:now,
+      }) as Record<string,unknown>|null;
+     }
+    }
+   }
+  }
+  return NextResponse.json({success:true,sessionId,userId,status,markedAt:now,certificate});
  }catch(error){console.error("classroom attendance POST",error);return NextResponse.json({error:"تعذر حفظ حالة الحضور."},{status:503});}
 }
