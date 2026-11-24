@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
+import type { Document } from "mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 export const runtime = "nodejs";
 const COMMUNITY_ROLES = ["admin","platform_manager","supervisor","trainer","trainee","consultant","accountant","support","content_manager","quality_manager"] as const;
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
+type CommunityComment = { commentId: string; authorId: string; authorName: string; role: string; body: string; createdAt: Date };
+type CommunityPostDocument = Document & { postId: string; status: string; likedBy?: string[]; comments?: CommunityComment[] };
 export async function POST(request: NextRequest) {
   const actor = await requirePlatformRole(request, [...COMMUNITY_ROLES]);
   if (!actor) return NextResponse.json({ error: "سجل الدخول للتفاعل مع المجتمع." }, { status: 401 });
@@ -16,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (!postId || !["like", "comment"].includes(action)) return NextResponse.json({ error: "نوع التفاعل غير صالح." }, { status: 400 });
   try {
     const db = await getClinicalDatabase();
-    const posts = db.collection("etzan_community_posts");
+    const posts = db.collection<CommunityPostDocument>("etzan_community_posts");
     const post = await posts.findOne({ postId, status: "published" }, { projection: { _id: 0, likedBy: 1 } });
     if (!post) return NextResponse.json({ error: "المشاركة غير متاحة." }, { status: 404 });
     if (action === "like") {
