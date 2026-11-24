@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const db = await getClinicalDatabase();
     await expireStaleBookReservations(db);
     const filter = manage ? {} : {published:true};
-    const books = await db.collection("etzan_books").find(filter,{projection:{_id:0,...(manage?{}:{downloadUrl:0})}}).sort({updatedAt:-1}).limit(300).toArray();
+    const books = await db.collection("etzan_books").find(filter,{projection:{_id:0,...(manage?{}:{downloadUrl:0,reserved:0,sold:0})}}).sort({updatedAt:-1}).limit(300).toArray();
     return NextResponse.json({books},{headers:{"Cache-Control":"no-store"}});
   } catch(error) {
     console.error("ETZAN books catalog GET",error);
