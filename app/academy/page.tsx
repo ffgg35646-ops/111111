@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Brain, ClipboardList, Clock3, GraduationCap, PlayCircle, Video } from "lucide-react";
@@ -18,6 +18,8 @@ function AcademyWorkspace() {
   });
   const [mode,setMode]=useState("all");
   const [selectedCourse,setSelectedCourse]=useState<string|null>(null);
+  const [coursePrices,setCoursePrices]=useState<Record<string,number>>({});
+  useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));return()=>{active=false}},[]);
   const filtered=useMemo(()=>courses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[track,mode]);
   const chosen=courses.find(course=>course.id===selectedCourse);
 
@@ -44,12 +46,12 @@ function AcademyWorkspace() {
       {filtered.map(course=><article className="portal-card course-card" key={course.id}>
         <div className="course-card-top"><span className={"course-mode "+course.mode}>{modeLabels[course.mode]}</span><small>{course.level}</small></div>
         <h3>{course.title}</h3><p>{course.summary}</p>
-        <div className="course-meta"><span><Clock3 size={13}/>{course.duration}</span><span><BookOpen size={13}/>{course.lessons.length} وحدات</span></div>
+        <div className="course-meta"><span><Clock3 size={13}/>{course.duration}</span><span><BookOpen size={13}/>{course.lessons.length} وحدات</span>{typeof coursePrices[course.id]==="number"&&<strong>{coursePrices[course.id].toFixed(2)} SAR</strong>}</div>
         <div className="course-card-actions"><Link className="portal-button" href={"/academy/"+course.id}>ابدأ التعلم</Link><button className="portal-button secondary" onClick={()=>setSelectedCourse(course.id)}>طلب الالتحاق</button></div>
       </article>)}
     </div>
     {chosen&&<section className="course-detail-panel">
-      <div className="course-detail-head"><div><span className="portal-chip">{chosen.category}</span><h2>{chosen.title}</h2><p>{chosen.summary}</p></div><button onClick={()=>setSelectedCourse(null)} aria-label="إغلاق التفاصيل">×</button></div>
+      <div className="course-detail-head"><div><span className="portal-chip">{chosen.category}</span><h2>{chosen.title}</h2><p>{chosen.summary}</p>{typeof coursePrices[chosen.id]==="number"&&<strong>{coursePrices[chosen.id].toFixed(2)} SAR · السعر المعتمد للدورة</strong>}</div><button onClick={()=>setSelectedCourse(null)} aria-label="إغلاق التفاصيل">×</button></div>
       <div className="course-detail-columns">
         <div><strong>نواتج التعلم</strong><ul>{chosen.outcomes.map(x=><li key={x}>{x}</li>)}</ul></div>
         <div><strong>الخطة التعليمية</strong><ol>{chosen.lessons.map(x=><li key={x}>{x}</li>)}</ol></div>

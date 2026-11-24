@@ -4,6 +4,7 @@ import { createZoomMeeting } from "@/lib/zoom";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { releasePendingBookInventory } from "@/lib/book-orders";
 import { sendConsultationNotice } from "@/lib/consultation-notifications";
+import { calculateCommercePrice } from "@/lib/platform-commerce";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const records = await db.collection("platform_requests")
-      .find({}, { projection: { _id: 0, requestId: 1, kind: 1, name: 1, email: 1, phone: 1, status: 1, courseId: 1, courseTitle: 1, serviceId: 1, preferredAt: 1, requestNote: 1, consent: 1, durationMinutes: 1, attendees: 1, roomPurpose: 1, items: 1, deliveryRegion: 1, orderNote: 1, expectedAmount: 1, adminNote: 1, zoomMeeting: 1, quotedAmount: 1, currency: 1, paymentStatus: 1, paymentId: 1, cancellationRequestedAt: 1, cancellationRefundStatus: 1, rescheduledAt: 1, createdAt: 1, reviewedAt: 1 } })
+      .find({}, { projection: { _id: 0, requestId: 1, kind: 1, name: 1, email: 1, phone: 1, status: 1, courseId: 1, courseTitle: 1, serviceId: 1, preferredAt: 1, requestNote: 1, consent: 1, durationMinutes: 1, attendees: 1, roomPurpose: 1, items: 1, deliveryRegion: 1, orderNote: 1, expectedAmount: 1, adminNote: 1, zoomMeeting: 1, quotedAmount: 1, currency: 1, paymentStatus: 1, paymentId: 1, subtotalAmount: 1, discountAmount: 1, taxAmount: 1, vatRateBps: 1, pricesIncludeVat: 1, couponCode: 1, cancellationRequestedAt: 1, cancellationRefundStatus: 1, rescheduledAt: 1, createdAt: 1, reviewedAt: 1 } })
       .sort({ createdAt: -1 }).limit(250).toArray();
     return NextResponse.json({ requests: records }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -97,8 +98,18 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
+    let quotedBreakdown: Awaited<ReturnType<typeof calculateCommercePrice>> | null = null;
+    const finalQuotedAmount = Math.round(quotedAmount * 100) / 100;
+    if (record.kind === "course_enrollment" || record.kind === "classroom_registration") {
+      try {
+        quotedBreakdown = await calculateCommercePrice(db, finalQuotedAmount, "course", String(record.couponCode || ""));
+      } catch (error) {
+        return NextResponse.json({ error: error instanceof Error ? error.message : "تعذر حساب السعر والخصم والضريبة." }, { status: 400 });
+      }
+    }
     const saved = await collection.updateOne({ requestId, status: "pending_review" }, { $set: {
-      status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: Math.round(quotedAmount * 100) / 100, currency: "SAR", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin",
+      status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: quotedBreakdown?.totalAmount ?? finalQuotedAmount, currency: "SAR", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin",
+      ...(quotedBreakdown ? { subtotalAmount: quotedBreakdown.subtotalAmount, discountAmount: quotedBreakdown.discountAmount, taxAmount: quotedBreakdown.taxAmount, vatRateBps: quotedBreakdown.vatRateBps, pricesIncludeVat: quotedBreakdown.pricesIncludeVat, couponCode: quotedBreakdown.couponCode || "" } : {}),
       ...(zoomMeeting ? { zoomMeeting, meetingProvisionedAt: new Date() } : {}),
     } });
     if (!saved.modifiedCount) return NextResponse.json({ error: "تغيرت حالة الطلب أثناء الاعتماد. حدّث القائمة." }, { status: 409 });
@@ -113,7 +124,7 @@ export async function PATCH(request: NextRequest) {
         actionUrl: payUrl.toString(),
       });
     }
-    return NextResponse.json({ success: true, status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: Math.round(quotedAmount * 100) / 100, currency: "SAR", zoomMeeting: zoomMeeting ? { joinUrl: zoomMeeting.joinUrl, startTime: zoomMeeting.startTime } : undefined });
+    return NextResponse.json({ success: true, status: "awaiting_payment", paymentStatus: "payment_due", quotedAmount: quotedBreakdown?.totalAmount ?? finalQuotedAmount, subtotalAmount: quotedBreakdown?.subtotalAmount, discountAmount: quotedBreakdown?.discountAmount, taxAmount: quotedBreakdown?.taxAmount, vatRateBps: quotedBreakdown?.vatRateBps, currency: "SAR", zoomMeeting: zoomMeeting ? { joinUrl: zoomMeeting.joinUrl, startTime: zoomMeeting.startTime } : undefined });
   } catch (error) {
     console.error("Unable to review platform request", error);
     return NextResponse.json({ error: "تعذر تحديث الطلب حالياً." }, { status: 503 });
