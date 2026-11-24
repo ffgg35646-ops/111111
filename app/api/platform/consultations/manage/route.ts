@@ -58,6 +58,9 @@ export async function POST(request: NextRequest) {
     if (action === "cancel") {
       if (record.status === "cancellation_requested") return NextResponse.json({ error: "تم إرسال طلب الإلغاء مسبقاً." }, { status: 409 });
       const now = new Date();
+      if (record.paymentStatus === "payment_initiated") {
+        return NextResponse.json({ error: "توجد عملية دفع قيد التحقق. انتظر تحديث حالتها قبل طلب الإلغاء." }, { status: 409 });
+      }
       if (record.paymentStatus === "paid") {
         const updated = await requests.updateOne(
           { _id: record._id, status: "approved", paymentStatus: "paid" },
