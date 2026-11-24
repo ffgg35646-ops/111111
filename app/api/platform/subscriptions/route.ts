@@ -8,7 +8,7 @@ export async function GET(request:NextRequest){
  const actor=await requirePlatformRole(request,["admin","platform_manager","accountant","trainee","trainer","consultant","supervisor"]);
  if(!actor)return NextResponse.json({error:"سجّل الدخول لعرض الاشتراكات."},{status:401});
  const isManager=managers.includes(actor.role as typeof managers[number]);
- try{const db=await getClinicalDatabase(),filter=isManager?{}:{userId:actor.userId};const subscriptions=await db.collection("platform_subscriptions").find(filter,{projection:{_id:0,tokenEncrypted:0}}).sort({createdAt:-1}).limit(isManager?500:30).toArray();return NextResponse.json({subscriptions},{headers:{"Cache-Control":"no-store"}})}
+ try{const db=await getClinicalDatabase(),now=new Date();await db.collection("platform_subscriptions").updateMany({status:"active",autoRenewEnabled:false,paidThrough:{$lte:now}},{$set:{status:"cancelled",recurringStatus:"expired",expiredAt:now,updatedAt:now},$unset:{activeSubscriptionUserId:""}});const filter=isManager?{}:{userId:actor.userId};const subscriptions=await db.collection("platform_subscriptions").find(filter,{projection:{_id:0,tokenEncrypted:0}}).sort({createdAt:-1}).limit(isManager?500:30).toArray();return NextResponse.json({subscriptions},{headers:{"Cache-Control":"no-store"}})}
  catch(error){console.error("ETZAN subscriptions GET",error);return NextResponse.json({error:"تعذر تحميل الاشتراكات."},{status:503})}
 }
 export async function POST(request:NextRequest){
@@ -22,7 +22,7 @@ export async function POST(request:NextRequest){
  try{
   const db=await getClinicalDatabase();
   const filter=actor.role==="admin"||actor.role==="platform_manager"?{subscriptionId}:{subscriptionId,userId:actor.userId};
-  const subscription=await db.collection("platform_subscriptions").findOne({...filter,status:{$in:["active","past_due","pending_initial_payment"]}});
+  const subscription=await db.collection("platform_subscriptions").findOne({...filter,status:{$in:["active","past_due","pending_initial_payment","renewal_processing"]}});
   if(!subscription)return NextResponse.json({error:"الاشتراك غير موجود أو تم إيقافه مسبقاً."},{status:404});
   let providerToken="";
   if(typeof subscription.tokenEncrypted==="string"){
@@ -32,7 +32,7 @@ export async function POST(request:NextRequest){
   const status=remainsActive?"active":"cancelled";
   const update=await db.collection("platform_subscriptions").updateOne(
    {...filter,status:subscription.status,autoRenewEnabled:subscription.autoRenewEnabled},
-   {$set:{autoRenewEnabled:false,status,recurringStatus:"cancelled",cancelledAt:new Date(),cancelledBy:actor.userId,updatedAt:new Date()},$unset:{renewalLockUntil:""}},
+   {$set:{autoRenewEnabled:false,status,recurringStatus:"cancelled",cancelledAt:new Date(),cancelledBy:actor.userId,updatedAt:new Date()},$unset:{renewalLockUntil:"",activeSubscriptionUserId:""}},
   );
   if(!update.modifiedCount)return NextResponse.json({error:"تغيرت حالة الاشتراك أثناء الإلغاء. حدّث الصفحة."},{status:409});
   let tokenRevoked=false,tokenRevocationPending=false;
