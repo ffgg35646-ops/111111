@@ -6,7 +6,7 @@ import { courses, trainingCases } from "@/lib/platform-catalog";
 import {
   Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck,
   FileText, GraduationCap, LayoutDashboard, MessageCircle, Settings,
-  ShieldCheck, ShoppingBag, Users, Video, Glasses, Plus, Search,
+  ShieldCheck, ShoppingBag, Library, Users, Video, Glasses, Plus, Search,
   Bell, ChevronLeft, CircleHelp, PanelRightClose
 } from "lucide-react";
 
@@ -16,7 +16,7 @@ const sections = [
   { title:"المسارات التخصصية", items:[["منظومة التدريب التخصصي",Brain],["الخدمة الاجتماعية",Users],["العلاج المعرفي السلوكي CBT",Brain],["اضطراب طيف التوحد",Users],["الاضطرابات النمائية والإعاقة الذهنية",Users],["دراسة الحالة والمقاييس",ClipboardCheck]] },
   { title:"المحاكاة السريرية", items:[["إدارة سيناريوهات ومعايير التقييم",Settings],["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],["الغرف المشتركة",Video],["ملف الكفاءات المهنية",ChartNoAxesCombined],["مختبر المقاييس",ClipboardCheck]] },
   { title:"الخدمات", items:[["الاستشارات العلاجية والمهنية",MessageCircle],["المتجر المعرفي والكتب",ShoppingBag],["تأجير قاعات Zoom",Video]] },
-  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["إدارة الشهادات",ShieldCheck],["مراجعة المجتمع المهني",MessageCircle],["الإعدادات والصلاحيات",Settings]] },
+  { title:"الإدارة", items:[["إدارة الطلبات والحجوزات",ClipboardCheck],["مراجعة تقارير المحاكاة",ClipboardCheck],["المتدربون والمختصون",Users],["التقارير والكفاءات",ChartNoAxesCombined],["إدارة المحتوى العلمي",BookOpen],["إدارة المكتبة العلمية",Library],["إدارة الشهادات",ShieldCheck],["مراجعة المجتمع المهني",MessageCircle],["الإعدادات والصلاحيات",Settings]] },
 ] as const;
 
 const routeByLabel: Record<string,string> = {
@@ -48,6 +48,7 @@ const routeByLabel: Record<string,string> = {
   "مراجعة تقارير المحاكاة": "/platform-admin/activities",
   "المتدربون والمختصون": "/platform-admin/users",
   "إدارة المحتوى العلمي": "/platform-admin/content",
+  "إدارة المكتبة العلمية": "/platform-admin/books",
   "مراجعة المجتمع المهني": "/platform-admin/community",
 };
 
