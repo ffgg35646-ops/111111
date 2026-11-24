@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import { RealtimeClinicalVoice } from "@/components/realtime-clinical-voice";
-import { courses, getCaseById, learningTracks, practiceScales, trainingCases } from "@/lib/platform-catalog";
+import { courses, getCaseById, learningTracks, practiceScales, trainingCases, type TrainingCase } from "@/lib/platform-catalog";
+import type { SimulationRubric } from "@/lib/simulation-rubrics";
 import "./simulation.css";
 import { DEFAULT_DOCTOR_AVATAR_MODEL_URL } from "@/lib/doctor-avatar";
 
@@ -157,6 +158,9 @@ function SimulationWorkspace() {
     const requestedRoom = params.get("room");
     return clinicalRooms.some((room) => room.id === requestedRoom) ? requestedRoom! : null;
   });
+  const [customCases, setCustomCases] = useState<TrainingCase[]>([]);
+  const [simulationRubrics, setSimulationRubrics] = useState<SimulationRubric[]>([]);
+  const [selectedRubricId, setSelectedRubricId] = useState("default-clinical-rubric");
   const [caseId, setCaseId] = useState(() => {
     const requested = params.get("case");
     return requested && trainingCases.some((item) => item.id === requested)
@@ -205,7 +209,24 @@ function SimulationWorkspace() {
     realtimeControlsRef.current = controls;
   }, []);
 
-  const activeCase = useMemo(() => getCaseById(caseId), [caseId]);
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/platform/simulation-config", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل السيناريوهات المخصصة.");
+        if (!mounted) return;
+        const available = Array.isArray(data.scenarios) ? data.scenarios.filter((item: TrainingCase & { status?: string }) => item.status !== "inactive") : [];
+        setCustomCases(available);
+        if (Array.isArray(data.rubrics)) setSimulationRubrics(data.rubrics.filter((item: SimulationRubric & { status?: string }) => item.status !== "inactive"));
+        const requested = params.get("case");
+        if (requested && available.some((item: TrainingCase) => item.id === requested)) setCaseId(requested);
+      })
+      .catch((cause) => console.warn("Simulation configuration unavailable", cause));
+    return () => { mounted = false; };
+  }, [params]);
+
+  const activeCase = useMemo(() => customCases.find((item) => item.id === caseId) ?? getCaseById(caseId), [caseId, customCases]);
   const activeStep = activeCase.steps[stepIndex];
   const platformKnowledge = useMemo(() => {
     const track = learningTracks.find((item) => item.title === activeCase.track);
@@ -251,6 +272,8 @@ function SimulationWorkspace() {
       "ملخص الحالة: " + activeCase.briefing,
       "أهداف التدريب: " + activeCase.learningGoals.join("، "),
       "ملاحظة السلامة: " + activeCase.safetyNote,
+      activeCase.personaInstructions ? "تعليمات الشخصية: " + activeCase.personaInstructions : "",
+      activeCase.hiddenContext ? "السياق المخفي للشخصية (لا تكشفه دفعة واحدة): " + activeCase.hiddenContext : "",
     ];
     const persona = personaMode === "client"
       ? ["أنت مراجع افتراضي في مقابلة تدريبية. تقمص الدور المحدد في ملخص الحالة فقط، وتحدث بضمير المتكلم. لا تكشف جميع المعلومات من البداية؛ أجب على السؤال المطروح بمقدار مناسب، واظهر التردد أو الانفعال أو القلق بصورة واقعية ومتسقة. لا تقيم المتدرب ولا تقدم نصائح أو تشخيصاً. إذا سئلت عن معلومة غير موجودة في السيناريو فقل إنك لا تتذكر أو لا تعرف بدلاً من اختراعها."]
@@ -263,9 +286,10 @@ function SimulationWorkspace() {
   }, [activeCase, platformKnowledge, activeRoom, roomTrainingFocus, personaMode]);
 
   const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || DEFAULT_DOCTOR_AVATAR_MODEL_URL;
-  const avatarModelUrl = uploadedAvatarUrl ?? defaultAvatarModelUrl;
+  const avatarModelUrl = uploadedAvatarUrl ?? activeCase.avatarModelUrl ?? defaultAvatarModelUrl;
   const avatarModelLabel = uploadedAvatarName
-    || (defaultAvatarModelUrl ? "موديل الطبيب السعودي المرتبط" : "موديل الطبيب السعودي غير مربوط");
+    || activeCase.avatarLabel
+    || (activeCase.avatarModelUrl ? "الشخصية المرتبطة بالسيناريو" : defaultAvatarModelUrl ? "موديل الطبيب السعودي المرتبط" : "موديل الطبيب السعودي غير مربوط");
   const answeredCount = activeCase.steps.filter((step) => Boolean(answers[step.id])).length;
   const selectedPracticeScale = practiceScales.find((scale) => scale.id === clinicalFormulation.selectedScaleId);
   const completedFormulationFields = FORMULATION_REQUIREMENTS.filter(({ key, minLength }) =>
@@ -565,6 +589,7 @@ function SimulationWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caseId: activeCase.id,
+          rubricId: selectedRubricId,
           answers: activeCase.steps.map((step) => ({ stepId: step.id, choiceId: answers[step.id] })),
           clinicalFormulation,
           roomEvents: finalRoomEvents,
@@ -657,10 +682,17 @@ function SimulationWorkspace() {
       <div className="simulation-toolbar">
         <label>اختر الحالة
           <select value={caseId} onChange={(event) => changeCase(event.target.value)}>
-            {trainingCases.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+            {[...trainingCases, ...customCases].map((item) => <option key={item.id} value={item.id}>{item.title}{customCases.some((custom) => custom.id === item.id) ? " · مخصص" : ""}</option>)}
           </select>
         </label>
-        <div><span className="simulation-live-indicator" /> {immersiveMode ? "النظارة داخل جلسة VR غامرة" : "معاينة ثلاثية الأبعاد · لا يوجد مريض حقيقي"}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>معيار التقييم
+            <select value={selectedRubricId} onChange={(event) => setSelectedRubricId(event.target.value)}>
+              {(simulationRubrics.length ? simulationRubrics : [{ rubricId: "default-clinical-rubric", title: "المعيار المهني العام" } as SimulationRubric]).map((rubric) => <option key={rubric.rubricId} value={rubric.rubricId}>{rubric.title}</option>)}
+            </select>
+          </label>
+          <span><span className="simulation-live-indicator" /> {immersiveMode ? "النظارة داخل جلسة VR غامرة" : "معاينة ثلاثية الأبعاد · لا يوجد مريض حقيقي"}</span>
+        </div>
       </div>
 
       <div className="simulation-vr-consent">
