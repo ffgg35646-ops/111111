@@ -162,7 +162,7 @@ export default function SimulationManagementPage() {
       {error && <div className="portal-callout" role="alert" style={{ marginBottom: 14 }}>{error}</div>}
       {notice && <div className="portal-callout" role="status" style={{ marginBottom: 14 }}><CheckCircle2 size={16} /> {notice}</div>}
       {loading ? <div className="portal-card">جارٍ تحميل إعدادات المحاكاة...</div> : tab === "scenarios" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, .7fr)", gap: 16, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16, alignItems: "start" }}>
           <section className="portal-card" style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}><h2 style={{ margin: 0 }}>{scenarioId ? "تعديل سيناريو" : "إضافة سيناريو جديد"}</h2><button type="button" className="portal-button secondary" onClick={resetScenario}><FilePlus2 size={15} /> جديد</button></div>
             <div className="portal-form-grid">
@@ -195,7 +195,7 @@ export default function SimulationManagementPage() {
           </aside>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, .8fr)", gap: 16, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16, alignItems: "start" }}>
           <section className="portal-card" style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}><h2 style={{ margin: 0 }}>{rubricId ? "تعديل معيار" : "إنشاء معيار مخصص"}</h2><button type="button" className="portal-button secondary" onClick={() => { setRubricId(""); setRubricTitle("معيار مهني مخصص"); setTrackId("all"); setRubricDescription(""); setCriteriaText(criteriaJson(defaultCriteria)); setRubricActive(true); }}>جديد</button></div>
             <label>اسم المعيار<input value={rubricTitle} onChange={e => setRubricTitle(e.target.value)} maxLength={140} /></label>
