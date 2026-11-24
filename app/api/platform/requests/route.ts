@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
+import { calculateCommercePrice } from "@/lib/platform-commerce";
 import { sendConsultationNotice } from "@/lib/consultation-notifications";
 
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     const db = await getClinicalDatabase();
     const record = await db.collection("platform_requests").findOne(
       { requestId, email },
-      { projection: { _id: 0, requestId: 1, kind: 1, status: 1, courseTitle: 1, preferredAt: 1, reviewedAt: 1, adminNote: 1, zoomMeeting: 1, quotedAmount: 1, currency: 1, paymentStatus: 1, createdAt: 1 } },
+      { projection: { _id: 0, requestId: 1, kind: 1, status: 1, courseTitle: 1, preferredAt: 1, reviewedAt: 1, adminNote: 1, zoomMeeting: 1, quotedAmount: 1, subtotalAmount: 1, discountAmount: 1, taxAmount: 1, vatRateBps: 1, pricesIncludeVat: 1, couponCode: 1, currency: 1, paymentStatus: 1, createdAt: 1 } },
     );
     if (!record) return NextResponse.json({ error: "لم يتم العثور على طلب مطابق لهذه البيانات." }, { status: 404 });
 
@@ -44,6 +45,12 @@ export async function GET(request: NextRequest) {
       reviewedAt: record.reviewedAt,
       adminNote: record.adminNote,
       quotedAmount: record.quotedAmount,
+      subtotalAmount: record.subtotalAmount,
+      discountAmount: record.discountAmount,
+      taxAmount: record.taxAmount,
+      vatRateBps: record.vatRateBps,
+      pricesIncludeVat: record.pricesIncludeVat,
+      couponCode: record.couponCode,
       currency: record.currency,
       paymentStatus: record.paymentStatus,
       zoomMeeting: record.status === "approved" ? record.zoomMeeting : undefined,
@@ -95,6 +102,7 @@ export async function POST(request: NextRequest) {
     createdAt: new Date(),
     source: "platform-web",
     schemaVersion: 1,
+    couponCode: cleanText(data.couponCode, 40).toUpperCase().replace(/[^A-Z0-9_-]/g, ""),
   };
 
   if (kind === "course_enrollment" || kind === "classroom_registration") {
@@ -107,6 +115,30 @@ export async function POST(request: NextRequest) {
     record.courseId = course.id;
     record.courseTitle = course.title;
     record.deliveryMode = course.mode;
+    if (kind === "course_enrollment") {
+      const db = await getClinicalDatabase();
+      const coursePrice = await db.collection("etzan_course_prices").findOne({ courseId: course.id, active: true });
+      if (coursePrice && typeof coursePrice.price === "number") {
+      let breakdown;
+      try {
+        breakdown = await calculateCommercePrice(db, coursePrice.price, "course", String(record.couponCode || ""));
+      } catch (error) {
+        return NextResponse.json({ error: error instanceof Error ? error.message : "تعذر حساب سعر الدورة." }, { status: 400 });
+      }
+      Object.assign(record, {
+        status: "awaiting_payment",
+        paymentStatus: "payment_due",
+        quotedAmount: breakdown.totalAmount,
+        subtotalAmount: breakdown.subtotalAmount,
+        discountAmount: breakdown.discountAmount,
+        taxAmount: breakdown.taxAmount,
+        vatRateBps: breakdown.vatRateBps,
+        pricesIncludeVat: breakdown.pricesIncludeVat,
+        couponCode: breakdown.couponCode || "",
+        currency: "SAR",
+      });
+      }
+    }
     if (kind === "classroom_registration") {
       const preferredAt = cleanText(data.preferredAt, 50);
       if (!Number.isFinite(Date.parse(preferredAt)) || Date.parse(preferredAt) < Date.now() + 5 * 60 * 1000) {
@@ -171,9 +203,21 @@ export async function POST(request: NextRequest) {
     record.items = enriched;
     record.expectedAmount = Math.round(enriched.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0)*100)/100;
     if (Number(record.expectedAmount) <= 0 || Number(record.expectedAmount) > 10000000) return NextResponse.json({error:"إجمالي قيمة طلب الكتب يجب أن يكون أكبر من صفر ولا يتجاوز 10,000,000 ريال."},{status:400});
+    let breakdown;
+    try {
+      breakdown = await calculateCommercePrice(db, Number(record.expectedAmount), "book", String(record.couponCode || ""));
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "تعذر حساب إجمالي الكتب." }, { status: 400 });
+    }
     record.status = "awaiting_payment";
     record.paymentStatus = "payment_due";
-    record.quotedAmount = record.expectedAmount;
+    record.quotedAmount = breakdown.totalAmount;
+    record.subtotalAmount = breakdown.subtotalAmount;
+    record.discountAmount = breakdown.discountAmount;
+    record.taxAmount = breakdown.taxAmount;
+    record.vatRateBps = breakdown.vatRateBps;
+    record.pricesIncludeVat = breakdown.pricesIncludeVat;
+    record.couponCode = breakdown.couponCode || "";
     record.currency = "SAR";
     record.deliveryRegion = cleanText(data.deliveryRegion, 80);
     record.orderNote = cleanText(data.orderNote, 300);
@@ -236,6 +280,12 @@ export async function POST(request: NextRequest) {
       requestId: record.requestId,
       status: record.status,
       quotedAmount: record.quotedAmount,
+      subtotalAmount: record.subtotalAmount,
+      discountAmount: record.discountAmount,
+      taxAmount: record.taxAmount,
+      vatRateBps: record.vatRateBps,
+      pricesIncludeVat: record.pricesIncludeVat,
+      couponCode: record.couponCode,
       currency: record.currency,
       paymentStatus: record.paymentStatus,
       createdAt: record.createdAt,

@@ -30,12 +30,13 @@ export default function PlatformRequestForm({
   const [name,setName] = useState("");
   const [email,setEmail] = useState("");
   const [phone,setPhone] = useState("");
+  const [couponCode,setCouponCode] = useState("");
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState("");
   const [success,setSuccess] = useState("");
   const [requestStatus,setRequestStatus] = useState("");
   const [requestJoinUrl,setRequestJoinUrl] = useState("");
-  const [quote,setQuote] = useState<{amount:number;currency:string;paymentStatus:string}|null>(null);
+  const [quote,setQuote] = useState<{amount:number;currency:string;paymentStatus:string;subtotal?:number;discount?:number;tax?:number}|null>(null);
   const [statusChecking,setStatusChecking] = useState(false);
   const [statusError,setStatusError] = useState("");
 
@@ -49,7 +50,7 @@ export default function PlatformRequestForm({
       if(!response.ok)throw new Error(result.error||"تعذر التحقق من الطلب.");
       setRequestStatus(result.status);
       setRequestJoinUrl(typeof result.zoomMeeting?.joinUrl==="string"?result.zoomMeeting.joinUrl:"");
-      setQuote(typeof result.quotedAmount==="number"?{amount:result.quotedAmount,currency:typeof result.currency==="string"?result.currency:"EGP",paymentStatus:typeof result.paymentStatus==="string"?result.paymentStatus:"payment_due"}:null);
+      setQuote(typeof result.quotedAmount==="number"?{amount:result.quotedAmount,currency:typeof result.currency==="string"?result.currency:"SAR",paymentStatus:typeof result.paymentStatus==="string"?result.paymentStatus:"payment_due",subtotal:typeof result.subtotalAmount==="number"?result.subtotalAmount:undefined,discount:typeof result.discountAmount==="number"?result.discountAmount:undefined,tax:typeof result.taxAmount==="number"?result.taxAmount:undefined}:null);
     }catch(cause){
       setStatusError(cause instanceof Error?cause.message:"تعذر التحقق من الطلب.");
     }finally{setStatusChecking(false);}
@@ -65,6 +66,7 @@ export default function PlatformRequestForm({
       name,
       email,
       phone,
+      couponCode,
     };
     if (typeof payload.preferredAt === "string" && payload.preferredAt) {
       const date = new Date(payload.preferredAt);
@@ -88,7 +90,7 @@ export default function PlatformRequestForm({
       setSuccess(result.requestId);
       setRequestStatus(result.status || "pending_review");
       setRequestJoinUrl("");
-      setQuote(typeof result.quotedAmount==="number"?{amount:result.quotedAmount,currency:typeof result.currency==="string"?result.currency:"SAR",paymentStatus:typeof result.paymentStatus==="string"?result.paymentStatus:"payment_due"}:null);
+      setQuote(typeof result.quotedAmount==="number"?{amount:result.quotedAmount,currency:typeof result.currency==="string"?result.currency:"SAR",paymentStatus:typeof result.paymentStatus==="string"?result.paymentStatus:"payment_due",subtotal:typeof result.subtotalAmount==="number"?result.subtotalAmount:undefined,discount:typeof result.discountAmount==="number"?result.discountAmount:undefined,tax:typeof result.taxAmount==="number"?result.taxAmount:undefined}:null);
       setValues({});
     } catch(cause) {
       setError(cause instanceof Error?cause.message:"تعذر إرسال الطلب.");
@@ -104,7 +106,7 @@ export default function PlatformRequestForm({
     <small>الحالة الحالية: {requestStatus==="approved"?"تم الدفع واعتماد الطلب":requestStatus==="awaiting_payment"?"بانتظار الدفع":requestStatus==="rejected"?"تم رفض الطلب":requestStatus==="provisioning"?"جارٍ تجهيز اجتماع Zoom":"قيد المراجعة"}</small>
     {requestJoinUrl&&<a className="request-join-link" href={requestJoinUrl} target="_blank" rel="noreferrer">دخول الفصل عبر Zoom</a>}
     {requestStatus==="approved"&&!requestJoinUrl&&<small>تمت الموافقة على الطلب. سيتواصل معك الفريق لتأكيد التفاصيل.</small>}
-    {requestStatus==="awaiting_payment"&&quote&&<div><small>إجمالي الطلب: {quote.amount} {quote.currency}.</small><p><a className="request-join-link" href={`/pay-request?requestId=${encodeURIComponent(success)}&email=${encodeURIComponent(email)}`}>الانتقال إلى الدفع الآمن</a></p></div>}{requestStatus==="approved"&&quote&&<small>تم تأكيد الدفع بنجاح. إجمالي الطلب: {quote.amount} {quote.currency}.</small>}
+    {requestStatus==="awaiting_payment"&&quote&&<div><small>{typeof quote.subtotal==="number"&&<>المجموع قبل الخصم: {quote.subtotal.toFixed(2)} {quote.currency} · </>}{typeof quote.discount==="number"&&quote.discount>0&&<>الخصم: −{quote.discount.toFixed(2)} {quote.currency} · </>}{typeof quote.tax==="number"&&quote.tax>0&&<>الضريبة: {quote.tax.toFixed(2)} {quote.currency} · </>}الإجمالي المستحق: <b>{quote.amount.toFixed(2)} {quote.currency}</b>.</small><p><a className="request-join-link" href={`/pay-request?requestId=${encodeURIComponent(success)}&email=${encodeURIComponent(email)}`}>الانتقال إلى الدفع الآمن</a></p></div>}{requestStatus==="approved"&&quote&&<small>تم تأكيد الدفع بنجاح. إجمالي الطلب: {quote.amount} {quote.currency}.</small>}
     {statusError&&<p className="request-error" role="alert">{statusError}</p>}
     <button onClick={checkStatus} disabled={statusChecking}>{statusChecking?"جارٍ التحقق...":"تحديث حالة الطلب"}</button>
     <button onClick={()=>{setSuccess("");setRequestStatus("");setRequestJoinUrl("");setQuote(null);setStatusError("");}}>إرسال طلب آخر</button>
@@ -116,6 +118,7 @@ export default function PlatformRequestForm({
       <label>الاسم الكامل<input required minLength={2} maxLength={100} value={name} onChange={event=>setName(event.target.value)} placeholder="الاسم المسجل"/></label>
       <label>البريد الإلكتروني<input required type="email" maxLength={180} value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@example.com"/></label>
       <label>رقم التواصل (اختياري)<input type="tel" maxLength={40} value={phone} onChange={event=>setPhone(event.target.value)} placeholder="رقم الهاتف"/></label>
+      {(kind==="course_enrollment"||kind==="classroom_registration"||kind==="book_order")&&<label>كود الخصم (اختياري)<input type="text" maxLength={40} value={couponCode} onChange={event=>setCouponCode(event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,""))} placeholder="أدخل كود الخصم"/></label>}
       {fields.map(field=>{
         const value=values[field.name] ?? (field.type==="checkbox"?false:"");
         if(field.type==="checkbox") return <label className="request-checkbox" key={field.name}><input type="checkbox" required={field.required} checked={Boolean(value)} onChange={event=>setValues(current=>({...current,[field.name]:event.target.checked}))}/><span>{field.label}</span></label>;
