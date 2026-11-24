@@ -287,7 +287,7 @@ function SimulationWorkspace() {
   }, [activeCase, platformKnowledge, activeRoom, roomTrainingFocus, personaMode]);
 
   const defaultAvatarModelUrl = process.env.NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL?.trim() || DEFAULT_DOCTOR_AVATAR_MODEL_URL;
-  const avatarModelUrl = uploadedAvatarUrl ?? activeCase.avatarModelUrl ?? defaultAvatarModelUrl;
+  const avatarModelUrl = uploadedAvatarUrl ?? (activeCase.avatarModelUrl || defaultAvatarModelUrl);
   const avatarModelLabel = uploadedAvatarName
     || activeCase.avatarLabel
     || (activeCase.avatarModelUrl ? "الشخصية المرتبطة بالسيناريو" : defaultAvatarModelUrl ? "موديل الطبيب السعودي المرتبط" : "موديل الطبيب السعودي غير مربوط");
@@ -644,6 +644,8 @@ function SimulationWorkspace() {
     setCompleted(false);
     setSavedScore(null);
     setSavedActivityId(null);
+    setSavedAiReview(null);
+    setSavedAiReviewStatus("");
     setClinicalFormulation({ ...EMPTY_CLINICAL_FORMULATION });
     setVrHeadTrackingSamples(0);
     setVrHeadMetrics(null);
