@@ -33,3 +33,37 @@
 .etzan-community p{font-size:11px;line-height:2;color:#b5c1c9;max-width:620px}
 @media(max-width:850px){.etzan-course-grid,.etzan-article-grid{grid-template-columns:1fr 1fr}.etzan-metrics{grid-template-columns:repeat(2,1fr)}.etzan-metrics>div:nth-child(2){border-left:0}}
 @media(max-width:600px){.etzan-course-grid,.etzan-article-grid,.etzan-knowledge-grid{grid-template-columns:1fr}.etzan-metrics{padding:24px 14px}.etzan-metrics strong{font-size:29px}.etzan-community{margin:0 12px 28px;padding:27px 20px;display:block}.etzan-community .etzan-cta{margin-top:10px}}
+
+
+/* ETZAN brand refinement: custom mark, responsive navigation and editorial photography */
+.etzan-mark{border-radius:13px;background:linear-gradient(145deg,#142943,#0b1728);box-shadow:inset 0 0 0 1px #d2b47a55,0 7px 18px #10233b20}
+.etzan-mark img{display:block;width:31px;height:31px;object-fit:contain}
+.etzan-language{display:inline-flex;align-items:center;gap:5px;padding:9px 12px;border:1px solid #d9dfdc;border-radius:7px;color:#20364b;text-decoration:none;font-size:10px;font-weight:800;letter-spacing:.08em;background:#fff}
+.etzan-language span{color:#b18e51;font-size:13px}
+.etzan-nav{position:relative;z-index:4}
+.etzan-nav nav a{transition:color .18s ease}
+.etzan-nav nav a:hover,.etzan-footer a:hover{color:#a17d42}
+.etzan-cta{box-shadow:0 8px 20px #101e3215;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.etzan-cta:hover{transform:translateY(-2px);box-shadow:0 12px 25px #101e3225;background:#1b3554}
+.etzan-outline{transition:border-color .18s ease,background .18s ease}
+.etzan-outline:hover{border-color:#b18e51;background:#fff}
+.etzan-hero{position:relative}
+.etzan-hero:before{content:"";position:absolute;inset:0 auto 0 0;width:1px;background:linear-gradient(transparent,#c6a66b88,transparent)}
+.etzan-photo-frame{border:7px solid #fff;box-shadow:0 32px 80px #152b4026,0 0 0 1px #c6a66b35}
+.etzan-photo-frame img{filter:saturate(.92) contrast(1.02)}
+.etzan-supervisor{box-shadow:0 12px 34px #152b400b;border-color:#e8dfcb}
+.etzan-supervisor-icon{border:1px solid #c6a66b}
+.etzan-track,.etzan-service,.etzan-course-card,.etzan-knowledge-grid>a{transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.etzan-track:hover,.etzan-service:hover,.etzan-course-card:hover,.etzan-knowledge-grid>a:hover{transform:translateY(-4px);border-color:#c6a66b88;box-shadow:0 14px 32px #14294312}
+.etzan-real-scenes{background:#f1f4f2}
+.etzan-scene-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px}
+.etzan-scene-grid figure{margin:0;position:relative;overflow:hidden;border-radius:12px;background:#13243a;min-height:240px;border:1px solid #d9e0dc;box-shadow:0 14px 34px #172a4310}
+.etzan-scene-grid figure img{display:block;width:100%;height:270px;object-fit:cover;transition:transform .5s ease}
+.etzan-scene-grid figure:hover img{transform:scale(1.035)}
+.etzan-scene-grid figcaption{position:absolute;right:0;left:0;bottom:0;padding:30px 17px 15px;background:linear-gradient(transparent,#101e32eF);color:white;display:flex;flex-direction:column;gap:5px}
+.etzan-scene-grid figcaption b{font-size:13px}
+.etzan-scene-grid figcaption span{font-size:9px;color:#d5dee4}
+.etzan-simulation{box-shadow:0 20px 55px #10223918}
+.etzan-footer .etzan-mark{background:#f8f6ef}
+@media(max-width:950px){.etzan-scene-grid{grid-template-columns:1fr 1fr}.etzan-scene-grid figure:first-child{grid-column:1/-1}}
+@media(max-width:650px){.etzan-nav-actions{gap:7px}.etzan-language{padding:8px 9px}.etzan-nav-actions .etzan-cta{display:none}.etzan-scene-grid{grid-template-columns:1fr}.etzan-scene-grid figure:first-child{grid-column:auto}.etzan-scene-grid figure img{height:230px}}
