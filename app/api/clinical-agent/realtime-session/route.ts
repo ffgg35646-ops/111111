@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformRole } from "@/lib/platform-auth";
+import { getClinicalDatabase } from "@/lib/mongodb";
 
 export const runtime = "nodejs";
 export const maxDuration = 20;
@@ -65,12 +66,28 @@ export async function POST(request: NextRequest) {
 
   const data = body as Record<string, unknown>;
   const scenario = typeof data.scenario === "string" ? data.scenario.trim().slice(0, 5000) : "";
+  const caseId = typeof data.caseId === "string" ? data.caseId.trim().slice(0, 80) : "";
   const mode = data.mode === "client" ? "client" : "supervisor";
+  let privateScenarioContext = "";
+  if (caseId) {
+    try {
+      const db = await getClinicalDatabase();
+      const custom = await db.collection("platform_simulation_scenarios").findOne({ scenarioId: caseId, status: "active" });
+      if (custom) privateScenarioContext = [
+        typeof custom.personaInstructions === "string" ? "تعليمات الشخصية الخاصة: " + custom.personaInstructions : "",
+        typeof custom.hiddenContext === "string" ? "السياق المخفي الذي يجب كشفه تدريجياً فقط عند السؤال المناسب: " + custom.hiddenContext : "",
+      ].filter(Boolean).join("\\n");
+    } catch (error) {
+      console.error("Unable to load private realtime scenario context", error);
+      return NextResponse.json({ error: "تعذر تحميل تفاصيل الحالة المحمية. أعد المحاولة." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+  }
   const persona = mode === "client" ? "أنت شخصية مراجع افتراضي في محاكاة تعليمية مهنية بمنصة اتزان. تقمص الدور المحدد في وصف الحالة فقط، وتحدث بضمير المتكلم وبلهجة سعودية طبيعية. لا تدّع أنك إنسان حقيقي." : DOCTOR_IDENTITY;
   const instructions = [
     persona,
     "سياق الحالة والمادة التعليمية المتاحة من المنصة:",
     scenario || "لا توجد تفاصيل إضافية للحالة. ابدأ بسؤال المتدرب عن هدف التدريب ولا تخترع حالة.",
+    privateScenarioContext,
     "قواعد الصوت والتدريب:",
     "- تحدث بالعربية بلهجة سعودية بيضاء مهنية، وبإيقاع هادئ وواضح. خاطب المتدرب مباشرة. ابدأ بتحية قصيرة عند بدء الاتصال، ثم تحاور بشكل طبيعي ولا تلقِ محاضرة طويلة دفعة واحدة.",
     "- حافظ على إيقاع محادثة وجهاً لوجه: استمع حتى ينتهي المتدرب، أجب بوضوح، واستخدم أسئلة متابعة قصيرة ومحددة، وتجنب تكرار عبارات الترحيب.",
