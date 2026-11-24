@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
-import { ensurePlatformCourseCertificate } from "@/lib/platform-certificates";
-import { scorePlatformCourseQuiz, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
 import { isTrainerCourseOwner } from "@/lib/platform-trainer";
 
 export const runtime = "nodejs";
@@ -127,37 +125,7 @@ export async function POST(request: NextRequest) {
       createdAt: now,
     });
 
-    let certificate: Record<string, unknown> | null = null;
-    if (status === "attended" && user.role === "trainee") {
-      const progress = await db.collection("platform_course_progress").findOne(
-        { userId, courseId },
-        { projection: { _id: 0, completedLessons: 1, quizAnswers: 1, quizChecked: 1 } },
-      );
-      const completed = Array.isArray(progress?.completedLessons) ? progress.completedLessons : [];
-      const answers = progress?.quizAnswers && typeof progress.quizAnswers === "object"
-        ? progress.quizAnswers as Record<string, unknown>
-        : {};
-      const quizDocument = await db.collection("platform_course_quizzes").findOne(
-        { courseId },
-        { projection: { _id: 0, questions: 1 } },
-      );
-      const customQuiz = Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null;
-      const quiz = scorePlatformCourseQuiz(course.trackId, answers, progress?.quizChecked === true, customQuiz);
-      if (progress && completed.length === course.lessons.length && quiz.passed) {
-        certificate = await ensurePlatformCourseCertificate(db, {
-          userId,
-          learnerName: String(user.name || user.email || "المتدرب"),
-          courseId,
-          courseTitle: course.title,
-          quizScore: quiz.score,
-          quizTotal: quiz.total,
-          attendanceVerified: true,
-          issuedAt: now,
-        }) as Record<string, unknown> | null;
-      }
-    }
-
-    return NextResponse.json({ success: true, userId, courseId, status, markedAt: now, certificate });
+    return NextResponse.json({ success: true, userId, courseId, status, markedAt: now });
   } catch (error) {
     console.error("attendance mark", error);
     return NextResponse.json({ error: "تعذر حفظ الحضور." }, { status: 503 });
