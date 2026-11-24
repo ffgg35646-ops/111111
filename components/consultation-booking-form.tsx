@@ -14,7 +14,6 @@ function localDateValue() {
 
 export default function ConsultationBookingForm({ serviceId, title }: { serviceId: string; title: string }) {
   const [slots, setSlots] = useState<Slot[]>([]);
-  const visibleSlots = slots.filter((slot) => !providerUserId || slot.providerUserId === providerUserId);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [providerUserId, setProviderUserId] = useState("");
   const [date, setDate] = useState(localDateValue());
@@ -34,6 +33,7 @@ export default function ConsultationBookingForm({ serviceId, title }: { serviceI
   useEffect(() => {
     let active = true;
     const query = new URLSearchParams({ serviceId, date, timezoneOffset: String(new Date().getTimezoneOffset()) });
+    if (providerUserId) query.set("providerUserId", providerUserId);
     fetch("/api/platform/consultation-slots?" + query.toString(), { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
@@ -41,17 +41,18 @@ export default function ConsultationBookingForm({ serviceId, title }: { serviceI
         if (!active) return;
         const availableProviders = Array.isArray(data.providers) ? data.providers : [];
         setProviders(availableProviders);
+        if (!providerUserId && availableProviders.length) {
+          setProviderUserId(availableProviders[0].userId);
+          return;
+        }
         const availableSlots = Array.isArray(data.slots) ? data.slots : [];
         setSlots(availableSlots);
-        setProviderUserId((current) => current || availableProviders[0]?.userId || "");
-        const initialProvider = providerUserId || availableProviders[0]?.userId || "";
-        const providerSlots = availableSlots.filter((slot: Slot) => !initialProvider || slot.providerUserId === initialProvider);
-        setSlotId((current) => providerSlots.some((slot: Slot) => slot.slotId === current) ? current : providerSlots[0]?.slotId || "");
+        setSlotId((current) => availableSlots.some((slot: Slot) => slot.slotId === current) ? current : availableSlots[0]?.slotId || "");
       })
       .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "تعذر تحميل المواعيد."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [serviceId, date, refreshKey]);
+  }, [serviceId, date, providerUserId, refreshKey]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,7 +98,7 @@ export default function ConsultationBookingForm({ serviceId, title }: { serviceI
       </div>
       <div className="request-form-grid">
         <label>مقدم الخدمة
-          <select required value={providerUserId} onChange={(event) => { const value = event.target.value; setProviderUserId(value); const next = slots.find((slot) => slot.providerUserId === value); setSlotId(next?.slotId || ""); setError(""); }} disabled={loading || !providers.length}>
+          <select required value={providerUserId} onChange={(event) => { const value = event.target.value; setLoading(true); setError(""); setSlots([]); setSlotId(""); setProviderUserId(value); }} disabled={loading || !providers.length}>
             <option value="">{loading ? "جارٍ تحميل مقدمي الخدمة..." : "لا يوجد مقدم خدمة متاح لهذا المجال"}</option>
             {providers.map((provider) => <option key={provider.userId} value={provider.userId}>{provider.name}</option>)}
           </select>
@@ -108,7 +109,7 @@ export default function ConsultationBookingForm({ serviceId, title }: { serviceI
         <label className="request-field-wide"><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Clock3 size={14}/> الوقت المتاح</span>
           <select required value={slotId} onChange={(event) => setSlotId(event.target.value)} disabled={loading || !slots.length}>
             <option value="">{loading ? "جارٍ تحميل الأوقات..." : "لا توجد أوقات متاحة في هذا اليوم"}</option>
-            {visibleSlots.map((slot) => <option key={slot.slotId} value={slot.slotId}>{new Date(slot.startsAt).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })} — {slot.durationMinutes} دقيقة</option>)}
+            {slots.map((slot) => <option key={slot.slotId} value={slot.slotId}>{new Date(slot.startsAt).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })} — {slot.durationMinutes} دقيقة</option>)}
           </select>
         </label>
         <div className="request-field-wide portal-callout" style={{ margin: 0 }}><Video size={16}/> نوع التنفيذ: استشارة مرئية عبر Zoom. يظهر رابط الدخول بعد تأكيد الدفع.</div>
