@@ -91,7 +91,7 @@ function normaliseScenario(data: Record<string, unknown>, existing?: Record<stri
     avatarLabel: cleanText(data.avatarLabel, 120),
     status: data.isActive === false ? "inactive" : "active",
     version,
-    createdAt: existing?.createdAt || now,
+    createdAt: (existing?.createdAt as Date | undefined) || now,
     updatedAt: now,
     createdBy: existing?.createdBy || cleanText(data.actorId, 100),
     updatedBy: cleanText(data.actorId, 100),
