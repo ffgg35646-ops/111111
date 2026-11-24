@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { createZoomMeeting } from "@/lib/zoom";
 import { requirePlatformRole } from "@/lib/platform-auth";
+import { releasePendingBookInventory } from "@/lib/book-orders";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,7 @@ export async function PATCH(request: NextRequest) {
 
     if (action === "reject") {
       await collection.updateOne({ requestId, status: "pending_review" }, { $set: { status: "rejected", adminNote, reviewedAt: new Date(), reviewedBy: "platform-admin" } });
+      if (record.kind === "book_order") await releasePendingBookInventory(db,requestId);
       if (record.kind === "consultation" && typeof record.slotId === "string") await db.collection("platform_consultant_slots").updateOne({ slotId: record.slotId, reservationId: requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
       return NextResponse.json({ success: true, status: "rejected" });
     }
