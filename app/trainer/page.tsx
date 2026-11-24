@@ -40,7 +40,7 @@ const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
   { id: "attendance", label: "الحضور", icon: CalendarCheck },
   { id: "results", label: "النتائج", icon: GraduationCap },
   { id: "certificates", label: "الشهادات", icon: Award },
-  { id: "reports", label: "تقارير الأداء", icon: ChartNoAxesCombined },
+  { id: "reports", label: "تقارير الأداء", icon: BarChart3 },
 ];
 const modeLabel = (mode: Course["mode"]) => mode === "recorded" ? "مسجلة" : mode === "live" ? "مباشرة" : "هجينة";
 const attendanceLabel = (status: string) => status === "attended" ? "حاضر" : status === "absent" ? "غائب" : "لم يسجل";
