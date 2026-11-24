@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
@@ -10,7 +11,7 @@ const clean = (v: unknown, max: number) => typeof v === "string" ? v.trim().slic
 const safeUrl = (v: unknown) => {
   const value = clean(v, 1500);
   if (!value) return "";
-  try { const u = new URL(value); return u.protocol === "https:" && !u.username && !u.password ? value : ""; }
+  try { const u = new URL(value); return u.protocol === "https:" && !u.username && !u.password && !isIP(u.hostname) && !["localhost","localhost.localdomain"].includes(u.hostname.toLowerCase()) && !u.hostname.toLowerCase().endsWith(".local") && !u.hostname.toLowerCase().endsWith(".internal") ? value : ""; }
   catch { return ""; }
 };
 function publicBook(book: Record<string, unknown>) {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
   const productType=d.productType==="physical"?"physical":"digital";
   const price=Number(d.price), stock=Number(d.stock??0);
   const coverUrl=safeUrl(d.coverUrl), previewUrl=safeUrl(d.previewUrl), downloadUrl=safeUrl(d.downloadUrl);
-  if(title.length<3||description.length<20||!categories.includes(category)||!Number.isFinite(price)||price<0||price>1000000) return NextResponse.json({error:"تحقق من العنوان والوصف والتصنيف والسعر."},{status:400});
+  if(title.length<3||description.length<20||!categories.includes(category)||!Number.isFinite(price)||price<=0||price>1000000) return NextResponse.json({error:"تحقق من العنوان والوصف والتصنيف والسعر."},{status:400});
   if(productType==="physical"&&(!Number.isInteger(stock)||stock<0||stock>1000000)) return NextResponse.json({error:"كمية المخزون يجب أن تكون رقماً صحيحاً غير سالب."},{status:400});
   if((d.coverUrl&&!coverUrl)||(d.previewUrl&&!previewUrl)||(d.downloadUrl&&!downloadUrl)) return NextResponse.json({error:"روابط الملفات والصور يجب أن تكون HTTPS صحيحة."},{status:400});
   if(productType==="digital"&&!downloadUrl) return NextResponse.json({error:"أضف رابط ملف الكتاب الرقمي من مساحة تخزين موثوقة."},{status:400});
@@ -72,7 +73,7 @@ export async function PATCH(request: NextRequest) {
     const db=await getClinicalDatabase(),books=db.collection("etzan_books");
     const existing=await books.findOne({bookId});
     if(!existing)return NextResponse.json({error:"الكتاب غير موجود."},{status:404});
-    if(existing.productType==="physical"&&typeof set.stock==="number"&&set.stock<(Number(existing.reserved)||0))return NextResponse.json({error:"لا يمكن جعل المخزون أقل من الكمية المحجوزة للطلبات غير المكتملة."},{status:409});
+    if(existing.productType==="physical"&&(Number(existing.reserved)||0)>0&&set.productType==="digital")return NextResponse.json({error:"لا يمكن تحويل الكتاب إلى منتج رقمي أثناء وجود كميات محجوزة في طلبات غير مكتملة."},{status:409});
     if(set.productType==="digital"&&!existing.downloadUrl&&!set.downloadUrl)return NextResponse.json({error:"الكتاب الرقمي يحتاج رابط تنزيل."},{status:400});
     await books.updateOne({bookId},{$set:set});
     const updated=await books.findOne({bookId},{projection:{_id:0,downloadUrl:0}});
