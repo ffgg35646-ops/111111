@@ -45,3 +45,18 @@ export async function releasePendingBookInventory(db:Db,requestId:string){
   await requests.updateOne({requestId,inventoryStatus:"releasing"},{$set:{inventoryStatus:"issue",inventoryIssueAt:new Date()}});
  }
 }
+
+export async function expireStaleBookReservations(db:Db){
+ const cutoff=new Date(Date.now()-24*60*60*1000);
+ const expired=await db.collection("platform_requests").find({kind:"book_order",inventoryStatus:"reserved",paymentStatus:{$ne:"paid"},status:{$in:["pending_review","awaiting_payment"]},createdAt:{$lt:cutoff}},{projection:{_id:0,requestId:1}}).limit(100).toArray();
+ for(const row of expired){
+  if(typeof row.requestId!=="string")continue;
+  await db.collection("platform_requests").updateOne({requestId:row.requestId,inventoryStatus:"reserved",paymentStatus:{$ne:"paid"}},{$set:{status:"expired",inventoryStatus:"released",inventoryReleasedAt:new Date(),expiredAt:new Date()}});
+  const order=await db.collection("platform_requests").findOne({requestId:row.requestId},{projection:{items:1}});
+  if(Array.isArray(order?.items))for(const raw of order.items){
+   if(!raw||typeof raw!=="object")continue;
+   const item=raw as Record<string,unknown>,bookId=typeof item.bookId==="string"?item.bookId:"",quantity=Number(item.quantity);
+   if(item.productType==="physical"&&bookId&&Number.isInteger(quantity)&&quantity>0)await db.collection("etzan_books").updateOne({bookId,reserved:{$gte:quantity}},{$inc:{stock:quantity,reserved:-quantity},$set:{updatedAt:new Date()}});
+  }
+ }
+}
