@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses, learningTracks } from "@/lib/platform-catalog";
+import { scorePlatformCourseQuiz } from "@/lib/platform-quizzes";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
       ).sort({ createdAt: -1 }).limit(150).toArray(),
       db.collection("platform_course_progress").find(
         { userId: actor.userId },
-        { projection: { _id: 0, courseId: 1, completedLessons: 1, updatedAt: 1, quizChecked: 1 } },
+        { projection: { _id: 0, courseId: 1, completedLessons: 1, updatedAt: 1, quizAnswers: 1, quizChecked: 1 } },
       ).sort({ updatedAt: -1 }).limit(150).toArray(),
       db.collection("platform_certificates").find(
         { userId: actor.userId },
@@ -93,6 +94,33 @@ export async function GET(request: NextRequest) {
     }));
 
     const activeCourses = enrolledCourses.filter((course) => course.paid);
+    const courseQuizAttempts = activeCourses.flatMap((course) => {
+      const progress = progressByCourse.get(course.id);
+      if (!progress || progress.quizChecked !== true) return [];
+      const answers = progress.quizAnswers && typeof progress.quizAnswers === "object"
+        ? progress.quizAnswers as Record<string, unknown>
+        : {};
+      const definition = courses.find((item) => item.id === course.id);
+      if (!definition) return [];
+      const result = scorePlatformCourseQuiz(definition.trackId, answers, true);
+      const createdAt = progress.updatedAt || null;
+      return [{
+        attemptId: "course-quiz-" + course.id,
+        title: "اختبار الدورة: " + course.title,
+        score: result.score,
+        total: result.total,
+        percentage: Math.round((result.score / Math.max(1, result.total)) * 100),
+        passed: result.passed,
+        kind: "course",
+        createdAt,
+      }];
+    });
+    const allAssessmentAttempts = [...attempts, ...courseQuizAttempts]
+      .sort((left, right) => {
+        const toTime = (value: unknown) => value instanceof Date ? value.getTime() : new Date(String(value || "")).getTime();
+        return toTime(right.createdAt) - toTime(left.createdAt);
+      })
+      .slice(0, 50);
     const completedLessonCount = activeCourses.reduce((sum, course) => sum + course.completedLessons, 0);
     const totalLessonCount = activeCourses.reduce((sum, course) => sum + course.totalLessons, 0);
     const completedCourses = activeCourses.filter((course) => course.totalLessons > 0 && course.completedLessons === course.totalLessons).length;
@@ -115,7 +143,7 @@ export async function GET(request: NextRequest) {
         payments: payments.length,
         upcomingAppointments: upcomingAppointments + upcomingSessions,
         simulations: activities.length,
-        assessmentAttempts: attempts.length,
+        assessmentAttempts: allAssessmentAttempts.length,
       },
       courses: enrolledCourses,
       tracks: learningTracks.map((track) => ({
@@ -132,7 +160,7 @@ export async function GET(request: NextRequest) {
       appointments: consultations,
       sessions,
       simulations: activities,
-      assessmentAttempts: attempts,
+      assessmentAttempts: allAssessmentAttempts,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Trainee dashboard GET", error);

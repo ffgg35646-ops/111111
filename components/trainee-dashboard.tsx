@@ -27,7 +27,7 @@ type DashboardData = {
   appointments: Array<{ requestId: string; status: string; serviceId?: string; providerName?: string; preferredAt?: string; durationMinutes?: number; paymentStatus?: string; quotedAmount?: number; currency?: string; zoomMeeting?: { joinUrl?: string } }>;
   sessions: Array<{ sessionId: string; courseTitle: string; topic: string; startTime: string; durationMinutes: number; joinUrl: string; recordingUrl?: string }>;
   simulations: Array<{ activityId: string; caseTitle: string; score: number; completedAt: string; aiReviewStatus?: string; supervisorReview?: { overallScore?: number }; clinicalFormulation?: { reviewStatus?: string } }>;
-  assessmentAttempts: Array<{ attemptId: string; title: string; score: number; total: number; percentage: number; createdAt: string }>;
+  assessmentAttempts: Array<{ attemptId: string; title: string; score: number; total: number; percentage: number; passed?: boolean; kind?: string; createdAt: string }>;
 };
 
 const money = (amount: number | null, currency: string) =>
@@ -119,7 +119,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
       <div className="portal-grid" style={{ marginTop: 24 }}>
         <section className="portal-card">
           <SectionHeading title="الاختبارات" description="اختبارات الفهم والمحاولات التي تم حفظها." href="/assessments" linkLabel="دخول الاختبارات"/>
-          {data.assessmentAttempts.slice(0, 4).map((attempt) => <div key={attempt.attemptId} style={{ padding: "10px 0", borderBottom: "1px solid #edf1f3" }}><strong>{attempt.title}</strong><p style={{ margin: "4px 0", color: "#758493", fontSize: 12 }}>{attempt.score}/{attempt.total} · {attempt.percentage}% · {dateTime(attempt.createdAt)}</p></div>)}
+          {data.assessmentAttempts.slice(0, 4).map((attempt) => <div key={attempt.attemptId} style={{ padding: "10px 0", borderBottom: "1px solid #edf1f3" }}><strong>{attempt.title}</strong><p style={{ margin: "4px 0", color: "#758493", fontSize: 12 }}>{attempt.score}/{attempt.total} · {attempt.percentage}%{attempt.passed===true?" · ناجح":attempt.passed===false?" · يحتاج إعادة المحاولة":""} · {dateTime(attempt.createdAt)}</p></div>)}
           {!data.assessmentAttempts.length && <p style={{ color: "#758493" }}>لم تحفظ أي محاولة بعد. أكمل اختبار المقاييس واحفظ نتيجتك لتظهر هنا.</p>}
         </section>
         <section className="portal-card">
