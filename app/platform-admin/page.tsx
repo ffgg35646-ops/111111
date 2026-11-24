@@ -1,190 +1,217 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Activity, BookOpen, Brain, CalendarDays, ChartNoAxesCombined, ClipboardCheck, CreditCard, Wallet,
-  FileText, GraduationCap, LayoutDashboard, MessageCircle, Settings,
-  ShieldCheck, ShoppingBag, Users, Video, Glasses, Plus, Search,
-  Bell, ChevronLeft, CircleHelp, PanelRightClose
-} from "lucide-react";
 
-const sections = [
-  { title:"الرئيسية", items:[["نظرة عامة",LayoutDashboard]] },
-  { title:"الإدارة الرئيسية", items:[
-    ["إدارة المستخدمين",Users],["إدارة الدورات والبرامج",GraduationCap],["إدارة المحتوى العلمي",BookOpen],
-    ["إدارة الكتب والمنتجات",ShoppingBag],["إدارة المقاييس والنماذج",ClipboardCheck],
-    ["إدارة الاستشارات",MessageCircle],["إدارة الاشتراكات",CreditCard],
-    ["المدفوعات",Wallet],["الفواتير",FileText],["إدارة الشهادات",ShieldCheck],
-    ["المجتمع والبلاغات",MessageCircle],["التقارير والإحصائيات",ChartNoAxesCombined],["إدارة الصلاحيات",Settings],["الذكاء الاصطناعي",Brain],
-  ] },
-  { title:"تشغيل الخدمات", items:[
-    ["طلبات المنصة والحجوزات",ClipboardCheck],["إتاحة مواعيد الاستشارات",CalendarDays],
-    ["الفصول المباشرة عبر Zoom",Video],["قاعة التدريب المباشر",Video],
-  ] },
-  { title:"التدريب والمحاكاة", items:[
-    ["منظومة التدريب التخصصي",Brain],["إدارة سيناريوهات ومعايير التقييم",Settings],
-    ["مكتبة الحالات التدريبية",Brain],["قاعة محاكاة الحالة",Video],["الشخصيات الافتراضية",Users],
-    ["غرف الواقع الافتراضي",Glasses],["جلسات الإشراف",Activity],["تقييم لغة الجسد",Activity],
-    ["ملف الكفاءات المهنية",ChartNoAxesCombined],
-  ] },
-] as const;
-
-const routeByLabel: Record<string,string> = {
-  "إدارة المستخدمين": "/platform-admin/users",
-  "إدارة الدورات والبرامج": "/platform-admin/courses",
-  "إدارة المحتوى العلمي": "/platform-admin/content",
-  "إدارة الكتب والمنتجات": "/platform-admin/books",
-  "إدارة المقاييس والنماذج": "/platform-admin/forms",
-  "إدارة الاستشارات": "/platform-admin/availability",
-  "إدارة الاشتراكات": "/platform-admin/subscriptions",
-  "المدفوعات": "/platform-admin/payments",
-  "الفواتير": "/platform-admin/invoices",
-  "إدارة الشهادات": "/platform-admin/certificates",
-  "المجتمع والبلاغات": "/platform-admin/community",
-  "التقارير والإحصائيات": "/platform-admin/reports",
-  "إدارة الصلاحيات": "/platform-admin/permissions",
-  "الذكاء الاصطناعي": "/platform-admin/ai",
-  "الأمان والخصوصية": "/platform-admin/security",
-  "الفيديوهات المحمية": "/platform-admin/media",
-  "طلبات الخصوصية": "/platform-admin/privacy-requests",
-  "طلبات المنصة والحجوزات": "/platform-admin/requests",
-  "إتاحة مواعيد الاستشارات": "/platform-admin/availability",
-  "الفصول المباشرة عبر Zoom": "/classrooms",
-  "قاعة التدريب المباشر": "/platform-admin/classrooms",
-  "منظومة التدريب التخصصي": "/specialties",
-  "إدارة سيناريوهات ومعايير التقييم": "/simulation/manage",
-  "مكتبة الحالات التدريبية": "/cases",
-  "قاعة محاكاة الحالة": "/simulation",
-  "غرف الواقع الافتراضي": "/simulation",
-  "جلسات الإشراف": "/supervision",
-  "الشخصيات الافتراضية": "/characters",
-  "تقييم لغة الجسد": "/posture",
-  "ملف الكفاءات المهنية": "/competencies",
+type NavItem = { label: string; href: string };
+type NavSection = { title: string; items: NavItem[] };
+type Stat = { label: string; key: string; note: string };
+type Integration = { label: string; configured: boolean; detail: string; state: string };
+type Overview = {
+  totals: Record<string, number>;
+  generatedAt: string;
+  integrations?: Record<string, Integration>;
+  operationalGaps?: string[];
 };
 
-const stats = [
-  {label:"حسابات المنصة",valueKey:"usersTotal",note:"كل حسابات الأدوار المسجلة",icon:Users,tone:"blue"},
-  {label:"الدورات التدريبية",valueKey:"courses",note:"دورات الكتالوج الحالي",icon:GraduationCap,tone:"teal"},
-  {label:"طلبات قيد المراجعة",valueKey:"pendingRequests",note:"تنتظر قرار الإدارة",icon:ClipboardCheck,tone:"violet"},
-  {label:"الشهادات السارية",valueKey:"issuedCertificates",note:"شهادات صادرة وغير ملغاة",icon:ShieldCheck,tone:"amber"},
-] as const;
+const sections: NavSection[] = [
+  { title: "الرئيسية", items: [{ label: "نظرة عامة", href: "/platform-admin" }, { label: "التقارير والإحصائيات", href: "/platform-admin/reports" }] },
+  { title: "الإدارة", items: [
+    { label: "المستخدمون والأدوار", href: "/platform-admin/users" },
+    { label: "الدورات والمدربون", href: "/platform-admin/courses" },
+    { label: "المحتوى العلمي", href: "/platform-admin/content" },
+    { label: "الكتب والمنتجات", href: "/platform-admin/books" },
+    { label: "المقاييس والنماذج", href: "/platform-admin/forms" },
+    { label: "الاستشارات والمواعيد", href: "/platform-admin/availability" },
+    { label: "الاشتراكات", href: "/platform-admin/subscriptions" },
+    { label: "المدفوعات", href: "/platform-admin/payments" },
+    { label: "الفواتير", href: "/platform-admin/invoices" },
+    { label: "الشهادات", href: "/platform-admin/certificates" },
+    { label: "المجتمع والبلاغات", href: "/platform-admin/community" },
+    { label: "الصلاحيات", href: "/platform-admin/permissions" },
+    { label: "الذكاء الاصطناعي", href: "/platform-admin/ai" },
+    { label: "فهرس المعرفة", href: "/platform-admin/ai-knowledge" },
+    { label: "الأمان والخصوصية", href: "/platform-admin/security" },
+  ] },
+  { title: "التشغيل والتدريب", items: [
+    { label: "طلبات المنصة", href: "/platform-admin/requests" },
+    { label: "الفصول المباشرة", href: "/platform-admin/classrooms" },
+    { label: "إدارة سيناريوهات المحاكاة", href: "/simulation/manage" },
+    { label: "الحالات التدريبية", href: "/cases" },
+    { label: "الشخصيات الافتراضية", href: "/characters" },
+    { label: "المحاكاة والواقع الافتراضي", href: "/simulation" },
+    { label: "الإشراف المهني", href: "/supervision" },
+    { label: "لغة الجسد", href: "/posture" },
+    { label: "الكفاءات المهنية", href: "/competencies" },
+  ] },
+];
 
-const modules = [
-  [BookOpen,"التعليم والدورات"],[Video,"الفصول المباشرة"],[MessageCircle,"الاستشارات"],
-  [ShoppingBag,"المتجر المعرفي"],[Glasses,"محاكاة VR"],[Brain,"الذكاء الاصطناعي"],[ClipboardCheck,"التقييم والكفاءات"]
-] as const;
+const shortcuts: NavItem[] = [
+  { label: "إدارة الحسابات", href: "/platform-admin/users" },
+  { label: "إسناد المدربين للدورات", href: "/platform-admin/courses" },
+  { label: "مراجعة الطلبات والحجوزات", href: "/platform-admin/requests" },
+  { label: "إدارة المواعيد", href: "/platform-admin/availability" },
+  { label: "جلسات التدريب المباشر", href: "/platform-admin/classrooms" },
+  { label: "متابعة المدفوعات", href: "/platform-admin/payments" },
+  { label: "متابعة الشهادات", href: "/platform-admin/certificates" },
+  { label: "تقارير المحاكاة", href: "/platform-admin/activities" },
+];
 
-const adminShortcuts = [
-  {label:"إدارة المستخدمين",description:"الحسابات والأدوار والحالات",href:"/platform-admin/users",icon:Users},
-  {label:"إدارة الدورات",description:"كتالوج البرامج وإسناد المدربين",href:"/platform-admin/courses",icon:GraduationCap},
-  {label:"إدارة المحتوى",description:"المقالات العلمية والنشر",href:"/platform-admin/content",icon:BookOpen},
-  {label:"الكتب والمنتجات",description:"الكتب الرقمية والورقية والمخزون",href:"/platform-admin/books",icon:ShoppingBag},
-  {label:"المقاييس والنماذج",description:"سجلات النماذج وأدوات التقدير",href:"/platform-admin/forms",icon:ClipboardCheck},
-  {label:"الاستشارات",description:"المواعيد والحجوزات",href:"/platform-admin/availability",icon:CalendarDays},
-  {label:"الاشتراكات",description:"جاهزية العضويات والتجديد",href:"/platform-admin/subscriptions",icon:CreditCard},
-  {label:"المدفوعات والفواتير",description:"سجل العمليات والمبالغ",href:"/platform-admin/invoices",icon:Wallet},
-  {label:"الشهادات",description:"الإصدار والتحقق والإلغاء",href:"/platform-admin/certificates",icon:ShieldCheck},
-  {label:"المجتمع والبلاغات",description:"المشاركات والتقارير المفتوحة",href:"/platform-admin/community",icon:MessageCircle},
-  {label:"التقارير والإحصائيات",description:"مؤشرات التشغيل والأداء",href:"/platform-admin/reports",icon:ChartNoAxesCombined},
-  {label:"إدارة الصلاحيات",description:"الأدوار وحدود الوصول",href:"/platform-admin/permissions",icon:Settings},
-  {label:"إدارة الذكاء الاصطناعي",description:"المساعد والنماذج وسجل التكلفة",href:"/platform-admin/ai",icon:Brain},
-  {label:"الأمان والخصوصية",description:"الأجهزة والجلسات وسجل التدقيق",href:"/platform-admin/security",icon:ShieldCheck},
-  {label:"الفيديوهات المحمية",description:"إدارة مصادر الفيديو والبث المحمي",href:"/platform-admin/media",icon:Video},
-  {label:"طلبات الخصوصية",description:"طلبات أصحاب البيانات ومواعيد الاستجابة",href:"/platform-admin/privacy-requests",icon:ShieldCheck},
-] as const;
+const stats: Stat[] = [
+  { label: "حسابات المنصة", key: "usersTotal", note: "كل الحسابات المسجلة" },
+  { label: "الدورات", key: "courses", note: "الدورات الموجودة في الكتالوج" },
+  { label: "طلبات قيد المراجعة", key: "pendingRequests", note: "تحتاج قرار الإدارة" },
+  { label: "الشهادات السارية", key: "issuedCertificates", note: "الشهادات غير الملغاة" },
+];
 
-export default function HomePage() {
+export default function AdminDashboardPage() {
   const router = useRouter();
-  const [authorized,setAuthorized] = useState(false);
-  const [checking,setChecking] = useState(true);
-  useEffect(()=>{let active=true;fetch("/api/auth/session",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok||!data.authenticated||!["admin","platform_manager"].includes(data.user?.role)){router.replace("/login?next=/platform-admin");return;}if(data.user?.mustChangePassword){router.replace("/account/change-password");return;}if(active)setAuthorized(true)}).catch(()=>router.replace("/login?next=/platform-admin")).finally(()=>{if(active)setChecking(false)});return()=>{active=false}},[router]);
-  const [active,setActive] = useState("نظرة عامة");
-  const [query,setQuery] = useState("");
-  const [sidebarOpen,setSidebarOpen] = useState(true);
-  const [overview,setOverview] = useState<{totals:Record<string,number>;generatedAt:string}|null>(null);
-  const [overviewError,setOverviewError] = useState("");
-  useEffect(()=>{if(!authorized)return;let active=true;fetch("/api/platform/admin/overview",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error||"تعذر تحميل المؤشرات.");if(active)setOverview(data)}).catch(error=>{if(active)setOverviewError(error instanceof Error?error.message:"تعذر تحميل المؤشرات.")});return()=>{active=false}},[authorized]);
+  const [authorized, setAuthorized] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [query, setQuery] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [error, setError] = useState("");
 
-  if(checking)return <main className="app-shell" dir="rtl"><div className="portal-empty">جارٍ التحقق من صلاحية الإدارة...</div></main>;
-  if(!authorized)return null;
-  return <main className="app-shell">
-    <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
-      <div className="brand-block">
-        <div className="brand-copy"><strong>اتزان | ETZAN</strong><span>الإدارة والتشغيل</span></div>
-        <button className="icon-button sidebar-toggle" onClick={()=>setSidebarOpen(false)} aria-label="إخفاء القائمة"><PanelRightClose size={18}/></button>
-      </div>
-      <div className="workspace-label">مساحة العمل</div>
-      <nav className="side-nav">
-        {sections.map(section=><div className="nav-section" key={section.title}>
-          <p>{section.title}</p>
-          {section.items.map(([label,Icon])=><button key={label} className={`nav-item ${active===label?"active":""}`} onClick={()=>{const target=routeByLabel[label];if(target)router.push(target);else setActive(label);}}>
-            <Icon size={18}/><span>{label}</span>
-          </button>)}
-        </div>)}
-      </nav>
-      <div className="sidebar-bottom"><div className="support-icon"><CircleHelp size={18}/></div><div><strong>تحتاج إلى مساعدة؟</strong><span>مركز الدعم والإرشادات</span></div><ChevronLeft size={16}/></div>
-    </aside>
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data.authenticated || !["admin", "platform_manager"].includes(data.user?.role)) {
+          router.replace("/login?next=/platform-admin");
+          return;
+        }
+        if (data.user?.mustChangePassword) {
+          router.replace("/account/change-password");
+          return;
+        }
+        if (active) setAuthorized(true);
+      })
+      .catch(() => router.replace("/login?next=/platform-admin"))
+      .finally(() => { if (active) setChecking(false); });
+    return () => { active = false; };
+  }, [router]);
 
-    <section className="main-area">
-      <header className="topbar">
-        <div className="topbar-start">
-          {!sidebarOpen&&<button className="icon-button" onClick={()=>setSidebarOpen(true)} aria-label="إظهار القائمة"><PanelRightClose size={19}/></button>}
-          <div className="breadcrumb">الإدارة <ChevronLeft size={14}/> <strong>{active}</strong></div>
+  useEffect(() => {
+    if (!authorized) return;
+    let active = true;
+    fetch("/api/platform/admin/overview", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل مؤشرات التشغيل.");
+        if (active) setOverview(data);
+      })
+      .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "تعذر تحميل مؤشرات التشغيل."); });
+    return () => { active = false; };
+  }, [authorized]);
+
+  const filteredSections = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("ar");
+    return sections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !needle || (item.label + " " + item.href).toLocaleLowerCase("ar").includes(needle)),
+    })).filter((section) => section.items.length > 0);
+  }, [query]);
+
+  const filteredShortcuts = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("ar");
+    return shortcuts.filter((item) => !needle || item.label.toLocaleLowerCase("ar").includes(needle));
+  }, [query]);
+
+  if (checking) return <main className="app-shell" dir="rtl"><div className="portal-empty">جارٍ التحقق من صلاحية الإدارة...</div></main>;
+  if (!authorized) return null;
+
+  return (
+    <main className="app-shell">
+      <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
+        <div className="brand-block">
+          <div className="brand-copy"><strong>اتزان | ETZAN</strong><span>الإدارة والتشغيل</span></div>
+          <button className="icon-button sidebar-toggle" onClick={() => setSidebarOpen(false)} aria-label="إخفاء القائمة">×</button>
         </div>
-        <div className="topbar-actions">
-          <label className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="ابحث في المنصة..."/></label>
-          <button className="icon-button notification-button" aria-label="الإشعارات"><Bell size={19}/><i/></button>
-          <a className="admin-profile" href="/platform-admin/users" style={{ textDecoration: "none", color: "inherit" }}><div className="avatar">إ</div><div><strong>إدارة الحسابات</strong><span>المستخدمون والأدوار</span></div></a>
-        </div>
-      </header>
+        <div className="workspace-label">القائمة الرئيسية</div>
+        <nav className="side-nav" aria-label="أقسام الإدارة">
+          {filteredSections.map((section) => (
+            <div className="nav-section" key={section.title}>
+              <p>{section.title}</p>
+              {section.items.map((item) => (
+                <Link key={item.href} href={item.href} className="nav-item"><span>{item.label}</span></Link>
+              ))}
+            </div>
+          ))}
+          {filteredSections.length === 0 && <p className="portal-empty">لا توجد وحدات مطابقة للبحث.</p>}
+        </nav>
+      </aside>
 
-      <div className="page-content">
-        <div className="welcome-row">
-          <div><div className="eyebrow">لوحة التحكم الرئيسية</div><h1>مرحباً بك في مساحة الإدارة</h1><p>إدارة التعليم والتدريب والاستشارات والمحاكاة السريرية من مكان واحد.</p></div>
-          <button className="primary-button" onClick={()=>router.push("/cases")}><Plus size={18}/> إعداد حالة تدريبية</button>
-        </div>
+      <section className="main-area">
+        <header className="topbar">
+          <div className="topbar-start">
+            {!sidebarOpen && <button className="icon-button" onClick={() => setSidebarOpen(true)} aria-label="إظهار القائمة"}>☰</button>}
+            <div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div>
+          </div>
+          <div className="topbar-actions">
+            <label className="search-box">
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن وحدة أو إجراء..." aria-label="البحث في وحدات الإدارة" />
+            </label>
+            <Link className="admin-profile" href="/platform-admin/users" style={{ textDecoration: "none", color: "inherit" }}>
+              <div><strong>إدارة الحسابات</strong><span>المستخدمون والأدوار</span></div>
+            </Link>
+          </div>
+        </header>
 
-        <div className="notice-strip">
-          <div className="notice-icon"><Brain size={19}/></div>
-          <div><strong>إدارة الشخصيات والحالات الافتراضية</strong><span>الدكتور أو المشرف العلمي يكتب ملف الحالة وأهدافها وحدود معرفة الشخصية وطريقة استجابتها. الشخصية تتفاعل مع الحوار في سياقه، وليست تسجيلاً محفوظاً.</span></div>
-          <button onClick={()=>router.push("/cases")}>إعداد الحالات <ChevronLeft size={15}/></button>
-        </div>
+        <div className="page-content">
+          <div className="welcome-row">
+            <div><div className="eyebrow">لوحة التشغيل</div><h1>نظرة عامة</h1><p>مؤشرات من قاعدة البيانات وروابط مباشرة إلى وحدات الإدارة.</p></div>
+          </div>
 
-        <div className="stats-grid">{stats.map(stat=><article className="stat-card" key={stat.label}>
-          <div className={`stat-icon ${stat.tone}`}><stat.icon size={20}/></div>
-          <div className="stat-label">{stat.label}</div><div className="stat-value">{overview?Number(overview.totals[stat.valueKey]||0).toLocaleString("ar-SA"):"—"}</div><div className="stat-note">{stat.note}</div>
-        </article>)}</div>
+          {error && <div className="portal-callout" role="alert">{error}</div>}
 
-        {overviewError&&<div className="portal-callout" role="alert">{overviewError}</div>}
-        <section className="panel roadmap-panel admin-shortcuts-panel"><div className="panel-heading"><div><h2>مراكز الإدارة</h2><p>الوصول المباشر إلى وحدات الإدارة من مكان واحد</p></div></div><div className="quick-grid">{adminShortcuts.map(({label,description,href,icon:Icon},index)=><button key={href} onClick={()=>router.push(href)}><span className={"quick-icon "+(["teal","blue","violet","amber"][index%4])}><Icon size={19}/></span><strong>{label}</strong><small>{description}</small></button>)}</div></section>
-        <div className="content-grid">
-          <section className="panel activity-panel">
-            <div className="panel-heading"><div><h2>مسار تشغيل المنظومة</h2><p>الوحدات الأساسية وما يتطلب ربطاً واعتماداً قبل الإطلاق</p></div><span className="roadmap-tag">خطة التشغيل</span></div>
-            {[
-              ["الحسابات والأدوار","دخول آمن وحسابات منفصلة للمدير والمشرف والمدرب والمتدرب والمستشار"],
-              ["دراسة الحالة والتقييم","جمع المعلومات والفرضيات ونقاط القوة والمعلومات الناقصة ومراجعة المشرف"],
-              ["الشخصيات السريرية التفاعلية","شخصيات ثلاثية الأبعاد ومحادثة سياقية بالصوت والنص"],
-              ["المحاكاة والإشراف","WebXR داخل المتصفح وغرف LiveKit وقياسات VR وتقارير الكفاءات"],
-            ].map(([title,desc])=><div className="activity-row" key={title}><div className="activity-symbol"><FileText size={18}/></div><div className="activity-main"><strong>{title}</strong><span>{desc}</span></div><span className="status-pill status-green">وحدة مضافة</span></div>)}
-          </section>
-          <section className="panel quick-panel">
-            <div className="panel-heading"><div><h2>اختصارات الإدارة</h2><p>أقسام الإدارة الأساسية</p></div></div>
+          <div className="stats-grid">
+            {stats.map((stat) => (
+              <article className="stat-card" key={stat.key}>
+                <div className="stat-label">{stat.label}</div>
+                <div className="stat-value">{overview ? Number(overview.totals[stat.key] || 0).toLocaleString("ar-SA") : "—"}</div>
+                <div className="stat-note">{stat.note}</div>
+              </article>
+            ))}
+          </div>
+
+          <section className="panel roadmap-panel">
+            <div className="panel-heading"><div><h2>الوصول السريع</h2><p>اختر الوحدة التي تريد إدارتها.</p></div></div>
             <div className="quick-grid">
-              <button onClick={()=>router.push("/cases")}><span className="quick-icon teal"><Brain size={19}/></span><strong>إعداد حالة تدريبية</strong><small>كتابة السيناريو السريري</small></button>
-              <button onClick={()=>router.push("/characters")}><span className="quick-icon blue"><Users size={19}/></span><strong>إعداد شخصية افتراضية</strong><small>تعليمات الشخصية وصوتها</small></button>
-              <button onClick={()=>router.push("/platform-admin/courses")}><span className="quick-icon violet"><GraduationCap size={19}/></span><strong>إدارة الدورات</strong><small>إسناد المدربين ومتابعة البرامج</small></button>
-              <button onClick={()=>router.push("/competencies")}><span className="quick-icon amber"><ChartNoAxesCombined size={19}/></span><strong>ملفات الكفاءات</strong><small>تقييم أداء المتدربين</small></button>
+              {filteredShortcuts.map((item) => <button key={item.href} onClick={() => router.push(item.href)}><strong>{item.label}</strong><small>فتح الوحدة</small></button>)}
+              {filteredShortcuts.length === 0 && <p className="portal-empty">لا توجد وحدات مطابقة للبحث.</p>}
             </div>
           </section>
-        </div>
 
-        <section className="panel roadmap-panel">
-          <div className="panel-heading"><div><h2>وحدات المنظومة</h2><p>الوصول إلى وحدات التعلم والتدريب والخدمات والمحاكاة</p></div></div>
-          <div className="module-chips">{modules.map(([Icon,label])=><span key={label}><Icon size={16}/>{label}</span>)}</div>
-        </section>
-        <footer className="page-footer">اتزان | ETZAN <span>•</span> مساحة الإدارة <span>•</span> <a href="/platform-admin/users">إدارة الحسابات</a></footer>
-      </div>
-    </section>
-  </main>;
+          <section className="panel roadmap-panel">
+            <div className="panel-heading"><div><h2>حالة التكاملات</h2><p>حالة الإعداد كما تظهر من بيئة تشغيل المنصة؛ وجود المفاتيح لا يعني اكتمال اعتماد المزود.</p></div></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+              {Object.entries(overview?.integrations || {}).map(([key, item]) => (
+                <article key={key} style={{ border: "1px solid #e3eaed", borderRadius: 9, padding: 13, background: "#fff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                    <strong style={{ fontSize: 11 }}>{item.label}</strong>
+                    <span style={{ fontSize: 9, color: item.state === "connected" || item.configured ? "#237a68" : "#9b7441" }}>{item.state === "connected" ? "متصل" : item.configured ? "الإعداد موجود" : "يحتاج إعداد"}</span>
+                  </div>
+                  <p style={{ fontSize: 9, color: "#7b8d94", lineHeight: 1.8, margin: "7px 0 0" }}>{item.detail}</p>
+                </article>
+              ))}
+              {!overview && <p className="portal-empty">جارٍ تحميل حالة التكاملات...</p>}
+            </div>
+          </section>
+
+          <section className="panel roadmap-panel">
+            <div className="panel-heading"><div><h2>نواقص تشغيلية معروفة</h2><p>وظائف غير مكتملة في الكود الحالي أو تحتاج تكاملًا واعتمادًا خارجيًا.</p></div></div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {(overview?.operationalGaps || []).map((gap, index) => <div key={index} style={{ borderBottom: "1px solid #edf1f2", padding: "8px 0", fontSize: 10, color: "#647984", lineHeight: 1.8 }}>{gap}</div>)}
+              {!overview && <p className="portal-empty">جارٍ تحميل قائمة النواقص...</p>}
+            </div>
+          </section>
+
+          <footer className="page-footer"><Link href="/platform-admin/reports">التقارير</Link><span>اتزان | ETZAN</span></footer>
+        </div>
+      </section>
+    </main>
+  );
 }
