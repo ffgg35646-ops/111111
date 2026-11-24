@@ -16,6 +16,10 @@ export async function POST(request:NextRequest){
   const db=await getClinicalDatabase(),order=await db.collection("platform_requests").findOne({requestId,email});
   if(!order)return NextResponse.json({error:"الطلب غير موجود."},{status:404});
   if(order.paymentStatus==="paid")return NextResponse.json({error:"تم دفع هذا الطلب بالفعل."},{status:409});
+  if(order.kind==="membership"){
+   const subscription=await db.collection("platform_subscriptions").findOne({requestId,userId:{$exists:true},status:"pending_initial_payment"});
+   if(!subscription||order.recurringConsent!==true)return NextResponse.json({error:"بيانات الاشتراك أو موافقة التجديد غير مكتملة."},{status:409});
+  }
   if(order.status!=="awaiting_payment"||!["payment_due","payment_initiated","failed"].includes(String(order.paymentStatus))||order.currency!=="SAR"||typeof order.quotedAmount!=="number")return NextResponse.json({error:"الطلب لم يعتمد بعد أو لا يحتوي على سعر قابل للدفع."},{status:409});
   if(order.kind==="consultation"){const slot=await db.collection("platform_consultant_slots").findOne({reservationId:requestId,status:"reserved",reservedUntil:{$gt:new Date()}});if(!slot)return NextResponse.json({error:"انتهت مهلة حجز الموعد. أرسل طلب موعد جديداً لاختيار وقت متاح."},{status:409});}
   const amount=Math.round(order.quotedAmount*100);if(amount<100||amount>100000000)return NextResponse.json({error:"قيمة الطلب خارج حدود الدفع."},{status:400});
@@ -23,7 +27,7 @@ export async function POST(request:NextRequest){
   await intents.updateMany({requestId,email,status:"created",expiresAt:{$lte:new Date()}},{$set:{status:"expired"},$unset:{clientSecretEncrypted:""}});
   const pending=await intents.findOne({requestId,email,status:"fulfilled",paymentStatus:"initiated"});if(pending)return NextResponse.json({error:"عملية الدفع السابقة ما زالت بانتظار إكمال التحقق البنكي. حدّث حالة الطلب بعد العودة من البنك."},{status:409});
   const existing=await intents.findOne({requestId,email,status:"created",expiresAt:{$gt:new Date()}},{sort:{createdAt:-1}});
-  if(existing&&typeof existing.clientSecretEncrypted==="string"){try{return NextResponse.json({id:existing.intentId,clientSecret:decryptPlatformSecret(existing.clientSecretEncrypted),amount,currency:"SAR",description:existing.description,publishableApiKey:publishable,callbackUrl:existing.callbackUrl})}catch(error){console.error("Moyasar client secret decryption failed",error);return NextResponse.json({error:"تعذر استعادة جلسة الدفع الآمنة. تواصل مع الدعم."},{status:503})}}
+  if(existing&&typeof existing.clientSecretEncrypted==="string"){try{return NextResponse.json({id:existing.intentId,clientSecret:decryptPlatformSecret(existing.clientSecretEncrypted),amount,currency:"SAR",description:existing.description,publishableApiKey:publishable,callbackUrl:existing.callbackUrl,saveCard:order.kind==="membership"})}catch(error){console.error("Moyasar client secret decryption failed",error);return NextResponse.json({error:"تعذر استعادة جلسة الدفع الآمنة. تواصل مع الدعم."},{status:503})}}
   const description="ETZAN Request "+requestId+" "+randomUUID().toUpperCase();
   const callback=new URL("/payment-result",request.nextUrl.origin);callback.searchParams.set("requestId",requestId);
   const response=await fetch("https://api.moyasar.com/v1/payment_intents",{method:"POST",headers:{Authorization:"Basic "+Buffer.from(secret+":").toString("base64"),"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({amount,currency:"SAR",description,callback_url:callback.toString()}),cache:"no-store"});
