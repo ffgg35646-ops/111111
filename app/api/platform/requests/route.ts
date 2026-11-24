@@ -115,9 +115,10 @@ export async function POST(request: NextRequest) {
     record.courseId = course.id;
     record.courseTitle = course.title;
     record.deliveryMode = course.mode;
-    const db = await getClinicalDatabase();
-    const coursePrice = await db.collection("etzan_course_prices").findOne({ courseId: course.id, active: true });
-    if (coursePrice && typeof coursePrice.price === "number") {
+    if (kind === "course_enrollment") {
+      const db = await getClinicalDatabase();
+      const coursePrice = await db.collection("etzan_course_prices").findOne({ courseId: course.id, active: true });
+      if (coursePrice && typeof coursePrice.price === "number") {
       let breakdown;
       try {
         breakdown = await calculateCommercePrice(db, coursePrice.price, "course", String(record.couponCode || ""));
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
         couponCode: breakdown.couponCode || "",
         currency: "SAR",
       });
+      }
     }
     if (kind === "classroom_registration") {
       const preferredAt = cleanText(data.preferredAt, 50);
