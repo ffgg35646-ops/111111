@@ -40,7 +40,7 @@ async function searchPlatformKnowledge(query: string): Promise<SourceDocument[]>
     ...learningTracks.map((item) => ({ type: "مسار مهني", title: item.title, href: "/specialties", text: [item.summary, ...item.skills].join("\n") })),
     ...courses.map((item) => ({ type: "مقرر تدريبي", title: item.title, href: "/academy", text: [item.category, item.summary, ...item.outcomes, ...item.lessons].join("\n") })),
     ...trainingCases.map((item) => ({ type: "حالة تدريبية منشورة", title: item.title, href: "/cases", text: [item.track, item.briefing, ...item.learningGoals].join("\n") })),
-    ...practiceScales.map((item) => ({ type: "أداة تدريبية", title: item.title, href: "/assessments", text: [item.purpose, item.description].filter(Boolean).join("\n") })),
+    ...practiceScales.map((item) => ({ type: "أداة تدريبية", title: item.title, href: "/assessments", text: [item.purpose, ...(Array.isArray(item.domains) ? item.domains : []), item.disclaimer].filter(Boolean).join("\n") })),
   ];
   const tokens = Array.from(new Set(normalizeArabic(query).split(" ").filter((token) => token.length > 1))).slice(0, 16);
   return documents.map((document) => ({ ...document, score: scoreDocument(tokens, document) }))
