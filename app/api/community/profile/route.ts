@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         ...(query ? { name: { $regex: query.split("").map((character) => ".^$*+?()[]{}|".includes(character) || character === String.fromCharCode(92) ? String.fromCharCode(92) + character : character).join(""), $options: "i" } } : {}),
       }, { projection: { _id: 0, userId: 1, name: 1, role: 1 } }).sort({ name: 1 }).limit(100).toArray();
       const visible = await profiles.find({ userId: { $in: accounts.map((account) => account.userId) }, directoryVisible: { $ne: false } }).toArray();
-      const byUser = new Map(visible.map((profile) => [String(profile.userId), profile as Record<string, unknown>]));
+      const byUser = new Map<string, Record<string, unknown>>(visible.map((profile) => [String(profile.userId), profile as Record<string, unknown>] as [string, Record<string, unknown>]));
       const members = accounts.filter((account) => String(account.userId) === actor.userId || byUser.has(String(account.userId)))
         .map((account) => publicProfile(account, byUser.get(String(account.userId)) || null, actor.userId));
       return NextResponse.json({ members }, { headers: { "Cache-Control": "no-store" } });

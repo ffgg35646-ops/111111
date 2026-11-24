@@ -9,6 +9,7 @@ const COMMUNITY_ROLES = ["admin","platform_manager","supervisor","trainer","trai
 const MODERATOR_ROLES = ["admin","platform_manager","supervisor","quality_manager"] as const;
 const CATEGORIES = ["الخدمة الاجتماعية","علم النفس","الإرشاد الأسري","الاضطرابات النمائية","التدريب المهني"];
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+type CommunityAttachment = { fileId: string; filename: string; contentType: string; size: number; downloadUrl: string };
 const ALLOWED_FILE_TYPES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
 
   const now = new Date();
   const postId = randomUUID();
-  let attachment: Record<string, unknown> | null = null;
+  let attachment: CommunityAttachment | null = null;
   try {
     const db = await getClinicalDatabase();
     if (upload) {
