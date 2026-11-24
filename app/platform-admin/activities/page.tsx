@@ -31,7 +31,7 @@ type Activity = {
   experienceMode: string;
   vrHeadTrackingSamples?: number;
   vrHandMetrics?: { samples: number; pinchInteractions: number };
-  supervisorReview?: { scores: Record<string, number>; overallScore: number; feedbackNotes: string; reviewedAt: string };
+  supervisorReview?: { scores: Record<string, number>; overallScore: number; weightedScore?: number; feedbackNotes: string; reviewedAt: string };
 };
 
 function emptyDraft(): ReviewDraft {
@@ -65,7 +65,7 @@ export default function SimulationActivityReviewPage() {
         for (const activity of rows) {
           if (activity.supervisorReview && !next[activity.activityId]) {
             next[activity.activityId] = {
-              scores: Object.fromEntries(reviewFields.map((field) => [field.key, String(activity.supervisorReview?.scores?.[field.key] ?? "")])),
+              scores: Object.fromEntries(getReviewFields(activity).map((field) => [field.key, String(activity.supervisorReview?.scores?.[field.key] ?? "")])),
               feedbackNotes: activity.supervisorReview.feedbackNotes || "",
             };
           }
@@ -95,10 +95,10 @@ export default function SimulationActivityReviewPage() {
   };
 
   const saveReview = async (activity: Activity) => {
-    const draft = drafts[activity.activityId] || emptyDraft();
+    const fields = getReviewFields(activity);\n    const draft = drafts[activity.activityId] || emptyDraft(activity);
     setSavingId(activity.activityId); setError(""); setNotice("");
     try {
-      const scores = Object.fromEntries(reviewFields.map((field) => [field.key, Number(draft.scores[field.key])]));
+      const scores = Object.fromEntries(fields.map((field) => [field.key, Number(draft.scores[field.key])]));
       const response = await fetch("/api/platform/activities", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -166,13 +166,13 @@ export default function SimulationActivityReviewPage() {
               <small style={{ color: "#82918f", fontSize: 9 }}>تحليل تعليمي آلي مساعد، وليس تشخيصاً أو حكماً مهنياً نهائياً.</small>
             </section>
             <section style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid #edf1f1" }}>
-              <strong style={{ fontSize: 12, color: "#46666a" }}>تقييم المشرف (0 إلى 5 لكل محور)</strong>
+              <strong style={{ fontSize: 12, color: "#46666a" }}>تقييم المدرب (0 إلى 5 لكل محور وفق المعيار المختار)</strong>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10, marginTop: 10 }}>
-                {reviewFields.map((field) => <label key={field.key} style={{ display: "grid", gap: 5, fontSize: 10, color: "#60777c" }}>{field.label}<select value={draft.scores[field.key] || ""} onChange={(event) => updateDraft(activity.activityId, { scores: { ...draft.scores, [field.key]: event.target.value } })} style={{ padding: 9, border: "1px solid #dce5e9", borderRadius: 7, background: "#fff" }}><option value="">اختر الدرجة</option>{[0,1,2,3,4,5].map((score) => <option key={score} value={score}>{score} / 5</option>)}</select></label>)}
+                {getReviewFields(activity).map((field) => <label key={field.key} style={{ display: "grid", gap: 5, fontSize: 10, color: "#60777c" }}>{field.label}<select value={draft.scores[field.key] || ""} onChange={(event) => updateDraft(activity, { scores: { ...draft.scores, [field.key]: event.target.value } })} style={{ padding: 9, border: "1px solid #dce5e9", borderRadius: 7, background: "#fff" }}><option value="">اختر الدرجة</option>{[0,1,2,3,4,5].map((score) => <option key={score} value={score}>{score} / 5</option>)}</select></label>)}
               </div>
-              <label style={{ display: "grid", gap: 6, marginTop: 11, fontSize: 10, color: "#60777c" }}>ملاحظات المشرف ونقاط التحسين<textarea value={draft.feedbackNotes} onChange={(event) => updateDraft(activity.activityId, { feedbackNotes: event.target.value })} rows={3} maxLength={2000} placeholder="اذكر ما أُنجز جيداً، وما يحتاج إلى تطوير، وسؤالاً تدريبياً للمتدرب." style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 7, lineHeight: 1.8 }} /></label>
-              {reviewed && <p style={{ color: "#60817a", fontSize: 10 }}>آخر متوسط إشرافي: {reviewed.overallScore}/5 · {new Date(reviewed.reviewedAt).toLocaleString("ar-EG")}</p>}
-              <button className="portal-button" onClick={() => void saveReview(activity)} disabled={savingId === activity.activityId || reviewFields.some((field) => !draft.scores[field.key]) || draft.feedbackNotes.trim().length < 10} style={{ marginTop: 10 }}>
+              <label style={{ display: "grid", gap: 6, marginTop: 11, fontSize: 10, color: "#60777c" }}>ملاحظات المشرف ونقاط التحسين<textarea value={draft.feedbackNotes} onChange={(event) => updateDraft(activity, { feedbackNotes: event.target.value })} rows={3} maxLength={2000} placeholder="اذكر ما أُنجز جيداً، وما يحتاج إلى تطوير، وسؤالاً تدريبياً للمتدرب." style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 7, lineHeight: 1.8 }} /></label>
+              {reviewed && <p style={{ color: "#60817a", fontSize: 10 }}>آخر متوسط إشرافي: {reviewed.overallScore}/5 · {reviewed.weightedScore ?? "—"}/100 موزون · {new Date(reviewed.reviewedAt).toLocaleString("ar-EG")}</p>}
+              <button className="portal-button" onClick={() => void saveReview(activity)} disabled={savingId === activity.activityId || getReviewFields(activity).some((field) => !draft.scores[field.key]) || draft.feedbackNotes.trim().length < 10} style={{ marginTop: 10 }}>
                 {savingId === activity.activityId ? <LoaderCircle size={15} /> : <Save size={15} />} حفظ مراجعة المشرف
               </button>
               <small style={{ display: "block", color: "#87969a", fontSize: 9, marginTop: 7 }}>يُحفظ التقييم كمراجعة تعليمية مرتبطة بالجلسة، مع إبقاء الدرجة الآلية لخطوات الحالة منفصلة.</small>
