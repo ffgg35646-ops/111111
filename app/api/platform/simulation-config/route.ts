@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     const rubricFilter = manage ? {} : { status: "active" };
     const [scenarios, customRubrics] = await Promise.all([
       db.collection("platform_simulation_scenarios")
-        .find(scenarioFilter, { projection: { _id: 0, createdBy: 0, updatedBy: 0 } })
+        .find(scenarioFilter, { projection: { _id: 0, createdBy: 0, updatedBy: 0, ...(manage ? {} : { hiddenContext: 0, personaInstructions: 0 }) } })
         .sort({ updatedAt: -1 })
         .limit(200)
         .toArray(),
