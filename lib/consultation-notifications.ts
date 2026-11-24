@@ -22,7 +22,7 @@ export async function sendConsultationNotice(db: Db, notice: ConsultationNotice)
   const notificationKey = [notice.requestId, email, notice.subject].join(":");
   const notificationId = randomUUID();
   try {
-    await collection.createIndex({ notificationKey: 1 }, { unique: true });
+    await collection.createIndex({ notificationKey: 1 }, { unique: true, sparse: true });
     const claim = await collection.updateOne(
       { notificationKey, deliveryStatus: { $nin: ["sent", "sending"] } },
       {
