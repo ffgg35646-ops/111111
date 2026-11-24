@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Activity, Brain, Coins, FileQuestion, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
@@ -36,7 +36,7 @@ export default function AdminAiPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
       const response = await fetch("/api/platform/admin/ai-usage", { cache: "no-store" });
@@ -46,7 +46,7 @@ export default function AdminAiPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر تحميل سجل الاستخدام.");
     } finally { setLoading(false); }
-  }
+  }, []);
   useEffect(() => {
     fetch("/api/auth/session", { cache: "no-store" }).then(async (response) => {
       const session = await response.json();
@@ -57,7 +57,7 @@ export default function AdminAiPage() {
       if (session.user?.mustChangePassword) { router.replace("/account/change-password"); return; }
       void load();
     }).catch(() => router.replace("/login?next=/platform-admin/ai"));
-  }, [router]);
+  }, [router, load]);
 
   const totals = data?.totals;
   return <PlatformLayout title="إدارة الذكاء الاصطناعي" eyebrow="ETZAN · AI OPERATIONS" description="متابعة استهلاك النماذج، مراجعة التكلفة المبلغ عنها، وإدارة نقاط التكامل والتطوير.">
