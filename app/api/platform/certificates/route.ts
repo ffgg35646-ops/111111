@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     try { const db = await getClinicalDatabase(); const certificates = await db.collection("platform_certificates").find({ userId: actor.userId }, { projection: { _id: 0, serial: 1, learnerName: 1, courseTitle: 1, issuedAt: 1, certificateType: 1, status: 1 } }).sort({ issuedAt: -1 }).limit(100).toArray(); return NextResponse.json({ certificates }, { headers: { "Cache-Control": "no-store" } }); } catch (error) { console.error("My certificates lookup failed", error); return NextResponse.json({ error: "تعذر تحميل شهاداتك." }, { status: 503 }); }
   }
   const serial = clean(request.nextUrl.searchParams.get("code"), 60).toUpperCase();
-  if (!/^[A-F0-9-]{20,60}$/.test(serial)) {
+  if (!/^[A-Z0-9-]{12,60}$/.test(serial)) {
     return NextResponse.json({ error: "أدخل رمز تحقق صالحاً." }, { status: 400 });
   }
   try {
@@ -110,7 +110,7 @@ export async function PATCH(request: NextRequest) {
   try { body = await request.json(); } catch { return NextResponse.json({ error: "بيانات الإلغاء غير صالحة." }, { status: 400 }); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "أدخل رمز الشهادة." }, { status: 400 });
   const serial = clean((body as Record<string, unknown>).serial, 60).toUpperCase();
-  if (!/^[A-F0-9-]{20,60}$/.test(serial)) return NextResponse.json({ error: "رمز الشهادة غير صالح." }, { status: 400 });
+  if (!/^[A-Z0-9-]{12,60}$/.test(serial)) return NextResponse.json({ error: "رمز الشهادة غير صالح." }, { status: 400 });
   try {
     const db = await getClinicalDatabase();
     const result = await db.collection("platform_certificates").updateOne({ serial, status: "issued" }, { $set: { status: "revoked", revokedAt: new Date(), revokedBy: actor.userId } });
