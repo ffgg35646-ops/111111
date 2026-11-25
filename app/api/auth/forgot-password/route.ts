@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "أدخل بريداً إلكترونياً صحيحاً." }, { status: 400 });
   try {
     const db = await getClinicalDatabase();
-    const account = await db.collection("platform_users").findOne({ email, role: "trainee", status: "active", emailVerified: true }, { projection: { _id: 0, userId: 1 } });
+    const account = await db.collection("platform_users").findOne({ email, status: "active", $or: [{ emailVerified: true }, { registrationSource: { $ne: "self_registration" } }] }, { projection: { _id: 0, userId: 1 } });
     if (account) {
       const code = createEmailCode(), now = new Date(), codes = db.collection("platform_email_codes");
       await codes.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
