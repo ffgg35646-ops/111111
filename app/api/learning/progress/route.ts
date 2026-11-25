@@ -35,16 +35,31 @@ async function hasCourseAccess(
   return Boolean(enrollment);
 }
 
+async function resolveCourse(db: Awaited<ReturnType<typeof getClinicalDatabase>>, courseId: string) {
+  const catalogCourse = courses.find((item) => item.id === courseId);
+  if (catalogCourse) return catalogCourse;
+  const stored = await db.collection("platform_course_content").findOne(
+    { courseId, status: "published" },
+    { projection: { _id: 0, courseId: 1, title: 1, trackId: 1, lessons: 1 } },
+  );
+  if (!stored) return null;
+  const lessons = Array.isArray(stored.lessons) ? stored.lessons.map((lesson: Record<string, unknown>) => String(lesson.title || "")) : [];
+  return {
+    id: String(stored.courseId), title: String(stored.title || "دورة تدريبية"),
+    trackId: String(stored.trackId || "mental-health"), mode: "recorded" as const,
+    lessons,
+  };
+}
+
 export async function GET(request: NextRequest) {
   const actor = await requirePlatformRole(request, [...allowed]);
   if (!actor) return NextResponse.json({ error: "سجل الدخول لحفظ تقدم التعلم." }, { status: 401 });
 
   const courseId = clean(request.nextUrl.searchParams.get("courseId"), 80);
-  const course = courses.find((item) => item.id === courseId);
-  if (!course) return NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 });
-
   try {
     const db = await getClinicalDatabase();
+    const course = await resolveCourse(db, courseId);
+    if (!course) return NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 });
     if (!(await hasCourseAccess(db, actor, courseId))) {
       return NextResponse.json(
         { error: "يلزم اعتماد الالتحاق وسداد رسوم الدورة قبل فتح محتواها.", code: "payment_required" },
@@ -96,14 +111,6 @@ export async function POST(request: NextRequest) {
 
   const data = body as Record<string, unknown>;
   const courseId = clean(data.courseId, 80);
-  const course = courses.find((item) => item.id === courseId);
-  if (!course) return NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 });
-
-  const completed = Array.isArray(data.completedLessons)
-    ? [...new Set(data.completedLessons.filter(
-        (value): value is number => Number.isInteger(value) && Number(value) >= 0 && Number(value) < course.lessons.length,
-      ))]
-    : [];
   const reflection = clean(data.reflection, 3000);
   const rawAnswers = data.quizAnswers && typeof data.quizAnswers === "object" && !Array.isArray(data.quizAnswers)
     ? data.quizAnswers as Record<string, unknown>
@@ -118,6 +125,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = await getClinicalDatabase();
+    const course = await resolveCourse(db, courseId);
+    if (!course) return NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 });
+    const completed = Array.isArray(data.completedLessons)
+      ? [...new Set(data.completedLessons.filter(
+          (value): value is number => Number.isInteger(value) && Number(value) >= 0 && Number(value) < course.lessons.length,
+        ))]
+      : [];
     if (!(await hasCourseAccess(db, actor, courseId))) {
       return NextResponse.json(
         { error: "يلزم اعتماد الالتحاق وسداد رسوم الدورة قبل حفظ تقدمها.", code: "payment_required" },
