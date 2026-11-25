@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { readPlatformSession, requirePlatformRole, type PlatformRole } from "@/lib/platform-auth";
+import { ensureDefaultProfessionalTemplates } from "@/lib/platform-professional-templates";
 
 export const runtime = "nodejs";
 
-const elevatedRoles: PlatformRole[] = ["admin", "platform_manager", "supervisor", "trainer", "quality_manager"];
-const createRoles: PlatformRole[] = ["admin", "platform_manager", "supervisor", "trainer", "trainee", "consultant"];
-const allowedTypes = new Set(["case-study", "social-assessment", "care-plan", "interview", "follow-up", "referral", "professional-assessment"]);
+const elevatedRoles: PlatformRole[] = ["admin", "platform_manager", "supervisor", "quality_manager"];
+const createRoles: PlatformRole[] = ["admin", "platform_manager", "supervisor", "trainer", "trainee", "consultant", "quality_manager"];
 
 function cleanText(value: unknown, max = 4000) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const db = await getClinicalDatabase();
+    await ensureDefaultProfessionalTemplates(db);
     const records = await db.collection("etzan_professional_forms")
       .find(filter, { projection: { _id: 0 } })
       .sort({ updatedAt: -1 })
@@ -63,12 +64,33 @@ export async function POST(request: NextRequest) {
   const subjectCode = cleanText(data.subjectCode, 60);
   const notes = cleanText(data.notes, 3000);
   const rawValues = data.values;
-  if (!allowedTypes.has(type) || title.length < 3 || !rawValues || typeof rawValues !== "object" || Array.isArray(rawValues)) {
+  if (!/^[a-z0-9-]{3,60}$/.test(type) || title.length < 3 || !rawValues || typeof rawValues !== "object" || Array.isArray(rawValues)) {
     return NextResponse.json({ error: "تحقق من نوع النموذج والعنوان والحقول المطلوبة." }, { status: 400 });
   }
 
+  let template: Record<string, unknown> | null = null;
+  let db: Awaited<ReturnType<typeof getClinicalDatabase>>;
+  try {
+    db = await getClinicalDatabase();
+    await ensureDefaultProfessionalTemplates(db);
+    template = await db.collection("etzan_tool_templates").findOne(
+      { templateId: type, status: "published", allowedRoles: user.role },
+      { projection: { _id: 0, templateId: 1, title: 1, fields: 1 } },
+    ) as Record<string, unknown> | null;
+  } catch (error) {
+    console.error("Professional template permission lookup", error);
+    return NextResponse.json({ error: "تعذر التحقق من صلاحية النموذج." }, { status: 503 });
+  }
+  if (!template || !Array.isArray(template.fields)) {
+    return NextResponse.json({ error: "هذا النموذج غير منشور أو لا تملك صلاحية استخدامه." }, { status: 403 });
+  }
+  const fieldKeys = new Set(template.fields.flatMap((field) =>
+    field && typeof field === "object" && typeof (field as Record<string, unknown>).key === "string"
+      ? [String((field as Record<string, unknown>).key)] : [],
+  ));
   const values = Object.fromEntries(
     Object.entries(rawValues as Record<string, unknown>)
+      .filter(([key]) => fieldKeys.has(key))
       .slice(0, 40)
       .map(([key, value]) => [cleanText(key, 100), cleanText(value, 5000)])
       .filter(([key]) => Boolean(key)),
@@ -79,7 +101,7 @@ export async function POST(request: NextRequest) {
   const record = {
     recordId: randomUUID(),
     type,
-    title,
+    title: cleanText(template.title, 160) || title,
     subjectCode,
     notes,
     values,
@@ -93,7 +115,6 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const db = await getClinicalDatabase();
     await db.collection("etzan_professional_forms").insertOne(record);
     await db.collection("platform_audit_logs").insertOne({
       action: "professional_form_created",
