@@ -62,8 +62,19 @@ export async function POST(request: NextRequest) {
   });
   if (lessons.some(lesson => !lesson.title)) return NextResponse.json({ error: "اكتب اسماً لكل درس قبل الحفظ." }, { status: 400 });
   if (lessons.some(lesson => lesson.uploadStatus === "uploaded" && !lesson.videoId)) return NextResponse.json({ error: "يوجد درس حالته مرفوع دون معرّف فيديو صالح." }, { status: 400 });
+  if (data.publish === true && lessons.some(lesson => lesson.uploadStatus !== "uploaded" || !lesson.videoId)) return NextResponse.json({ error: "لا يمكن نشر الكورس قبل اكتمال رفع وتجهيز فيديو كل درس." }, { status: 400 });
 
   try {
+    if (data.publish === true) {
+      const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+      const apiKey = process.env.BUNNY_STREAM_API_KEY;
+      if (!libraryId || !apiKey) return NextResponse.json({ error: "إعدادات Bunny Stream غير مكتملة؛ لا يمكن التحقق من جاهزية الفيديوهات." }, { status: 503 });
+      for (const lesson of lessons) {
+        const check = await fetch("https://video.bunnycdn.com/library/" + encodeURIComponent(libraryId) + "/videos/" + encodeURIComponent(lesson.videoId), { headers: { AccessKey: apiKey, Accept: "application/json" }, cache: "no-store" });
+        const video = await check.json().catch(() => ({}));
+        if (!check.ok || Number(video.status) !== 3) return NextResponse.json({ error: "الفيديو «" + lesson.title + "» لم يكتمل تجهيزه بعد. انتظر حتى تظهر حالة جاهز للمشاهدة." }, { status: 409 });
+      }
+    }
     const db = await getClinicalDatabase();
     const now = new Date();
     const collection = db.collection("platform_course_content");
