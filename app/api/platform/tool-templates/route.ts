@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { PLATFORM_ROLES, requirePlatformRole, type PlatformRole } from "@/lib/platform-auth";
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
     await ensureDefaultProfessionalTemplates(db);
     const query = managers.includes(actor.role) ? {} : { status: "published", allowedRoles: actor.role };
     const templates = await db.collection("etzan_tool_templates").find(query, { projection: { _id: 0 } }).sort({ group: 1, title: 1 }).toArray();
-    return NextResponse.json({ templates }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ templates: templates.map((item) => ({ ...item, id: String(item.templateId || item.id || "") })) }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Professional tool templates GET", error);
     return NextResponse.json({ error: "تعذر تحميل مكتبة النماذج." }, { status: 503 });
