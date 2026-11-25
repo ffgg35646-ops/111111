@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
   const validAccount = Boolean(account &&
     account.status === "active" &&
-    (account.role !== "trainee" || account.emailVerified === true) &&
+    (account.role !== "trainee" || account.registrationSource !== "self_registration" || account.emailVerified === true) &&
     typeof account.userId === "string" &&
     typeof account.email === "string" &&
     typeof account.name === "string" &&
