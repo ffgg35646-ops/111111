@@ -68,7 +68,7 @@ export default function CourseLearningPage() {
   const [progressSaveError,setProgressSaveError] = useState("");
   const [customQuiz,setCustomQuiz] = useState<PlatformQuizQuestion[]>([]);
   useEffect(()=>{
-    if(staticCourse){setDynamicLoading(false);return;}
+    if(staticCourse)return;
     let active=true;
     fetch("/api/academy/courses/"+encodeURIComponent(params.courseId),{cache:"no-store"})
       .then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error||"الدورة غير موجودة.");return data.course;})
