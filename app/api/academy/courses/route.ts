@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const actor = await requirePlatformRole(new Request("https://local.invalid") as never, ["trainee"]);
+export async function GET(request: NextRequest) {
+  const actor = await requirePlatformRole(request, ["trainee"]);
   if (!actor) return NextResponse.json({ error: "سجل الدخول لاستعراض الدورات." }, { status: 401 });
   try {
     const db = await getClinicalDatabase();
