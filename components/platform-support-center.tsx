@@ -144,7 +144,7 @@ export function PlatformSupportCenter({ mode }: { mode: Mode }) {
   const visibleTickets = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("ar");
     return tickets.filter((ticket) => (filter === "all" || ticket.status === filter) && (!needle || (ticket.subject + " " + ticket.ticketNumber + " " + ticket.createdByName).toLocaleLowerCase("ar").includes(needle)));
-  }, [tickets, query]);
+  }, [tickets, query, filter]);
 
   const summary = useMemo(() => ({
     total: tickets.length,
