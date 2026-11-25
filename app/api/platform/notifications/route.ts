@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       collection.find(
         { recipientUserId: actor.userId },
         { projection: { _id: 0, notificationId: 1, title: 1, message: 1, href: 1, type: 1, createdAt: 1, readAt: 1 } },
-      ).sort({ createdAt: -1 }).limit(15).toArray(),
+      ).sort({ createdAt: -1 }).limit(100).toArray(),
       collection.countDocuments({ recipientUserId: actor.userId, readAt: null }),
     ]);
     return NextResponse.json({ notifications: items, unreadCount }, { headers: { "Cache-Control": "no-store" } });

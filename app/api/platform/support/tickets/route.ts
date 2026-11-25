@@ -113,10 +113,11 @@ export async function POST(request: NextRequest) {
       };
       await messages.insertOne(message);
       const nextStatus = staff ? "waiting_student" : "waiting_support";
+      const savedStatus = ticket.status === "closed" || ticket.status === "resolved" ? "open" : nextStatus;
       await tickets.updateOne(
         { ticketId },
         { $set: {
-          status: ticket.status === "closed" || ticket.status === "resolved" ? "open" : nextStatus,
+          status: savedStatus,
           updatedAt: now, lastMessageAt: now, lastMessagePreview: preview(messageText),
           lastMessageBy: actor.userId,
         }, $inc: { messageCount: 1 } },
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
           metadata: { ticketId },
         }, [actor.userId]);
       }
-      return NextResponse.json({ success: true, ticketId, status: nextStatus });
+      return NextResponse.json({ success: true, ticketId, status: savedStatus });
     }
 
     if (actor.role !== "trainee") {

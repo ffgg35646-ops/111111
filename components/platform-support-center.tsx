@@ -84,7 +84,7 @@ export function PlatformSupportCenter({ mode }: { mode: Mode }) {
 
   const loadTickets = useCallback(async () => {
     try {
-      const response = await fetch("/api/platform/support/tickets?status=" + encodeURIComponent(filter), { cache: "no-store" });
+      const response = await fetch("/api/platform/support/tickets", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر تحميل التذاكر.");
       setTickets(Array.isArray(data.tickets) ? data.tickets : []);
@@ -94,7 +94,7 @@ export function PlatformSupportCenter({ mode }: { mode: Mode }) {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, []);
 
   const loadDetail = useCallback(async (ticketId: string) => {
     if (!ticketId) return;
@@ -144,7 +144,7 @@ export function PlatformSupportCenter({ mode }: { mode: Mode }) {
 
   const visibleTickets = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("ar");
-    return tickets.filter((ticket) => !needle || (ticket.subject + " " + ticket.ticketNumber + " " + ticket.createdByName).toLocaleLowerCase("ar").includes(needle));
+    return tickets.filter((ticket) => (filter === "all" || ticket.status === filter) && (!needle || (ticket.subject + " " + ticket.ticketNumber + " " + ticket.createdByName).toLocaleLowerCase("ar").includes(needle)));
   }, [tickets, query]);
 
   const summary = useMemo(() => ({
