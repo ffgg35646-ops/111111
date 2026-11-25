@@ -60,7 +60,29 @@ export default function SpecialistTracksAdminPage() {
     }
   }, [creating, selectedId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/platform/admin/specialist-tracks", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل المسارات المهنية.");
+        if (!active) return;
+        const rows: Track[] = Array.isArray(data.tracks) ? data.tracks : [];
+        setTracks(rows);
+        const first = rows[0];
+        if (first) {
+          setSelectedId(first.id);
+          setDraft(toDraft(first));
+        }
+      })
+      .catch((e) => {
+        if (active) setError(e instanceof Error ? e.message : "تعذر تحميل المسارات المهنية.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
 
   function refresh() {
     setLoading(true);
