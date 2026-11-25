@@ -6,10 +6,11 @@ import Link from "next/link";
 import { BookOpen, Brain, ClipboardList, Clock3, GraduationCap, PlayCircle, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import PlatformRequestForm from "@/components/platform-request-form";
-import { courses, learningTracks } from "@/lib/platform-catalog";
+import { courses, learningTracks, type Course } from "@/lib/platform-catalog";
 
 const modeLabels={recorded:"مسجلة",live:"مباشرة",hybrid:"مباشرة ومسجلة"};
 type PublishedCourse = { id:string; title:string; summary:string; trackId:string; category:string; mode:"recorded"|"live"|"hybrid"; contentType?:"course"|"program"; level:string; duration:string; outcomes:string[]; lessons:{id:string;title:string;videoReady:boolean}[]; price:number };
+type AcademyCourse = Course & { contentType:"course"|"program"; price?:number; currency?:string };
 
 function AcademyWorkspace() {
   const params = useSearchParams();
@@ -23,8 +24,8 @@ function AcademyWorkspace() {
   const [coursePrices,setCoursePrices]=useState<Record<string,number>>({});
   const [publishedCourses,setPublishedCourses]=useState<PublishedCourse[]>([]);
   useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));fetch("/api/academy/courses",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const rows=Array.isArray(data.courses)?data.courses:[];setPublishedCourses(rows);setCoursePrices(current=>({...current,...Object.fromEntries(rows.filter((item:PublishedCourse)=>typeof item.price==="number").map((item:PublishedCourse)=>[item.id,item.price]))}));}}).catch(error=>console.error("Published ETZAN courses unavailable",error));return()=>{active=false}},[]);
-  const allCourses=useMemo(()=>[...courses,...publishedCourses.map(item=>({...item,lessons:item.lessons.map(lesson=>lesson.title)}))],[publishedCourses]);
-  const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)&&(contentType==="all"||(("contentType" in course ? course.contentType : undefined)||"course")===contentType)),[allCourses,track,mode,contentType]);
+  const allCourses=useMemo<AcademyCourse[]>(()=>[...courses.map(item=>({...item,contentType:"course" as const})),...publishedCourses.map(item=>({...item,contentType:item.contentType==="program"?"program" as const:"course" as const,lessons:item.lessons.map(lesson=>lesson.title)}))],[publishedCourses]);
+  const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)&&(contentType==="all"||(course.contentType||"course")===contentType)),[allCourses,track,mode,contentType]);
   const chosen=allCourses.find(course=>course.id===selectedCourse);
 
   return <PlatformLayout title="الأكاديمية والمسارات التدريبية" description="برامج منظمة في الخدمة الاجتماعية وعلم النفس وCBT والإرشاد الأسري والاضطرابات النمائية والتوحد والقياس النفسي والممارسة الإكلينيكية والتطوير المهني.">
