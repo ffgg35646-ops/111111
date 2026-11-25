@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search, RefreshCw, Users, UserRound, BookOpen, Clock3, Circle,
-  Ban, CheckCircle2, Trash2, X, CalendarDays, Mail,
+  Ban, CheckCircle2, Trash2, X, Mail,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
@@ -42,7 +42,7 @@ export default function PlatformStudentsPage() {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [selected, setSelected] = useState<Student | null>(null);
 
-  async function load(showLoading = true) {
+  const load = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     setError("");
     try {
@@ -53,16 +53,22 @@ export default function PlatformStudentsPage() {
         return;
       }
       if (!response.ok) throw new Error(data.error || "تعذر تحميل الطلاب.");
-      setStudents(Array.isArray(data.students) ? data.students : []);
+      const nextStudents = Array.isArray(data.students) ? data.students as Student[] : [];
+      setStudents(nextStudents);
       setSummary(data.summary || { total: 0, online: 0, offline: 0, blocked: 0 });
+      setSelected((current) => current ? nextStudents.find((student) => student.userId === current.userId) || current : current);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر تحميل الطلاب.");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+    const refresh = window.setInterval(() => { void load(false); }, 30_000);
+    return () => window.clearInterval(refresh);
+  }, [load]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase("ar");
   const matching = useMemo(() => students.filter((student) => {
