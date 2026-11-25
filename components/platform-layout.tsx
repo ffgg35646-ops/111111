@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { NotificationBell } from "@/components/notification-bell";
 import {
   Activity, Award, BookOpen, Brain, CalendarDays, ClipboardCheck,
   FileText, GraduationCap, HeartHandshake, Home, Library, LockKeyhole,
@@ -110,6 +111,8 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
           <Link href="/dashboard" onClick={onClose} className={"portal-side-link portal-dashboard-link" + (isActive("/dashboard") ? " active" : "")} aria-current={isActive("/dashboard") ? "page" : undefined}>
             <Home size={17}/><span>لوحة العمل</span>
           </Link>
+          {user?.role === "trainee" && <Link href="/support" onClick={onClose} className={"portal-side-link" + (isActive("/support") ? " active" : "")}><MessageSquare size={17}/><span>الدعم الفني</span></Link>}
+          {user && ["admin", "platform_manager", "support"].includes(user.role) && <Link href="/platform-admin/support" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/support") ? " active" : "")}><MessageSquare size={17}/><span>تذاكر دعم الطلاب</span></Link>}
 
           {navigationGroups.map((group) => {
             const items = navigation.filter((item) => item.group === group && (!item.roles || (user && item.roles.includes(user.role))));
@@ -157,7 +160,7 @@ export function PlatformLayout({ title, eyebrow = "اتزان", description, chi
               </button>
               <div className="portal-breadcrumb"><span>اتزان</span><b>/</b><strong>{title}</strong></div>
             </div>
-            <Link href="/" className="portal-home-link"><Home size={16}/> <span>الصفحة الرئيسية</span></Link>
+            <div className="portal-topbar-actions"><NotificationBell/><Link href="/" className="portal-home-link"><Home size={16}/> <span>الصفحة الرئيسية</span></Link></div>
           </header>
 
           <div className="portal-content">

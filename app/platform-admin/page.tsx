@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { NotificationBell } from "@/components/notification-bell";
 
 type NavItem = { label: string; href: string };
 type NavSection = { title: string; items: NavItem[] };
@@ -38,6 +39,7 @@ const sections: NavSection[] = [
   ] },
   { title: "التشغيل والتدريب", items: [
     { label: "طلبات المنصة", href: "/platform-admin/requests" },
+    { label: "تذاكر دعم الطلاب", href: "/platform-admin/support" },
     { label: "الفصول المباشرة", href: "/platform-admin/classrooms" },
     { label: "إدارة سيناريوهات المحاكاة", href: "/simulation/manage" },
     { label: "الحالات التدريبية", href: "/cases" },
@@ -53,6 +55,7 @@ const shortcuts: NavItem[] = [
   { label: "إدارة الحسابات", href: "/platform-admin/users" },
   { label: "إسناد المدربين للدورات", href: "/platform-admin/courses" },
   { label: "مراجعة الطلبات والحجوزات", href: "/platform-admin/requests" },
+  { label: "تذاكر دعم الطلاب", href: "/platform-admin/support" },
   { label: "إدارة المواعيد", href: "/platform-admin/availability" },
   { label: "جلسات التدريب المباشر", href: "/platform-admin/classrooms" },
   { label: "متابعة المدفوعات", href: "/platform-admin/payments" },
@@ -153,6 +156,7 @@ export default function AdminDashboardPage() {
             <div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div>
           </div>
           <div className="topbar-actions">
+            <NotificationBell/>
             <label className="search-box">
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن وحدة أو إجراء..." aria-label="البحث في وحدات الإدارة" />
             </label>

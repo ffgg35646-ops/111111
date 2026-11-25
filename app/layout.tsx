@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import "./platform.css";
 import "./etzan.css";
+import "./support.css";
 
 export const metadata: Metadata = {
   title: "اتزان | ETZAN",
