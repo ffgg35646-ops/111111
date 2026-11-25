@@ -22,8 +22,8 @@ function AcademyWorkspace() {
   const [coursePrices,setCoursePrices]=useState<Record<string,number>>({});
   const [publishedCourses,setPublishedCourses]=useState<PublishedCourse[]>([]);
   useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));fetch("/api/academy/courses",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const rows=Array.isArray(data.courses)?data.courses:[];setPublishedCourses(rows);setCoursePrices(current=>({...current,...Object.fromEntries(rows.filter((item:PublishedCourse)=>typeof item.price==="number").map((item:PublishedCourse)=>[item.id,item.price]))}));}}).catch(error=>console.error("Published ETZAN courses unavailable",error));return()=>{active=false}},[]);
-  const allCourses=[...courses,...publishedCourses.map(item=>({...item,lessons:item.lessons.map(lesson=>lesson.title)}))];
-  const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[track,mode,publishedCourses]);
+  const allCourses=useMemo(()=>[...courses,...publishedCourses.map(item=>({...item,lessons:item.lessons.map(lesson=>lesson.title)}))],[publishedCourses]);
+  const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[allCourses,track,mode]);
   const chosen=allCourses.find(course=>course.id===selectedCourse);
 
   return <PlatformLayout title="الأكاديمية والمسارات التدريبية" description="برامج منظمة في الخدمة الاجتماعية وعلم النفس وCBT والإرشاد الأسري والاضطرابات النمائية والتوحد والقياس النفسي والممارسة الإكلينيكية والتطوير المهني.">
