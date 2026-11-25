@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
     const encoded = createPasswordHash(password).split("$"), now = new Date();
     const updated = await db.collection("platform_users").updateOne(
-      { userId: record.userId, email, role: "trainee", status: "active", emailVerified: true },
+      { userId: record.userId, email, status: "active", $or: [{ emailVerified: true }, { registrationSource: { $ne: "self_registration" } }] },
       { $set: { passwordSalt: encoded[1], passwordHash: encoded[2], passwordChangedAt: now, updatedAt: now, mustChangePassword: false } },
     );
     if (!updated.modifiedCount) return NextResponse.json({ error: "الحساب غير متاح لإعادة تعيين كلمة المرور." }, { status: 404 });
