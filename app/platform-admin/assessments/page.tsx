@@ -149,7 +149,7 @@ export default function PlatformAdminAssessmentsPage() {
             <label className="portal-field">نطاقات التفسير (سطر: الحد الأدنى | الحد الأعلى | التسمية | الوصف)<textarea rows={4} value={bandsText} onChange={e=>setBandsText(e.target.value)} placeholder={"0|10|منخفض|وصف وفق دليل الأداة"}/></label>
           </>}
           <label className="portal-field">حالة النشر<select value={form.status} onChange={e=>setForm(v=>({...v,status:e.target.value as Scale["status"]}))}><option value="draft">مسودة</option><option value="published">منشور</option></select></label>
-          {form.trainingOnly&&<p className="portal-callout">أداة تدريبية أصلية وغير مقننة؛ لا تستخدم لتشخيص أو إصدار درجة معيارية.</p>}
+          {selected?.trainingOnly&&<p className="portal-callout">أداة تدريبية أصلية وغير مقننة؛ لا تستخدم لتشخيص أو إصدار درجة معيارية.</p>}
           {error&&<p role="alert" style={{color:"#aa443d",fontSize:12}}>{error}</p>}{notice&&<p role="status" style={{color:"#218067",fontSize:12}}>{notice}</p>}
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="portal-button" disabled={saving} onClick={()=>void save()}><Save size={14}/>{saving?"جارٍ الحفظ...":"حفظ المقياس"}</button>{form.scaleId&&<button className="portal-button secondary" disabled={saving} onClick={()=>void archive()}><Archive size={14}/> أرشفة</button>}</div>
         </div>
