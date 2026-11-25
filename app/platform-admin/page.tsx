@@ -120,7 +120,7 @@ export default function AdminDashboardPage() {
     return shortcuts.filter((item) => !needle || item.label.toLocaleLowerCase("ar").includes(needle));
   }, [query]);
 
-  if (checking) return <main className="app-shell" dir="rtl"><div className="portal-empty">جارٍ التحقق من صلاحية الإدارة...</div></main>;
+  if (checking) return <main className="app-shell admin-dashboard-shell" dir="rtl" aria-busy="true"><aside className="sidebar"><div className="brand-block"><div className="brand-copy"><strong>اتزان | ETZAN</strong><span>الإدارة والتشغيل</span></div></div></aside><section className="main-area"><header className="topbar"><div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div></header><div className="page-content"><div className="stats-grid admin-stats-grid">{[0,1,2,3].map((item)=><section className="stat-card" key={item}><div className="portal-skeleton" style={{width:"55%",height:11,marginBottom:18}}/><div className="portal-skeleton" style={{width:"38%",height:27,marginBottom:12}}/><div className="portal-skeleton" style={{width:"72%",height:9}}/></section>)}</div><section className="panel roadmap-panel"><div className="portal-skeleton" style={{width:"34%",height:16,marginBottom:18}}/><div className="portal-skeleton" style={{width:"92%",height:11,marginBottom:10}}/><div className="portal-skeleton" style={{width:"76%",height:11}}/></section></div></section></main>;
   if (!authorized) return null;
 
   return (
