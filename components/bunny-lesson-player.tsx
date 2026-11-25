@@ -11,8 +11,6 @@ export function BunnyLessonPlayer({ courseId, lessonId, title }: { courseId: str
   useEffect(() => {
     let active = true;
     const load = async () => {
-      setLoading(true);
-      setError("");
       try {
         const response = await fetch("/api/academy/courses/" + encodeURIComponent(courseId) + "/lessons/" + encodeURIComponent(lessonId) + "/video", { cache: "no-store" });
         const data = await response.json();
