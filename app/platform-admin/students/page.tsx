@@ -65,9 +65,12 @@ export default function PlatformStudentsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    const initialLoad = window.setTimeout(() => { void load(); }, 0);
     const refresh = window.setInterval(() => { void load(false); }, 30_000);
-    return () => window.clearInterval(refresh);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(refresh);
+    };
   }, [load]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase("ar");
