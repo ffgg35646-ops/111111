@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, Plus, Save, Trash2, UploadCloud } from "lucide-react";
+import { ArrowRight, BookOpen, Check, LoaderCircle, Plus, Save, Trash2, UploadCloud } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
 type LessonDraft = { id: string; title: string; videoId: string; videoName: string; videoSize: number; uploadStatus: string; progress: number; error: string };
@@ -104,7 +104,7 @@ export default function CourseEditorPage() {
           }
         }
       }
-      patchLesson(lesson.id, { videoId: session.videoId, videoName: file.name, videoSize: file.size, uploadStatus: "processing", progress: 100, error: "اكتمل نقل الملف، وجارٍ تجهيز الفيديو والجودات للمشاهدة." });
+      patchLesson(lesson.id, { videoId: session.videoId, videoName: file.name, videoSize: file.size, uploadStatus: "processing", progress: 100, error: "" });
     } catch (cause) {
       patchLesson(lesson.id, { uploadStatus: "failed", error: cause instanceof Error ? cause.message : "فشل رفع الفيديو." });
     }
