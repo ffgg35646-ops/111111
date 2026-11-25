@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Download, FileCheck2, FileText, FolderOpen, Printer, Save, Search, ShieldCheck, ClipboardList, CheckCircle2, AlertCircle } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
-import { defaultProfessionalTemplates, type ProfessionalToolTemplate } from "@/lib/platform-professional-templates";
+import type { ProfessionalToolTemplate } from "@/lib/platform-professional-templates";
 
 type Field = { key: string; label: string };
 type Template = ProfessionalToolTemplate;
@@ -13,7 +13,7 @@ function downloadText(title:string,fields:Field[],values:Record<string,string>,c
  const blob=new Blob(["\uFEFF"+lines.join("\n")],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=title.replace(/[^\u0600-\u06FF\w-]+/g,"-")+".txt";a.click();URL.revokeObjectURL(url);
 }
 export default function ToolsPage(){
- const [templates,setTemplates]=useState<Template[]>(defaultProfessionalTemplates),[selected,setSelected]=useState(defaultProfessionalTemplates[0].id),[values,setValues]=useState<Record<string,string>>({}),[code,setCode]=useState(""),[notes,setNotes]=useState("");
+ const [templates,setTemplates]=useState<Template[]>([]),[selected,setSelected]=useState(""),[values,setValues]=useState<Record<string,string>>({}),[code,setCode]=useState(""),[notes,setNotes]=useState("");
  const [records,setRecords]=useState<RecordItem[]>([]),[role,setRole]=useState(""),[name,setName]=useState(""),[query,setQuery]=useState("");
  const [loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
  const active=templates.find(t=>t.id===selected)||templates[0],canCreate=Boolean(role&&active?.allowedRoles?.includes(role));
@@ -25,7 +25,7 @@ export default function ToolsPage(){
    if(s.ok){const d=await s.json();if(d.authenticated&&d.user){setRole(String(d.user.role));setName(String(d.user.name));}}
    if(f.ok){const d=await f.json();setRecords(Array.isArray(d.records)?d.records:[]);}
    else if(f.status!==401){const d=await f.json().catch(()=>({}));setError(d.error||"تعذر تحميل الملفات.");}
-   if(t.ok){const d=await t.json();if(Array.isArray(d.templates)&&d.templates.length){setTemplates(d.templates);setSelected(current=>d.templates.some((item:Template)=>item.id===current)?current:d.templates[0].id);}}
+   if(t.ok){const d=await t.json();if(Array.isArray(d.templates)){setTemplates(d.templates);setSelected(current=>d.templates.some((item:Template)=>item.id===current)?current:(d.templates[0]?.id||""));}}
    else if(t.status!==401){const d=await t.json().catch(()=>({}));setError(d.error||"تعذر تحميل تعريفات النماذج.");}
   }catch{setError("تعذر الاتصال بالخادم.");}finally{setLoading(false);}
  }
@@ -50,7 +50,7 @@ export default function ToolsPage(){
     <div className="professional-fields">{active.fields.map((f,i)=><label className="professional-field" key={f.key}><span><b>{String(i+1).padStart(2,"0")}</b>{f.label}</span><textarea rows={3} maxLength={5000} value={values[f.key]||""} onChange={e=>setValues(v=>({...v,[f.key]:e.target.value}))} placeholder="اكتب الملاحظات المهنية هنا..."/></label>)}</div>
     <label className="professional-field professional-notes"><span>ملاحظات إضافية</span><textarea rows={3} maxLength={3000} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="ملاحظات أخرى مرتبطة بالنموذج..."/></label>
     {error&&<p className="professional-alert error"><AlertCircle size={16}/>{error}</p>}{message&&<p className="professional-alert success"><CheckCircle2 size={16}/>{message}</p>}
-    <div className="professional-actions"><button className="portal-button" type="submit" disabled={!canCreate||saving}><Save size={15}/>{saving?"جارٍ الحفظ...":"حفظ النموذج في ملفاتي"}</button>{active.allowDownload&&<button className="portal-button secondary" type="button" onClick={()=>downloadText(active.title,active.fields,values,code,notes)}><Download size={15}/> تنزيل TXT</button>}{active.allowPrint&&<button className="portal-button secondary" type="button" onClick={()=>window.print()}><Printer size={15}/> طباعة / حفظ PDF</button>}{!canCreate&&<small>تسجيل الدخول بدور مخول مطلوب لحفظ النماذج.</small>}</div>
+    <div className="professional-actions"><button className="portal-button" type="submit" disabled={!canCreate||saving}><Save size={15}/>{saving?"جارٍ الحفظ...":"حفظ النموذج في ملفاتي"}</button>{role&&active.allowDownload&&<button className="portal-button secondary" type="button" onClick={()=>downloadText(active.title,active.fields,values,code,notes)}><Download size={15}/> تنزيل TXT</button>}{role&&active.allowPrint&&<button className="portal-button secondary" type="button" onClick={()=>window.print()}><Printer size={15}/> طباعة / حفظ PDF</button>}{!canCreate&&<small>تسجيل الدخول بدور مخول مطلوب لحفظ النماذج.</small>}</div>
    </form>
   </section>
   <section className="professional-saved-section"><div className="portal-section-title"><div><h2><FolderOpen size={18} style={{verticalAlign:"middle"}}/> الملفات المحفوظة</h2><p>ملفاتك السابقة أو الملفات المتاحة لك بحسب دورك</p></div><span className="portal-chip">{records.length} ملف</span></div>
