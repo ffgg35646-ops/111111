@@ -223,7 +223,7 @@ export default function SpecialistTrainingHub() {
   const requestedTrack = params.get("track");
   const [managedTracks, setManagedTracks] = useState<ManagedTrack[]>([]);
   const [tracksLoaded, setTracksLoaded] = useState(false);
-  const [activeTrackId, setActiveTrackId] = useState(requestedTrack || "social-work");
+  const [selectedTrackId, setSelectedTrackId] = useState(requestedTrack || "social-work");
   const [section, setSection] = useState<Section>(() => sectionFromQuery(params.get("section")));
 
   useEffect(() => {
@@ -273,13 +273,9 @@ export default function SpecialistTrainingHub() {
     return [...builtIn, ...custom];
   }, [managedTracks, tracksLoaded]);
 
-  useEffect(() => {
-    if (requestedTrack && allTracks.some((track) => track.id === requestedTrack)) {
-      setActiveTrackId(requestedTrack);
-    } else if (!allTracks.some((track) => track.id === activeTrackId)) {
-      setActiveTrackId(allTracks[0]?.id || "");
-    }
-  }, [requestedTrack, allTracks, activeTrackId]);
+  const activeTrackId = allTracks.some((track) => track.id === selectedTrackId)
+    ? selectedTrackId
+    : allTracks[0]?.id || "";
   const [caseDraft, setCaseDraft] = useState(initialCaseDraft);
   const [caseSummary, setCaseSummary] = useState(false);
   const [selectedToolId, setSelectedToolId] = useState<string>(scaleTools[0].id);
@@ -355,7 +351,7 @@ export default function SpecialistTrainingHub() {
               <div className="specialist-track-list">
                 {allTracks.map((track) => {
                   const Icon = track.icon;
-                  return <button type="button" key={track.id} onClick={() => setActiveTrackId(track.id)} className={activeTrackId === track.id ? "specialist-track-button selected" : "specialist-track-button"}>
+                  return <button type="button" key={track.id} onClick={() => setSelectedTrackId(track.id)} className={activeTrackId === track.id ? "specialist-track-button selected" : "specialist-track-button"}>
                     <span><Icon size={18} /></span><span><strong>{track.title}</strong><small>{track.category}</small></span><ArrowLeft size={14} />
                   </button>;
                 })}

@@ -21,7 +21,7 @@ const toDraft = (track: Track): Draft => ({
   title: track.title, summary: track.summary, category: track.category || "تخصص مهني",
   practice: track.practice || "", outcomes: (track.outcomes || []).join("\n"),
   units: (track.units || []).join("\n"), iconName: track.iconName || "graduation-cap",
-  status: track.status === "inactive" ? "inactive" : "active", sortOrder: String(track.sortOrder || 100),
+  status: track.status === "active" ? "active" : "inactive", sortOrder: String(track.sortOrder || 100),
 });
 const lines = (value: string) => value.split("\n").map((item) => item.trim()).filter(Boolean);
 
@@ -37,8 +37,6 @@ export default function SpecialistTracksAdminPage() {
   const [notice, setNotice] = useState("");
 
   const load = useCallback(async (preferredId?: string) => {
-    setLoading(true);
-    setError("");
     try {
       const response = await fetch("/api/platform/admin/specialist-tracks", { cache: "no-store" });
       const data = await response.json();
@@ -63,6 +61,12 @@ export default function SpecialistTracksAdminPage() {
   }, [creating, selectedId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  function refresh() {
+    setLoading(true);
+    setError("");
+    void load();
+  }
 
   function choose(track: Track) {
     setCreating(false);
@@ -125,7 +129,7 @@ export default function SpecialistTracksAdminPage() {
     setError("");
     setNotice("");
     try {
-      const status = track.status === "inactive" ? "active" : "inactive";
+      const status = track.status === "active" ? "inactive" : "active";
       const response = await fetch("/api/platform/admin/specialist-tracks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -173,7 +177,7 @@ export default function SpecialistTracksAdminPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
           <h2 style={{ margin: 0 }}>المسارات ({tracks.length})</h2>
           <div style={{ display: "flex", gap: 6 }}>
-            <button type="button" className="portal-button secondary" onClick={() => void load()} disabled={loading}><RefreshCw size={14}/> تحديث</button>
+            <button type="button" className="portal-button secondary" onClick={refresh} disabled={loading}><RefreshCw size={14}/> تحديث</button>
             <button type="button" className="portal-button" onClick={startCreate}><Plus size={14}/> جديد</button>
           </div>
         </div>
@@ -188,7 +192,7 @@ export default function SpecialistTracksAdminPage() {
       <form className="portal-card" onSubmit={save} style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
           <h2 style={{ margin: 0 }}>{creating ? "إضافة مسار مهني جديد" : selected?.title || "تفاصيل المسار"}</h2>
-          {!creating && selected && <button type="button" className="portal-button secondary" onClick={() => void toggleStatus(selected)} disabled={busy === selected.id}>{selected.status === "inactive" ? <ToggleRight size={15}/> : <ToggleLeft size={15}/>} {selected.status === "inactive" ? "تفعيل" : "إيقاف مؤقت"}</button>}
+          {!creating && selected && <button type="button" className="portal-button secondary" onClick={() => void toggleStatus(selected)} disabled={busy === selected.id}>{selected.status !== "active" ? <ToggleRight size={15}/> : <ToggleLeft size={15}/>} {selected.status !== "active" ? "تفعيل" : "إيقاف مؤقت"}</button>}
         </div>
         {!creating && !selected && !loading && <p className="portal-empty">اختر مساراً من القائمة أو أضف مساراً جديداً.</p>}
         <label style={{ display: "grid", gap: 5, fontSize: 10 }}>اسم المسار<input required maxLength={180} value={draft.title} onChange={(e) => patch("title", e.target.value)} /></label>
@@ -204,7 +208,7 @@ export default function SpecialistTracksAdminPage() {
         <label style={{ display: "grid", gap: 5, fontSize: 10 }}>التطبيق العملي<textarea rows={3} maxLength={1200} value={draft.practice} onChange={(e) => patch("practice", e.target.value)} placeholder="مثال: نشاط تطبيقي على حالة افتراضية..." /></label>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button type="submit" className="portal-button" disabled={saving || loading || (!creating && !selected)}><Save size={15}/>{saving ? "جارٍ الحفظ..." : "حفظ المسار"}</button>
-          {selected?.isCustom && !creating && <button type="button" className="portal-button secondary" disabled={busy === selected.id} onClick={() => void archiveTrack(selected)}><Archive size={14}/> أرشفة</button>}
+          {selected?.isCustom && selected.status !== "archived" && !creating && <button type="button" className="portal-button secondary" disabled={busy === selected.id} onClick={() => void archiveTrack(selected)}><Archive size={14}/> أرشفة</button>}
         </div>
       </form>
     </div>

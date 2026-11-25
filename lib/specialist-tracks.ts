@@ -50,7 +50,7 @@ export function buildSpecialistTracks(records: StoredTrack[], includeInactive = 
       iconName: clean(record?.iconName, "graduation-cap", 40),
       status,
       isCustom: false,
-      isManaged: Boolean(record),
+      isManaged: Boolean(record && ["title", "summary", "category", "accent", "skills", "outcomes", "units", "practice", "iconName", "sortOrder"].some((key) => record[key] !== undefined)),
       sortOrder: Number.isFinite(Number(record?.sortOrder)) ? Number(record?.sortOrder) : index + 1,
     });
   });
