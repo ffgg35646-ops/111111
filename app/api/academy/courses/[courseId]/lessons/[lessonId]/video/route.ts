@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { recordSecurityEvent } from "@/lib/platform-security";
+import { approvedCourseEnrollmentFilter } from "@/lib/platform-course-access";
 
 export const runtime = "nodejs";
 type Context = { params: Promise<{ courseId: string; lessonId: string }> };
@@ -15,11 +16,7 @@ export async function GET(request: NextRequest, context: Context) {
     const db = await getClinicalDatabase();
     const [course, enrollment] = await Promise.all([
       db.collection("platform_course_content").findOne({ courseId, status: "published" }, { projection: { _id: 0, title: 1, lessons: 1 } }),
-      db.collection("platform_requests").findOne({
-        email: actor.email.toLowerCase(), courseId,
-        kind: { $in: ["course_enrollment", "classroom_registration"] },
-        status: "approved", paymentStatus: "paid",
-      }, { projection: { _id: 1 } }),
+      db.collection("platform_requests").findOne(approvedCourseEnrollmentFilter(courseId, actor.email), { projection: { _id: 1 } }),
     ]);
     if (!course) return NextResponse.json({ error: "الدورة غير منشورة." }, { status: 404 });
     if (!enrollment) return NextResponse.json({ error: "يلزم اعتماد الالتحاق وسداد رسوم الدورة." }, { status: 403 });

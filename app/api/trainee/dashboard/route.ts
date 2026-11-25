@@ -40,6 +40,15 @@ export async function GET(request: NextRequest) {
       ).sort({ createdAt: -1 }).limit(30).toArray(),
     ]);
 
+    const requestedCourseIds = [...new Set(requests
+      .filter((item) => item.kind === "course_enrollment" || item.kind === "classroom_registration")
+      .map((item) => String(item.courseId || ""))
+      .filter((id) => id && !courses.some((course) => course.id === id)))];
+    const customCourses = requestedCourseIds.length ? await db.collection("platform_course_content").find(
+      { courseId: { $in: requestedCourseIds }, status: "published" },
+      { projection: { _id: 0, courseId: 1, title: 1, trackId: 1, mode: 1, lessons: 1, contentType: 1 } },
+    ).toArray() : [];
+    const customCourseMap = new Map(customCourses.map((course) => [String(course.courseId), course]));
     const latestCourseRequest = new Map<string, Record<string, unknown>>();
     for (const item of requests) {
       if ((item.kind === "course_enrollment" || item.kind === "classroom_registration") && typeof item.courseId === "string" && !latestCourseRequest.has(item.courseId)) {
@@ -48,24 +57,31 @@ export async function GET(request: NextRequest) {
     }
     const progressByCourse = new Map(progressRows.map((row) => [String(row.courseId), row]));
     const enrolledCourses = [...latestCourseRequest.entries()].flatMap(([courseId, registration]) => {
-      const course = courses.find((item) => item.id === courseId);
-      if (!course) return [];
+      const staticCourse = courses.find((item) => item.id === courseId);
+      const customCourse = customCourseMap.get(courseId);
+      if (!staticCourse && !customCourse) return [];
+      const title = staticCourse?.title || String(customCourse?.title || "دورة تدريبية");
+      const trackId = staticCourse?.trackId || String(customCourse?.trackId || "mental-health");
+      const mode = staticCourse?.mode || (customCourse?.mode === "live" || customCourse?.mode === "hybrid" ? customCourse.mode : "recorded");
+      const lessonCount = staticCourse?.lessons.length ?? (Array.isArray(customCourse?.lessons) ? customCourse.lessons.length : 0);
       const progress = progressByCourse.get(courseId);
       const completedLessons = Array.isArray(progress?.completedLessons) ? progress.completedLessons.length : 0;
-      const paid = registration.status === "approved" && registration.paymentStatus === "paid";
+      const paid = registration.status === "approved" && (registration.paymentStatus === "paid" || registration.kind === "classroom_registration");
       return [{
-        id: course.id,
-        title: course.title,
-        trackId: course.trackId,
-        trackTitle: learningTracks.find((item) => item.id === course.trackId)?.title || "مسار تدريبي",
-        mode: course.mode,
+        id: courseId,
+        title,
+        trackId,
+        trackTitle: learningTracks.find((item) => item.id === trackId)?.title || "مسار تدريبي",
+        mode,
+        contentType: customCourse?.contentType === "program" ? "program" : "course",
         status: String(registration.status || "pending_review"),
-        paymentStatus: String(registration.paymentStatus || "unpaid"),
+        paymentStatus: String(registration.paymentStatus || (registration.kind === "classroom_registration" ? "not_required" : "unpaid")),
         paid,
-        completedLessons: Math.min(completedLessons, course.lessons.length),
-        totalLessons: course.lessons.length,
-        progressPercent: Math.round((Math.min(completedLessons, course.lessons.length) / Math.max(1, course.lessons.length)) * 100),
+        completedLessons: Math.min(completedLessons, lessonCount),
+        totalLessons: lessonCount,
+        progressPercent: Math.round((Math.min(completedLessons, lessonCount) / Math.max(1, lessonCount)) * 100),
         updatedAt: progress?.updatedAt || registration.createdAt || null,
+        ...(registration.kind === "classroom_registration" && registration.status === "approved" && registration.zoomMeeting ? { zoomMeeting: registration.zoomMeeting } : {}),
       }];
     }).sort((a, b) => Number(b.paid) - Number(a.paid));
 
@@ -78,6 +94,22 @@ export async function GET(request: NextRequest) {
           ).sort({ startTime: 1 }).limit(40).toArray()
         : Promise.resolve([]),
     ]);
+    const directClassroomSessions = requests.filter((item) =>
+      item.kind === "classroom_registration" && item.status === "approved" &&
+      item.zoomMeeting && typeof item.zoomMeeting.joinUrl === "string" && item.preferredAt,
+    ).map((item) => ({
+      sessionId: String(item.requestId || ""),
+      courseId: String(item.courseId || ""),
+      courseTitle: String(item.courseTitle || "فصل مباشر"),
+      topic: String(item.courseTitle || "فصل مباشر"),
+      startTime: item.preferredAt,
+      durationMinutes: Number(item.durationMinutes) || 90,
+      joinUrl: String(item.zoomMeeting.joinUrl),
+      status: "scheduled",
+    }));
+    const allSessions = [...sessions, ...directClassroomSessions].sort((left, right) =>
+      new Date(String(left.startTime || "")).getTime() - new Date(String(right.startTime || "")).getTime(),
+    );
 
     const consultations = requests.filter((item) => item.kind === "consultation").map((item) => ({
       requestId: item.requestId,
@@ -129,7 +161,7 @@ export async function GET(request: NextRequest) {
       const time = item.preferredAt ? toTimestamp(item.preferredAt) : NaN;
       return Number.isFinite(time) && time >= Date.now() && !["cancelled", "rejected", "refunded"].includes(String(item.status));
     }).length;
-    const upcomingSessions = sessions.filter((item) => toTimestamp(item.startTime) >= Date.now()).length;
+    const upcomingSessions = allSessions.filter((item) => toTimestamp(item.startTime) >= Date.now()).length;
 
     return NextResponse.json({
       user: { name: actor.name, email: actor.email },
@@ -158,7 +190,7 @@ export async function GET(request: NextRequest) {
         amountMajor: typeof payment.amount === "number" ? payment.amount / 100 : null,
       })),
       appointments: consultations,
-      sessions,
+      sessions: allSessions,
       simulations: activities,
       assessmentAttempts: allAssessmentAttempts,
     }, { headers: { "Cache-Control": "no-store" } });

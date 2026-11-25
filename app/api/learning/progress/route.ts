@@ -22,17 +22,7 @@ async function hasCourseAccess(
   courseId: string,
 ) {
   if (actor.role !== "trainee") return true;
-  const enrollment = await db.collection("platform_requests").findOne(
-    {
-      kind: { $in: ["course_enrollment", "classroom_registration"] },
-      courseId,
-      email: actor.email.toLowerCase(),
-      status: "approved",
-      paymentStatus: "paid",
-    },
-    { projection: { _id: 1 } },
-  );
-  return Boolean(enrollment);
+  return hasApprovedCourseEnrollment(db, courseId, actor.email);
 }
 
 async function resolveCourse(db: Awaited<ReturnType<typeof getClinicalDatabase>>, courseId: string) {

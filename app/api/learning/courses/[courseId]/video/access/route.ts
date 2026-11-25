@@ -3,6 +3,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { allowedCourseVideoUrl, createCourseVideoAccessUrl, recordSecurityEvent } from "@/lib/platform-security";
+import { approvedCourseEnrollmentFilter } from "@/lib/platform-course-access";
 export const runtime = "nodejs";
 type Context = { params: Promise<{ courseId: string }> };
 export async function GET(request: NextRequest, context: Context) {
@@ -13,11 +14,7 @@ export async function GET(request: NextRequest, context: Context) {
   try {
     const db = await getClinicalDatabase();
     const [enrollment, media] = await Promise.all([
-      db.collection("platform_requests").findOne({
-        email: actor.email.toLowerCase(), courseId,
-        kind: { $in: ["course_enrollment", "classroom_registration"] },
-        status: "approved", paymentStatus: "paid",
-      }, { projection: { _id: 1 } }),
+      db.collection("platform_requests").findOne(approvedCourseEnrollmentFilter(courseId, actor.email), { projection: { _id: 1 } }),
       db.collection("platform_course_media").findOne(
         { courseId, status: "published" },
         { projection: { _id: 0, sourceUrl: 1 } },

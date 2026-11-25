@@ -5,6 +5,7 @@ import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { isTrainerCourseOwner } from "@/lib/platform-trainer";
 import { notifyPlatformUsers } from "@/lib/platform-notifications";
+import { hasApprovedCourseEnrollment, approvedCourseEnrollmentFilter } from "@/lib/platform-course-access";
 
 export const runtime = "nodejs";
 
@@ -16,11 +17,7 @@ function sameOrigin(request: NextRequest) {
   return !origin || origin === request.nextUrl.origin;
 }
 async function hasCourseAccess(db: Awaited<ReturnType<typeof getClinicalDatabase>>, userId: string, email: string, courseId: string) {
-  const enrollment = await db.collection("platform_requests").findOne({
-    kind: { $in: ["course_enrollment", "classroom_registration"] },
-    courseId, email: email.toLowerCase(), status: "approved", paymentStatus: "paid",
-  }, { projection: { _id: 1 } });
-  return Boolean(enrollment);
+  return hasApprovedCourseEnrollment(db, courseId, email);
 }
 async function isStaffCourseOwner(db: Awaited<ReturnType<typeof getClinicalDatabase>>, role: string, courseId: string, userId: string) {
   if (role === "admin" || role === "platform_manager") return true;
@@ -117,7 +114,7 @@ export async function POST(request: NextRequest) {
       };
       await db.collection("platform_course_assignments").insertOne(assignment);
       const registrations = await db.collection("platform_requests").find(
-        { kind: { $in: ["course_enrollment", "classroom_registration"] }, courseId, status: "approved", paymentStatus: "paid" },
+        approvedCourseEnrollmentFilter(courseId),
         { projection: { _id: 0, email: 1 } },
       ).toArray();
       const emails = [...new Set(registrations.map(row => String(row.email || "").toLowerCase()).filter(Boolean))];

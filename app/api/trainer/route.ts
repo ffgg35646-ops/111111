@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
+import { approvedCourseEnrollmentFilter } from "@/lib/platform-course-access";
 import { getPlatformCourseQuiz, scorePlatformCourseQuiz, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
 import { isTrainerCourseOwner } from "@/lib/platform-trainer";
 
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
     }
 
     const registrations = await db.collection("platform_requests").find(
-      { kind: { $in: ["course_enrollment", "classroom_registration"] }, courseId, status: "approved", paymentStatus: "paid" },
+      approvedCourseEnrollmentFilter(courseId),
       { projection: { _id: 0, requestId: 1, email: 1, name: 1, paymentStatus: 1, createdAt: 1 } },
     ).sort({ createdAt: -1 }).toArray();
 

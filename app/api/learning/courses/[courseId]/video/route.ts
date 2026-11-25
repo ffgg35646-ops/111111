@@ -3,6 +3,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { allowedCourseVideoUrl, recordSecurityEvent, verifyCourseVideoAccessToken } from "@/lib/platform-security";
+import { approvedCourseEnrollmentFilter } from "@/lib/platform-course-access";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 type Context = { params: Promise<{ courseId: string }> };
@@ -21,7 +22,7 @@ async function resolveMedia(request: NextRequest, courseId: string) {
   if (!courses.some(c => c.id === courseId)) return { response: NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 }) };
   try {
     const db = await getClinicalDatabase();
-    const enrollment = await db.collection("platform_requests").findOne({ email: actor.email.toLowerCase(), courseId, kind: { $in: ["course_enrollment", "classroom_registration"] }, status: "approved", paymentStatus: "paid" }, { projection: { _id: 1 } });
+    const enrollment = await db.collection("platform_requests").findOne(approvedCourseEnrollmentFilter(courseId, actor.email), { projection: { _id: 1 } });
     if (!enrollment) return { response: NextResponse.json({ error: "يلزم اعتماد الالتحاق وسداد رسوم الدورة قبل تشغيل الفيديو." }, { status: 403 }) };
     const media = await db.collection("platform_course_media").findOne({ courseId, status: "published" }, { projection: { _id: 0, sourceUrl: 1, title: 1, sourceHost: 1 } });
     if (!media || !allowedCourseVideoUrl(media.sourceUrl)) return { response: NextResponse.json({ error: "الفيديو غير متاح أو نطاق التخزين غير معتمد." }, { status: 404 }) };

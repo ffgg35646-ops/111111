@@ -3,6 +3,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { scorePlatformCourseQuiz, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
+import { hasApprovedCourseEnrollment } from "@/lib/platform-course-access";
 
 export const runtime = "nodejs";
 
@@ -25,10 +26,7 @@ async function resolveCourse(db: Awaited<ReturnType<typeof getClinicalDatabase>>
   };
 }
 async function hasCourseAccess(db: Awaited<ReturnType<typeof getClinicalDatabase>>, email: string, courseId: string) {
-  return Boolean(await db.collection("platform_requests").findOne({
-    kind: { $in: ["course_enrollment", "classroom_registration"] },
-    courseId, email: email.toLowerCase(), status: "approved", paymentStatus: "paid",
-  }, { projection: { _id: 1 } }));
+  return hasApprovedCourseEnrollment(db, courseId, email);
 }
 
 export async function GET(request: NextRequest) {
