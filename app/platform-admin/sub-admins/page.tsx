@@ -1,13 +1,13 @@
 "use client";
 import {useEffect,useState,type FormEvent} from "react";
 import {PlatformLayout} from "@/components/platform-layout";
-import {UserPlus,ShieldCheck,RefreshCw} from "lucide-react";
+import {UserPlus,RefreshCw} from "lucide-react";
 const options=[["site_home","الصفحة الرئيسية"],["site_about","من نحن"],["site_privacy","سياسة الخصوصية"]];
 type SubAdmin={userId:string;name:string;email:string;status:string;permissions:string[]};
 export default function SubAdminsPage(){
  const [users,setUsers]=useState<SubAdmin[]>([]);const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [permissions,setPermissions]=useState<string[]>(["site_home"]);const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
  async function load(){setLoading(true);try{const r=await fetch("/api/platform/admin/sub-admins",{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"تعذر تحميل الحسابات.");setUsers(d.users||[]);}catch(e){setError(e instanceof Error?e.message:"تعذر التحميل.");}finally{setLoading(false);}}
- useEffect(()=>{void load()},[]);
+ useEffect(()=>{let active=true;fetch("/api/platform/admin/sub-admins",{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"تعذر تحميل الحسابات.");if(active)setUsers(d.users||[]);}).catch(e=>{if(active)setError(e instanceof Error?e.message:"تعذر التحميل.");}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[]);
  async function create(e:FormEvent){e.preventDefault();setSaving(true);setError("");setNotice("");try{const r=await fetch("/api/platform/admin/sub-admins",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,email,password,permissions})});const d=await r.json();if(!r.ok)throw new Error(d.error||"تعذر إنشاء الحساب.");setName("");setEmail("");setPassword("");setNotice("تم إنشاء الأدمن الفرعي. يجب عليه تغيير كلمة المرور عند أول دخول.");await load();}catch(e){setError(e instanceof Error?e.message:"تعذر إنشاء الحساب.");}finally{setSaving(false);}}
  async function toggle(user:SubAdmin){const status=user.status==="active"?"disabled":"active";try{const r=await fetch("/api/platform/admin/sub-admins",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.userId,status})});const d=await r.json();if(!r.ok)throw new Error(d.error||"تعذر التحديث.");await load();}catch(e){setError(e instanceof Error?e.message:"تعذر التحديث.");}}
  return <PlatformLayout title="إدارة الأدمن الفرعي" description="إنشاء حسابات مساعدة ومنح كل حساب صلاحيات محددة لصفحات الموقع فقط.">
