@@ -98,6 +98,7 @@ export default function CourseEditorPage() {
     if (!course.title.trim() || !course.description.trim() || !course.duration.trim() || !course.price.trim()) { setError("أكمل اسم الكورس والوصف والمدة والسعر."); return; }
     if (course.lessons.some(lesson => !lesson.title.trim())) { setError("اكتب اسم كل درس."); return; }
     if (course.lessons.some(lesson => lesson.uploadStatus === "uploading" || lesson.uploadStatus === "failed")) { setError("انتظر اكتمال رفع الفيديوهات أو أعد محاولة الفيديو الذي فشل."); return; }
+    if (publish && course.lessons.some(lesson => lesson.uploadStatus !== "uploaded" || !lesson.videoId)) { setError("لا يمكن نشر الكورس قبل رفع فيديو لكل درس. احفظه كمسودة إذا كنت ستكمل الرفع لاحقاً."); return; }
     const courseId = course.courseId || makeCourseId();
     if (!course.courseId) patchCourse({ courseId });
     setSaving(true); setPublishing(publish);
