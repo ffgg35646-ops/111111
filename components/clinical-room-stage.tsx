@@ -1114,8 +1114,8 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
   return (
     <div className="clinical-room-canvas">
       <div className="clinical-room-actions">
-        <button type="button" onClick={enterVR}>دخول VR وبدء الحوار مع الطبيب</button>
-        <span>الطبيب الافتراضي والمقابلة الصوتية داخل القاعة</span>
+        <button type="button" onClick={enterVR}>دخول VR وبدء الحوار مع الحالة الافتراضية</button>
+        <span>الشخصية الافتراضية والمقابلة الصوتية داخل القاعة</span>
         {xrMessage && <small role="status">{xrMessage}</small>}
       </div>
       <Canvas shadows camera={{ position: [0, 1.65, 6.5], fov: 50 }} dpr={[1, 1.5]}>
