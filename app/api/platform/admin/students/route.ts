@@ -37,6 +37,9 @@ function publicStudent(user: Record<string, unknown>, sessions: Record<string, u
   return {
     userId,
     name: String(user.name || ""),
+    firstName: String(user.firstName || ""),
+    fatherName: String(user.fatherName || ""),
+    username: String(user.username || ""),
     email: String(user.email || ""),
     status: String(user.status || "active"),
     createdAt: asDate(user.createdAt)?.toISOString() || null,
@@ -55,8 +58,8 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const users = await db.collection("platform_users").find(
-      { role: { $in: [...studentRoles] } },
-      { projection: { _id: 0, userId: 1, name: 1, email: 1, status: 1, createdAt: 1, lastLoginAt: 1 } },
+      { role: { $in: [...studentRoles] }, $or: [{ emailVerified: true }, { registrationSource: { $ne: "self_registration" } }] },
+      { projection: { _id: 0, userId: 1, name: 1, firstName: 1, fatherName: 1, username: 1, email: 1, status: 1, createdAt: 1, lastLoginAt: 1 } },
     ).sort({ createdAt: -1 }).limit(1000).toArray();
 
     const userIds = users.map((user) => String(user.userId || "")).filter(Boolean);
