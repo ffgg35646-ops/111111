@@ -48,7 +48,7 @@ export default function LoginPage() {
           <span className="portal-brand-mark"><ShieldCheck size={22}/></span>
           <div><strong style={{ display: "block", fontSize: 18 }}>تسجيل الدخول</strong><small style={{ color: "#788894" }}>منصة التدريب والمحاكاة السريرية</small></div>
         </div>
-        <p style={{ color: "#71808d", fontSize: 13, lineHeight: 1.8 }}>استخدم بيانات الحساب الذي أنشأه مدير المنصة لك. لا يوجد تسجيل عام مفتوح للحفاظ على خصوصية ملفات التدريب والاستشارات.</p>
+        <p style={{ color: "#71808d", fontSize: 13, lineHeight: 1.8 }}>أدخل البريد الإلكتروني وكلمة المرور للدخول إلى حسابك.</p>
         <form onSubmit={submit} style={{ display: "grid", gap: 13, marginTop: 20 }}>
           <label style={{ display: "grid", gap: 6, fontSize: 12 }}>البريد الإلكتروني
             <input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" style={{ width: "100%", padding: 12, border: "1px solid #dce5e9", borderRadius: 9, background: "#fff" }}/>
@@ -61,7 +61,7 @@ export default function LoginPage() {
             <LockKeyhole size={16}/>{loading ? "جارٍ التحقق..." : "دخول آمن"}
           </button>
         </form>
-        <Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 20, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 18, fontSize: 12 }}><Link href="/forgot-password" style={{ color: "#167f79" }}>نسيت كلمة المرور؟</Link><Link href="/register" style={{ color: "#167f79" }}>إنشاء حساب جديد</Link></div><Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 18, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
         <small style={{ display: "block", marginTop: 20, color: "#9aa6ae", lineHeight: 1.7 }}>الجلسة محمية بملف ارتباط HttpOnly وتنتهي تلقائياً بعد 8 ساعات.</small>
       </section>
     </main>
