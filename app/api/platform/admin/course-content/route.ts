@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   if (!title || !description) return NextResponse.json({ error: "اكتب اسم الكورس ووصفه." }, { status: 400 });
   if (!trackId || !level || !duration) return NextResponse.json({ error: "حدد المسار والمستوى والمدة." }, { status: 400 });
   if (!Number.isFinite(price) || price < 0 || price > 1000000) return NextResponse.json({ error: "أدخل سعراً صحيحاً؛ استخدم صفرًا إذا كانت الدورة مجانية." }, { status: 400 });
-  if (rawLessons.length < 1 || rawLessons.length > 500) return NextResponse.json({ error: "أضف درساً واحداً على الأقل. لا يوجد حد عملي ثابت للدروس." }, { status: 400 });
+  if (rawLessons.length < 1) return NextResponse.json({ error: "أضف درساً واحداً على الأقل." }, { status: 400 });
 
   const lessons = rawLessons.map((item, index) => {
     const lesson = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
