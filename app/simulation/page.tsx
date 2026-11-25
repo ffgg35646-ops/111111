@@ -172,7 +172,7 @@ function SimulationWorkspace() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
   const [selectedTarget, setSelectedTarget] = useState("الطبيب النفسي السعودي");
-  const [personaMode, setPersonaMode] = useState<"supervisor"|"client">("supervisor");
+  const [personaMode, setPersonaMode] = useState<"supervisor"|"client">("client");
   const [completed, setCompleted] = useState(false);
   const [savedScore, setSavedScore] = useState<number | null>(null);
   const [savedActivityId, setSavedActivityId] = useState<string | null>(null);
@@ -249,20 +249,22 @@ function SimulationWorkspace() {
     ].join("\n").slice(0, 2600);
   }, [activeCase.track]);
 
-  const activeRoom = clinicalRooms.find((room) => room.id === activeRoomId) ?? clinicalRooms[0];
-  const roomTrainingFocus = activeRoomId === "autism"
+  const activeRoom = clinicalRooms.find((room) => room.track === activeCase.track)
+    ?? clinicalRooms.find((room) => room.id === activeRoomId)
+    ?? clinicalRooms[0];
+  const roomTrainingFocus = activeRoom.id === "autism"
     ? "غرفة طيف التوحد: استخدم لغة واضحة وبسيطة، وناقش التواصل الوظيفي والدعم البصري والحسي واحترام الاختلافات الفردية."
-    : activeRoomId === "cbt"
+    : activeRoom.id === "cbt"
       ? "غرفة العلاج المعرفي السلوكي: درّب المتعلم على العلاقة بين الموقف والفكرة والانفعال والسلوك، والأسئلة السقراطية وإعادة التقييم."
-      : activeRoomId === "family"
+      : activeRoom.id === "family"
         ? "غرفة الإرشاد الأسري: أدر حواراً متوازناً بين الأطراف، واستكشف أنماط التواصل، وراعِ السلامة وحدود الجلسات المشتركة."
-        : activeRoomId === "psychology"
+        : activeRoom.id === "psychology"
           ? "غرفة علم النفس: ركّز على المقابلة النفسية ووصف الأعراض والمدة والأثر الوظيفي والسياق والتمييز بين التقرير والاستنتاج."
-          : activeRoomId === "psychometrics"
+          : activeRoom.id === "psychometrics"
             ? "غرفة التقييم والقياس النفسي: ركّز على سؤال التقييم وملاءمة الأداة والصدق والثبات والمعايير وحدود الاستنتاج دون كشف مواد اختبار محمية."
-            : activeRoomId === "clinical-practice"
+            : activeRoom.id === "clinical-practice"
               ? "غرفة الممارسة الإكلينيكية: ادمج الموافقة والمقابلة والتاريخ وصياغة الحالة وتقدير السلامة والتوثيق والإحالة."
-              : activeRoomId === "developmental"
+              : activeRoom.id === "developmental"
                 ? "غرفة الاضطرابات النمائية والسلوكية: ركّز على التاريخ النمائي والملاحظة الوظيفية والسلوك التكيفي وتعدد المصادر والإحالة."
                 : "غرفة الخدمة الاجتماعية: ركّز على المقابلة المهنية والتقدير البيئي والأسري ونقاط القوة والموارد وخطة التدخل.";
   const voiceScenario = useMemo(() => {
@@ -290,7 +292,7 @@ function SimulationWorkspace() {
   const avatarModelUrl = uploadedAvatarUrl ?? (activeCase.avatarModelUrl || defaultAvatarModelUrl);
   const avatarModelLabel = uploadedAvatarName
     || activeCase.avatarLabel
-    || (activeCase.avatarModelUrl ? "الشخصية المرتبطة بالسيناريو" : defaultAvatarModelUrl ? "موديل الطبيب السعودي المرتبط" : "موديل الطبيب السعودي غير مربوط");
+    || (activeCase.avatarModelUrl ? "الشخصية المرتبطة بالسيناريو" : defaultAvatarModelUrl ? "SCD-01 نموذج بشري تجريبي — ليس MetaHuman فوتوريالياً" : "موديل الشخصية غير مربوط");
   const answeredCount = activeCase.steps.filter((step) => Boolean(answers[step.id])).length;
   const selectedPracticeScale = practiceScales.find((scale) => scale.id === clinicalFormulation.selectedScaleId);
   const completedFormulationFields = FORMULATION_REQUIREMENTS.filter(({ key, minLength }) =>
@@ -537,6 +539,11 @@ function SimulationWorkspace() {
     stopAvatarSpeech();
     busyRef.current = false;
     conversationRef.current = [];
+    const selected = [...trainingCases, ...customCases].find((item) => item.id === id);
+    const matchedRoom = clinicalRooms.find((room) => room.track === selected?.track)
+      ?? clinicalRooms.find((room) => room.id === activeRoomId)
+      ?? clinicalRooms[0];
+    setActiveRoomId(matchedRoom.id);
     setCaseId(id);
     setStepIndex(0);
     setAnswers({});
@@ -558,7 +565,7 @@ function SimulationWorkspace() {
     setConversation([]);
     setVoiceInput("");
     setRoomEvents([{ type: "room_entered", label: "بدء حالة تدريبية جديدة", occurredAt: new Date().toISOString() }]);
-    window.history.replaceState(null, "", "/simulation?case=" + id + (activeRoomId ? "&room=" + activeRoomId : ""));
+    window.history.replaceState(null, "", "/simulation?case=" + id + "&room=" + (clinicalRooms.find((room) => room.track === selected?.track)?.id ?? activeRoomId ?? "social"));
   };
 
   const choose = (choiceId: string) => {
@@ -700,6 +707,7 @@ function SimulationWorkspace() {
             </select>
           </label>
           <span><span className="simulation-live-indicator" /> {immersiveMode ? "النظارة داخل جلسة VR غامرة" : "معاينة ثلاثية الأبعاد · لا يوجد مريض حقيقي"}</span>
+          <Link href="/simulation/vr" className="portal-link-button secondary">توافق النظارات والأسعار وتجربة التشغيل</Link>
         </div>
       </div>
 
@@ -745,6 +753,9 @@ function SimulationWorkspace() {
             </label>
             {uploadedAvatarUrl && <button type="button" className="simulation-remove-avatar" onClick={removeCustomAvatar}>العودة إلى الموديل المرتبط</button>}
           </div>
+          <div className="portal-callout" style={{ marginTop: 10 }}>
+            الشخصية الحالية تستخدم نموذج SCD-01 محلياً مع طبقة وجه مرئية وحركة تمثيلية. هذا ليس وجهاً ثلاثي الأبعاد فوتوريالياً أو MetaHuman معتمداً. ملف GLB الذي تحمّله هنا يُعرض محلياً في جلستك الحالية فقط؛ لمشاركة شخصية واقعية مع جميع المتدربين، يجب ربط أصل GLB/MetaHuman مرخّص ومجهّز بالهيكل وحركات الوجه من لوحة إدارة السيناريو أو إعدادات الأصول.
+          </div>
 
           <div className="simulation-stage-wrap">
             <ClinicalRoomStage
@@ -757,8 +768,8 @@ function SimulationWorkspace() {
               onStartRealtimeVoice={() => realtimeControlsRef.current?.start()}
               onStopRealtimeVoice={() => realtimeControlsRef.current?.stop()}
               onToggleRealtimeMute={() => realtimeControlsRef.current?.toggleMute()}
-              roomId={activeRoomId ?? "social"}
-              roomLabel={clinicalRooms.find((room) => room.id === activeRoomId)?.title ?? "غرفة المقابلة السريرية"}
+              roomId={activeRoom.id}
+              roomLabel={activeRoom.title}
               scenarioTitle={activeCase.title}
               avatarModelUrl={avatarModelUrl}
               avatarSpeaking={avatarSpeaking}

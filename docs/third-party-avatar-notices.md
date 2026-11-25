@@ -20,11 +20,15 @@
 - يوصى بنسخ الأصول المعتمدة إلى مخزن ملفات أو CDN تملكه المؤسسة بدلاً من الاعتماد على عنوان الاستضافة الخارجي، مع الاحتفاظ بهذا الإشعار وملفات الترخيص المطلوبة.
 - يجب عدم الإيحاء بأن شخصيات عامة تمثل مريضاً حقيقياً أو أنها صورة لشخص حقيقي. جميعها شخصيات محاكاة تعليمية.
 
-## SCD-01 default web avatar
+## سجل الأصل الافتراضي الحالي (SCD-01)
 
-The current default web avatar is the male rigged Rocketbox model `daniel_formal.glb`, served from the pinned Avatar Studio revision:
-- Source: https://github.com/memoriesrohit/avatar-studio
-- Asset: https://cdn.jsdelivr.net/gh/memoriesrohit/avatar-studio@2fd9ec82fbe1613d40ae38aadcca3f410725f740/models/daniel_formal.glb
-- Asset source licence: Microsoft Rocketbox MIT, as packaged by Avatar Studio. Keep the upstream MIT notice when redistributing the model.
-- The model includes a humanoid rig, 52 ARKit facial shapes and motion clips including Idle, Talk, Think, Wave and other gestures.
-- Important limitation: this is a generic adult male in office-formal clothing. It is an interim rigged base for the interaction pipeline; it is not yet the final Saudi-specific face, thobe and medical-coat design. Replace it using `NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL` when the approved Saudi MetaHuman GLB is available.
+المحاكاة الحالية لا تستخدم ملفات `daniel_formal.glb` أو `aisha_formal.glb` المذكورة في قسم Avatar Studio أعلاه كأصل افتراضي لقاعة الويب. ذلك القسم يحتفظ بمراجع وإشعارات المصدر لأصول كانت مذكورة في إعداد سابق، ولا يمثل إثباتاً أن تلك الأصول هي المستخدمة الآن.
+
+الأصل الافتراضي الذي يشير إليه `lib/doctor-avatar.ts` هو:
+- الملف: `public/models/saudi-doctor-base.gltf`
+- المصدر: نموذج إجرائي محلي داخل مستودع ETZAN باسم SCD-01.
+- طبيعته: GLTF Mesh مبسط يتكون من أشكال هندسية للرأس والجسم والأطراف. لا يحتوي الملف الحالي على Humanoid Skeleton أو Facial Rig أو ARKit blend shapes أو lip-sync phonemes إنتاجية.
+- تعرض قاعة الويب طبقة وجه مصورة مأخوذة من `public/clinic/doctor-face.jpg`، مع حركة إجرائية للرأس والعين والفك والذراع. مصدر وترخيص صورة الوجه المصورة يجب مراجعتهما وتوثيقهما قبل توزيع تجاري موسع؛ لا يفترض هذا الإشعار وجود إذن إعادة توزيع لم يثبت بعد.
+- الأصل ليس MetaHuman أو نموذجاً سعودياً فوتوريالياً مكتملاً. يجب عدم وصفه بأنه كذلك أو استخدامه دليلاً على اعتماد شخصية إنتاجية.
+
+يمكن استبدال الأصل عبر `NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL` بعد اعتماد ملف GLB مرخص ومجهز بالهيكل وحركات الوجه. رفع المتدرب لملف GLB في صفحة المحاكاة محلي للجلسة الحالية فقط، ولا يرفعه إلى خادم المؤسسة أو يشاركه مع بقية المستخدمين.
