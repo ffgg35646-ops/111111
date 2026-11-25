@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const db = await getClinicalDatabase();
     const scale = await db.collection("etzan_assessment_scales").findOne({ scaleId, status: "published", digitalAdministrationAllowed: true });
     if (!scale || !Array.isArray(scale.items) || !scale.items.length) return NextResponse.json({ error: "هذا المقياس غير متاح للتطبيق الإلكتروني وفق الترخيص المسجل." }, { status: 403 });
-    const responses = [];
+    const responses: Array<{ itemId: string; value: number }> = [];
     for (const item of scale.items as Array<Record<string, unknown>>) {
       const responseItem = responsesRaw.find((entry) => entry && typeof entry === "object" && (entry as Record<string, unknown>).itemId === item.itemId) as Record<string, unknown> | undefined;
       if (item.required !== false && !responseItem) return NextResponse.json({ error: "أجب عن جميع البنود المطلوبة." }, { status: 400 });
@@ -74,10 +74,7 @@ export async function POST(request: NextRequest) {
       responses.push({ itemId: String(item.itemId), value: Number(option.value) });
     }
     if (responses.length !== responsesRaw.length) return NextResponse.json({ error: "تحتوي الإجابات على بنود غير تابعة لهذا المقياس." }, { status: 400 });
-    const rawScores = responses.map((response) => {
-      const item = (scale.items as Array<Record<string, unknown>>).find((candidate) => candidate.itemId === response.itemId)!;
-      return response.value;
-    });
+    const rawScores = responses.map((response) => response.value);
     const method = (scale.scoring as Record<string, unknown> | undefined)?.method === "average" ? "average" : "sum";
     const totalScore = method === "average"
       ? Math.round((rawScores.reduce((sum, value) => sum + value, 0) / Math.max(1, rawScores.length)) * 100) / 100
