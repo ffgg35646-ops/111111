@@ -150,7 +150,6 @@ export async function POST(request: NextRequest) {
     if (!validUuid(deviceCookie)) response.cookies.set(PLATFORM_DEVICE_COOKIE, deviceId, platformDeviceCookieOptions());
     else response.cookies.set(PLATFORM_DEVICE_COOKIE, deviceId, platformDeviceCookieOptions());
 
-    attempts.delete(address);
     await db.collection("platform_users").updateOne({ userId: user.userId }, { $set: { lastLoginAt: now } });
     await recordSecurityEvent(db, {
       action: "login_succeeded", actorUserId: user.userId, request,
