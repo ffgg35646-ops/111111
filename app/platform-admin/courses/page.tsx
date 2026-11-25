@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, RefreshCw, Save, UserRoundCog } from "lucide-react";
+import { BookOpen, Plus, RefreshCw, Save, UserRoundCog } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
-type Course = { id:string; title:string; category:string; mode:string; duration:string; lessonCount:number; trainerId:string|null; trainerName:string|null; assignedAt:string|null };
+type Course = { id:string; title:string; category:string; mode:string; duration:string; lessonCount:number; contentStatus?:string; trainerId:string|null; trainerName:string|null; assignedAt:string|null };
 type Trainer = { userId:string; name:string; email:string };
 
 export default function AdminCoursesPage() {
@@ -38,16 +38,16 @@ export default function AdminCoursesPage() {
     finally {setBusy("")}
   }
   const mode=(value:string)=>value==="recorded"?"مسجلة":value==="live"?"مباشرة":"هجينة";
-  return <PlatformLayout title="إدارة الدورات والبرامج" description="استعراض كتالوج الدورات وإسناد المدربين النشطين لكل دورة. تحرير محتوى المنهج وإضافة دورات جديدة من الكتالوج البرمجي غير متاح بعد.">
-    <div className="portal-callout">إدارة الإسناد متاحة الآن. محتوى الدورات الحالي محفوظ في الكتالوج البرمجي، ولا تظهر تعديلات على عنوان الدورة أو الوحدات إلا بعد تطوير محرر مناهج مرتبط بصفحات تعلم المتدربين.</div>
-    <div className="portal-section-title"><div><h2><BookOpen size={17}/> الدورات المسجلة</h2><p>{courses.length} دورة · {trainers.length} مدرب نشط</p></div><button className="portal-button secondary" onClick={()=>void load()} disabled={loading}><RefreshCw size={14}/> تحديث</button></div>
+  return <PlatformLayout title="إدارة الدورات والبرامج" description="استعراض كتالوج الدورات وإسناد المدربين، وإنشاء محتوى الكورسات ودروس الفيديو الكبيرة.">
+    <div className="portal-callout">يمكنك إنشاء كورس جديد ببياناته وسعره، ثم إضافة عدد غير محدود عملياً من الدروس، ولكل درس فيديو مستقل.</div>
+    <div className="portal-section-title"><div><h2><BookOpen size={17}/> الدورات المسجلة</h2><p>{courses.length} دورة · {trainers.length} مدرب نشط</p></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Link className="portal-link-button" href="/platform-admin/courses/editor"><Plus size={14}/> إضافة كورس جديد</Link><button className="portal-button secondary" onClick={()=>void load()} disabled={loading}><RefreshCw size={14}/> تحديث</button></div></div>
     {error&&<p role="alert" style={{color:"#a44",fontSize:11}}>{error}</p>}
     {notice&&<p role="status" className="portal-callout">{notice}</p>}
     {loading?<div className="portal-empty">جارٍ تحميل الدورات...</div>:<div style={{display:"grid",gap:10}}>
       {courses.map(course=><article className="portal-card" key={course.id}>
         <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
           <div><span className="portal-chip">{course.category} · {mode(course.mode)}</span><h3>{course.title}</h3><p>{course.duration} · {course.lessonCount} وحدات</p></div>
-          <Link className="portal-link-button secondary" href={"/academy/"+course.id}>معاينة صفحة التعلم</Link>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{course.contentStatus&&course.contentStatus!=="catalog"&&<Link className="portal-link-button secondary" href={"/platform-admin/courses/editor?id="+encodeURIComponent(course.id)}>تحرير الكورس</Link>}<Link className="portal-link-button secondary" href={"/academy/"+course.id}>معاينة صفحة التعلم</Link></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:9,marginTop:12,alignItems:"end"}}>
           <label style={{display:"grid",gap:6,fontSize:10,color:"#70828a"}}>المدرب المسؤول

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   if (!actor) return NextResponse.json({ error: "غير مصرح بإدارة الدورات." }, { status: 403 });
   try {
     const db = await getClinicalDatabase();
-    const [assignments, trainers] = await Promise.all([
+    const [assignments, trainers, dynamicCourses] = await Promise.all([
       db.collection("platform_trainer_course_assignments").find(
         {}, { projection: { _id: 0, courseId: 1, trainerId: 1, trainerName: 1, assignedAt: 1 } },
       ).toArray(),
@@ -24,18 +24,31 @@ export async function GET(request: NextRequest) {
         { role: "trainer", status: "active" },
         { projection: { _id: 0, userId: 1, name: 1, email: 1 } },
       ).sort({ name: 1 }).limit(300).toArray(),
+      db.collection("platform_course_content").find({}, { projection: { _id: 0, courseId: 1, title: 1, trackId: 1, duration: 1, level: 1, lessons: 1, status: 1, updatedAt: 1 } }).sort({ updatedAt: -1 }).limit(500).toArray(),
     ]);
     const byCourse = new Map(assignments.map((entry) => [String(entry.courseId), entry]));
     return NextResponse.json({
-      courses: courses.map((course) => {
-        const assigned = byCourse.get(course.id);
-        return {
-          id: course.id, title: course.title, category: course.category, mode: course.mode,
-          duration: course.duration, lessonCount: course.lessons.length,
-          trainerId: assigned?.trainerId || null, trainerName: assigned?.trainerName || null,
-          assignedAt: assigned?.assignedAt || null,
-        };
-      }),
+      courses: [
+        ...courses.map((course) => {
+          const assigned = byCourse.get(course.id);
+          return {
+            id: course.id, title: course.title, category: course.category, mode: course.mode,
+            duration: course.duration, lessonCount: course.lessons.length, contentStatus: "catalog",
+            trainerId: assigned?.trainerId || null, trainerName: assigned?.trainerName || null,
+            assignedAt: assigned?.assignedAt || null,
+          };
+        }),
+        ...dynamicCourses.map((course) => {
+          const assigned = byCourse.get(String(course.courseId));
+          return {
+            id: String(course.courseId), title: String(course.title || "دورة جديدة"), category: String(course.trackId || "دورة مخصصة"),
+            mode: "recorded", duration: String(course.duration || ""), lessonCount: Array.isArray(course.lessons) ? course.lessons.length : 0,
+            contentStatus: String(course.status || "draft"),
+            trainerId: assigned?.trainerId || null, trainerName: assigned?.trainerName || null,
+            assignedAt: assigned?.assignedAt || null,
+          };
+        }),
+      ],
       trainers,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -57,11 +70,14 @@ export async function POST(request: NextRequest) {
   const data = body as Record<string, unknown>;
   const courseId = clean(data.courseId, 80);
   const trainerId = clean(data.trainerId, 100);
-  const course = courses.find((item) => item.id === courseId);
-  if (!course) return NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 });
-
   try {
     const db = await getClinicalDatabase();
+    const catalogCourse = courses.find((item) => item.id === courseId);
+    const storedCourse = catalogCourse ? null : await db.collection("platform_course_content").findOne(
+      { courseId }, { projection: { _id: 0, courseId: 1, title: 1 } },
+    );
+    const course = catalogCourse || (storedCourse ? { id: String(storedCourse.courseId), title: String(storedCourse.title || "دورة تدريبية") } : null);
+    if (!course) return NextResponse.json({ error: "الدورة غير موجودة." }, { status: 404 });
     const assignments = db.collection("platform_trainer_course_assignments");
     await assignments.createIndex({ courseId: 1 }, { unique: true });
 
