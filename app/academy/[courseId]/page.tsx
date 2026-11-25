@@ -9,6 +9,7 @@ import PlatformRequestForm from "@/components/platform-request-form";
 import { courses } from "@/lib/platform-catalog";
 import { platformQuizByTrack, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
 import { ProtectedCourseVideo } from "@/components/protected-course-video";
+import { BunnyLessonPlayer } from "@/components/bunny-lesson-player";
 import "./learning.css";
 
 type Guide = { intro: string; points: string[]; exercise: string };
@@ -48,7 +49,11 @@ const guideByTrack: Record<string, Guide[]> = {
 export default function CourseLearningPage() {
   const params = useParams<{courseId:string}>();
   const router = useRouter();
-  const course = courses.find(item=>item.id===params.courseId);
+  const staticCourse = courses.find(item=>item.id===params.courseId);
+  const [dynamicCourse,setDynamicCourse] = useState<import("@/lib/platform-catalog").Course|null>(null);
+  const [dynamicLessons,setDynamicLessons] = useState<{id:string;title:string;videoReady:boolean}[]>([]);
+  const [dynamicLoading,setDynamicLoading] = useState(!staticCourse);
+  const course = staticCourse || dynamicCourse;
   const [activeLesson,setActiveLesson] = useState(0);
   const [completed,setCompleted] = useState<number[]>([]);
   const [answers,setAnswers] = useState<Record<number,number>>({});
@@ -62,6 +67,16 @@ export default function CourseLearningPage() {
   const [completionMessage,setCompletionMessage] = useState("");
   const [progressSaveError,setProgressSaveError] = useState("");
   const [customQuiz,setCustomQuiz] = useState<PlatformQuizQuestion[]>([]);
+  useEffect(()=>{
+    if(staticCourse){setDynamicLoading(false);return;}
+    let active=true;
+    fetch("/api/academy/courses/"+encodeURIComponent(params.courseId),{cache:"no-store"})
+      .then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error||"الدورة غير موجودة.");return data.course;})
+      .then(item=>{if(!active||!item)return;setDynamicLessons(Array.isArray(item.lessons)?item.lessons:[]);setDynamicCourse({id:item.id,title:item.title,trackId:item.trackId,category:item.category,mode:"recorded",level:item.level,duration:item.duration,summary:item.summary,outcomes:Array.isArray(item.outcomes)?item.outcomes:[],lessons:(item.lessons||[]).map((lesson:{title:string})=>lesson.title)});})
+      .catch(()=>{if(active)setDynamicCourse(null);})
+      .finally(()=>{if(active)setDynamicLoading(false);});
+    return()=>{active=false};
+  },[params.courseId,staticCourse]);
   const defaultQuiz = useMemo(()=>course?platformQuizByTrack[course.trackId]??platformQuizByTrack["mental-health"]:[],[course]);
   const quiz = customQuiz.length ? customQuiz : defaultQuiz;
   const score = quiz.reduce((sum,item,index)=>sum+(answers[index]===item.correct?1:0),0);
@@ -112,6 +127,7 @@ export default function CourseLearningPage() {
     return ()=>window.clearTimeout(timer);
   },[course,completed,reflection,answers,checked,progressHydrated]);
 
+  if(!course && dynamicLoading) return <PlatformLayout title="تحميل محتوى الدورة" description="جارٍ تجهيز الدروس المنشورة."><div className="portal-empty">جارٍ تحميل بيانات الكورس والدروس...</div></PlatformLayout>;
   if(!course) return <PlatformLayout title="الدورة غير موجودة" description="لم نعثر على هذه الدورة في الكتالوج."><div className="portal-card"><Link href="/academy">العودة إلى الأكاديمية</Link></div></PlatformLayout>;
   if(accessStatus!=="allowed") return <PlatformLayout title={course.title} description="تتطلب هذه الدورة حساباً نشطاً واعتماد الالتحاق قبل فتح المحتوى.">
     {accessStatus==="checking"&&<div className="portal-empty">جارٍ التحقق من صلاحية الالتحاق...</div>}
@@ -141,7 +157,7 @@ export default function CourseLearningPage() {
       </aside>
       <section className="learning-main">
         <div className="learning-lesson-heading"><span>الوحدة {activeLesson+1} من {course.lessons.length}</span><h2>{course.lessons[activeLesson]}</h2></div>
-        {hasProtectedRecording ? <div className="learning-video"><ProtectedCourseVideo courseId={course.id} title={course.title}/></div> : <div className="learning-video-placeholder"><CirclePlay size={24}/><strong>{course.mode==="live"?"محتوى الفصل المباشر":"المادة التعليمية لهذه الوحدة"}</strong><span>{course.mode==="live"?"سيظهر تسجيل اللقاء هنا بعد رفعه من المدرب.":"لم يُرفق تسجيل فيديو لهذه الدورة بعد؛ يمكنك دراسة المادة والتمرين أدناه."}</span></div>}
+        {dynamicLessons[activeLesson]?.videoReady ? <div className="learning-video"><BunnyLessonPlayer courseId={course.id} lessonId={dynamicLessons[activeLesson].id} title={dynamicLessons[activeLesson].title}/></div> : hasProtectedRecording ? <div className="learning-video"><ProtectedCourseVideo courseId={course.id} title={course.title}/></div> : <div className="learning-video-placeholder"><CirclePlay size={24}/><strong>{course.mode==="live"?"محتوى الفصل المباشر":"المادة التعليمية لهذه الوحدة"}</strong><span>{course.mode==="live"?"سيظهر تسجيل اللقاء هنا بعد رفعه من المدرب.":"لم يُرفق تسجيل فيديو لهذه الوحدة بعد؛ يمكنك دراسة المادة والتمرين أدناه."}</span></div>}
         <article className="learning-guide"><h3>ملخص الوحدة</h3><p>{guide.intro}</p><ul>{guide.points.map(point=><li key={point}>{point}</li>)}</ul><div className="learning-exercise"><strong>تطبيق عملي</strong><p>{guide.exercise}</p><textarea value={reflection} onChange={event=>{setReflection(event.target.value);setSavedReflection(false);}} rows={3} placeholder="اكتب إجابتك باستخدام حالة افتراضية فقط..."/><button onClick={()=>setSavedReflection(true)}>حفظ الملاحظة على هذا الجهاز</button>{savedReflection&&<small>تم حفظ الملاحظة محلياً في هذا المتصفح.</small>}</div></article>
         <div className="learning-actions"><button className="portal-button secondary" disabled={activeLesson===0} onClick={()=>{setActiveLesson(n=>n-1);setChecked(false);}}>الوحدة السابقة</button><button className="portal-button" onClick={toggleLesson}>{completed.includes(activeLesson)?"إلغاء إكمال الوحدة":"اعتماد إكمال الوحدة"} <CheckCircle2 size={15}/></button><button className="portal-button secondary" disabled={activeLesson===course.lessons.length-1} onClick={()=>{setActiveLesson(n=>n+1);setChecked(false);}}>الوحدة التالية <ChevronLeft size={15}/></button></div>
       </section>
