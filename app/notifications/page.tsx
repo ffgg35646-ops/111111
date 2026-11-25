@@ -30,7 +30,25 @@ export default function NotificationsPage() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/platform/notifications", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل الإشعارات.");
+        return data;
+      })
+      .then((data) => {
+        if (!active) return;
+        setItems(Array.isArray(data.notifications) ? data.notifications : []);
+        setUnread(Number(data.unreadCount) || 0);
+      })
+      .catch((reason) => {
+        if (active) setError(reason instanceof Error ? reason.message : "تعذر تحميل الإشعارات.");
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   async function markAll() {
     await fetch("/api/platform/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ markAll: true }) });

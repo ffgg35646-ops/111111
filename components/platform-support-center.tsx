@@ -129,14 +129,16 @@ export function PlatformSupportCenter({ mode }: { mode: Mode }) {
     return () => { active = false; };
   }, [router, isStaff]);
 
-  useEffect(() => { void loadTickets(); }, [loadTickets]);
+  useEffect(() => { Promise.resolve().then(() => loadTickets()); }, [loadTickets]);
   useEffect(() => {
-    const selected = new URLSearchParams(window.location.search).get("ticket");
-    if (selected) setActiveTicketId(selected);
+    Promise.resolve().then(() => {
+      const selected = new URLSearchParams(window.location.search).get("ticket");
+      if (selected) setActiveTicketId(selected);
+    });
   }, []);
   useEffect(() => {
-    if (!activeTicketId) { setActiveTicket(null); setMessages([]); return; }
-    void loadDetail(activeTicketId);
+    if (!activeTicketId) return;
+    Promise.resolve().then(() => loadDetail(activeTicketId));
     const timer = window.setInterval(() => { void loadDetail(activeTicketId); void loadTickets(); }, 20000);
     return () => window.clearInterval(timer);
   }, [activeTicketId, loadDetail, loadTickets]);
