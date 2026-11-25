@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       console.error("Bunny Stream video creation failed", created.status, video);
       return NextResponse.json({ error: "تعذر إنشاء مساحة الفيديو لدى خدمة التخزين." }, { status: 502 });
     }
-    const expiresAt = Math.floor(Date.now() / 1000) + 7200;
+    const expiresAt = Math.floor(Date.now() / 1000) + 86400;
     const signature = createHash("sha256").update(String(libraryId) + apiKey + String(expiresAt) + video.guid).digest("hex");
     return NextResponse.json({
       videoId: video.guid,
