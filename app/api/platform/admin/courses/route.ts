@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
           const assigned = byCourse.get(String(course.courseId));
           return {
             id: String(course.courseId), title: String(course.title || "دورة جديدة"), category: String(course.trackId || "دورة مخصصة"),
-            mode: "recorded", duration: String(course.duration || ""), lessonCount: Array.isArray(course.lessons) ? course.lessons.length : 0,
+            mode: "recorded", duration: String(course.duration || ""), lessonCount: Array.isArray(course.lessons) ? course.lessons.length : 0, contentType: course.contentType === "program" ? "program" : "course",
+            mode: course.mode === "live" || course.mode === "hybrid" ? course.mode : "recorded",
             contentStatus: String(course.status || "draft"),
             trainerId: assigned?.trainerId || null, trainerName: assigned?.trainerName || null,
             assignedAt: assigned?.assignedAt || null,

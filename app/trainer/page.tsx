@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,7 +15,7 @@ type Course = {
 };
 type Person = {
   userId: string; name: string; email: string; paymentStatus: string; completedLessons: number; totalLessons: number;
-  quizChecked: boolean; quizScore: number | null; quizTotal: number; quizPassed: boolean; attendanceStatus: string;
+  preQuizChecked: boolean; preQuizScore: number | null; preQuizTotal: number; quizChecked: boolean; quizScore: number | null; quizTotal: number; quizPassed: boolean; attendanceStatus: string;
   lastActivityAt: string | null; certificateSerial: string | null; certificateStatus: string | null;
 };
 type QuizQuestion = { q: string; options: string[]; correct: number; why: string };
@@ -23,20 +23,25 @@ type Certificate = {
   serial: string; userId: string; learnerName: string; courseTitle: string; issuedAt: string; status: string;
   revokedAt?: string; quizScore?: number; quizTotal?: number;
 };
+type CourseAssignment = { assignmentId: string; title: string; description: string; dueAt?: string; createdAt: string };
+type AssignmentSubmission = { submissionId: string; assignmentId: string; userId: string; studentName: string; studentEmail: string; answer: string; status: string; score?: number; feedback?: string; submittedAt: string };
 type Detail = {
   course: { id: string; title: string; category: string; trackId: string; mode: Course["mode"]; duration: string; lessons: string[] };
-  roster: Person[]; quiz: QuizQuestion[]; quizUpdatedAt: string | null; certificates: Certificate[];
+  roster: Person[]; quiz: QuizQuestion[]; preQuiz: QuizQuestion[]; postQuiz: QuizQuestion[]; quizUpdatedAt: string | null; certificates: Certificate[];
+  assignments: CourseAssignment[]; submissions: AssignmentSubmission[];
   report: {
     enrolledCount: number; completedCount: number; completionRate: number; quizAttempts: number; quizPassCount: number;
     quizPassRate: number; averageQuizScore: number; attendanceCount: number; attendanceRate: number | null; certificateCount: number;
+    courseAverageRating: number | null; courseReviewCount: number; trainerAverageRating: number | null; trainerReviewCount: number;
   };
 };
-type Tab = "courses" | "trainees" | "tests" | "attendance" | "results" | "certificates" | "reports";
+type Tab = "courses" | "trainees" | "tests" | "assignments" | "attendance" | "results" | "certificates" | "reports";
 
 const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
   { id: "courses", label: "إدارة الدورات", icon: BookOpen },
   { id: "trainees", label: "المتدربون", icon: Users },
   { id: "tests", label: "الاختبارات", icon: ClipboardList },
+  { id: "assignments", label: "الواجبات", icon: FileBarChart },
   { id: "attendance", label: "الحضور", icon: CalendarCheck },
   { id: "results", label: "النتائج", icon: GraduationCap },
   { id: "certificates", label: "الشهادات", icon: Award },
@@ -55,6 +60,13 @@ export default function TrainerWorkspacePage() {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [tab, setTab] = useState<Tab>("courses");
   const [quizDraft, setQuizDraft] = useState<QuizQuestion[]>([]);
+  const [assessmentType, setAssessmentType] = useState<"pre" | "post">("post");
+  const [assignmentTitle, setAssignmentTitle] = useState("");
+  const [assignmentDescription, setAssignmentDescription] = useState("");
+  const [assignmentDueAt, setAssignmentDueAt] = useState("");
+  const [gradeDrafts, setGradeDrafts] = useState<Record<string,{score:string;feedback:string}>>({});
+  const [assignments, setAssignments] = useState<CourseAssignment[]>([]);
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [busy, setBusy] = useState("");
@@ -88,9 +100,17 @@ export default function TrainerWorkspacePage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر تحميل تفاصيل الدورة.");
       setDetail(data as Detail);
-      setQuizDraft((data.quiz || []).map((question: QuizQuestion) => ({
+      const selectedQuiz = assessmentType === "pre" ? data.preQuiz : (data.postQuiz || data.quiz);
+      setQuizDraft((selectedQuiz || []).map((question: QuizQuestion) => ({
         q: question.q, options: [...question.options], correct: question.correct, why: question.why || "",
       })));
+      const assignmentResponse = await fetch("/api/learning/assignments?courseId=" + encodeURIComponent(id), { cache: "no-store" });
+      const assignmentData = await assignmentResponse.json();
+      if (assignmentResponse.ok) {
+        setAssignments(assignmentData.assignments || []);
+        setSubmissions(assignmentData.submissions || []);
+        setGradeDrafts(Object.fromEntries((assignmentData.submissions || []).map((item: AssignmentSubmission) => [item.submissionId, { score: String(item.score ?? ""), feedback: item.feedback || "" }])));
+      }
     } catch (cause) {
       setDetail(null);
       setError(cause instanceof Error ? cause.message : "تعذر تحميل بيانات الدورة.");
@@ -133,9 +153,17 @@ export default function TrainerWorkspacePage() {
           if (!detailResponse.ok) throw new Error(detailData.error || "تعذر تحميل تفاصيل الدورة.");
           if (active) {
             setDetail(detailData as Detail);
-            setQuizDraft((detailData.quiz || []).map((question: QuizQuestion) => ({
+            const selectedQuiz = assessmentType === "pre" ? detailData.preQuiz : (detailData.postQuiz || detailData.quiz);
+            setQuizDraft((selectedQuiz || []).map((question: QuizQuestion) => ({
               q: question.q, options: [...question.options], correct: question.correct, why: question.why || "",
             })));
+            const assignmentResponse = await fetch("/api/learning/assignments?courseId=" + encodeURIComponent(first.id), { cache: "no-store" });
+            const assignmentData = await assignmentResponse.json();
+            if (assignmentResponse.ok) {
+              setAssignments(assignmentData.assignments || []);
+              setSubmissions(assignmentData.submissions || []);
+              setGradeDrafts(Object.fromEntries((assignmentData.submissions || []).map((item: AssignmentSubmission) => [item.submissionId, { score: String(item.score ?? ""), feedback: item.feedback || "" }])));
+            }
           }
         }
       } catch (cause) {
@@ -198,17 +226,53 @@ export default function TrainerWorkspacePage() {
     try {
       const response = await fetch("/api/trainer", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "save_quiz", courseId: detail.course.id, questions: quizDraft }),
+        body: JSON.stringify({ action: "save_quiz", courseId: detail.course.id, assessmentType, questions: quizDraft }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر حفظ الاختبار.");
-      setNotice("تم حفظ الاختبار ونشر نسخته المحدّثة للمتدربين. سيُحتسب النجاح وفق عدد الأسئلة ونسبة الاجتياز المحددة.");
+      setNotice("تم حفظ " + (assessmentType === "pre" ? "الاختبار القبلي" : "الاختبار البعدي") + " ونشر النسخة المحدّثة للمتدربين.");
       await loadCourse(detail.course.id);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر حفظ الاختبار.");
     } finally {
       setBusy("");
     }
+  }
+
+  async function createAssignment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!detail || busy) return;
+    setBusy("assignment-create"); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/learning/assignments", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create_assignment", courseId: detail.course.id, title: assignmentTitle, description: assignmentDescription, dueAt: assignmentDueAt || undefined }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر نشر الواجب.");
+      setAssignmentTitle(""); setAssignmentDescription(""); setAssignmentDueAt("");
+      setNotice("تم نشر الواجب وأصبح ظاهراً للمتدربين المسجلين.");
+      await loadCourse(detail.course.id);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر نشر الواجب.");
+    } finally { setBusy(""); }
+  }
+
+  async function gradeSubmission(submission: AssignmentSubmission) {
+    const draft = gradeDrafts[submission.submissionId] || { score: "", feedback: "" };
+    setBusy(submission.submissionId); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/learning/assignments", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId: submission.submissionId, score: Number(draft.score), feedback: draft.feedback }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر حفظ التقييم.");
+      setNotice("تم حفظ درجة الواجب وملاحظات المدرب.");
+      await loadCourse(detail?.course.id || "");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر حفظ التقييم.");
+    } finally { setBusy(""); }
   }
 
   async function markAttendance(userId: string, status: "attended" | "absent") {
@@ -232,6 +296,15 @@ export default function TrainerWorkspacePage() {
 
   function updateQuestion(index: number, patch: Partial<QuizQuestion>) {
     setQuizDraft((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
+  }
+
+  function selectAssessment(type: "pre" | "post") {
+    setAssessmentType(type);
+    if (!detail) return;
+    const questions = type === "pre" ? detail.preQuiz : (detail.postQuiz || detail.quiz);
+    setQuizDraft((questions || []).map((question) => ({
+      q: question.q, options: [...question.options], correct: question.correct, why: question.why || "",
+    })));
   }
 
   if (loading) {
@@ -299,14 +372,18 @@ export default function TrainerWorkspacePage() {
 
           {tab === "trainees" && <>
             <div className="portal-section-title"><div><h2><Users size={17}/> المتدربون المسجلون</h2><p>{detail.roster.length} تسجيل معتمد مرتبط بالدورة المحددة.</p></div></div>
-            <div className="trainer-table-wrap"><table className="trainer-table"><thead><tr><th>المتدرب</th><th>البريد</th><th>التقدم</th><th>الاختبار</th><th>الحضور</th></tr></thead><tbody>
-              {detail.roster.map((person) => <tr key={person.userId}><td>{person.name}</td><td dir="ltr">{person.email}</td><td>{person.completedLessons}/{person.totalLessons}</td><td>{person.quizChecked ? person.quizScore + "/" + person.quizTotal : "لم يؤد الاختبار"}</td><td>{detail.course.mode === "recorded" ? "غير مطلوب" : attendanceLabel(person.attendanceStatus)}</td></tr>)}
+            <div className="trainer-table-wrap"><table className="trainer-table"><thead><tr><th>المتدرب</th><th>البريد</th><th>التقدم</th><th>الاختبار القبلي</th><th>الاختبار البعدي</th><th>الحضور</th></tr></thead><tbody>
+              {detail.roster.map((person) => <tr key={person.userId}><td>{person.name}</td><td dir="ltr">{person.email}</td><td>{person.completedLessons}/{person.totalLessons}</td><td>{person.preQuizChecked ? person.preQuizScore + "/" + person.preQuizTotal : "لم يؤد بعد"}</td><td>{person.quizChecked ? person.quizScore + "/" + person.quizTotal : "لم يؤد بعد"}</td><td>{detail.course.mode === "recorded" ? "غير مطلوب" : attendanceLabel(person.attendanceStatus)}</td></tr>)}
             </tbody></table></div>
             {!detail.roster.length && <div className="portal-empty">لا توجد تسجيلات معتمدة مرتبطة بهذه الدورة حتى الآن.</div>}
           </>}
 
           {tab === "tests" && <>
-            <div className="portal-section-title"><div><h2><ClipboardList size={17}/> اختبار الدورة</h2><p>{quizDraft.length} سؤالاً · حد الاجتياز {Math.ceil(quizDraft.length * 2 / 3)} إجابات صحيحة.</p></div><button className="portal-button secondary" onClick={() => setQuizDraft((rows) => rows.length < 12 ? [...rows, emptyQuestion()] : rows)} disabled={quizDraft.length >= 12}>إضافة سؤال</button></div>
+            <div className="portal-section-title"><div><h2><ClipboardList size={17}/> الاختبارات القبلية والبعدية</h2><p>{quizDraft.length} سؤالاً · حد الاجتياز {Math.ceil(quizDraft.length * 2 / 3)} إجابات صحيحة.</p></div><button className="portal-button secondary" onClick={() => setQuizDraft((rows) => rows.length < 12 ? [...rows, emptyQuestion()] : rows)} disabled={quizDraft.length >= 12}>إضافة سؤال</button></div>
+            <div className="trainer-tabs" role="group" aria-label="اختيار نوع الاختبار">
+              <button type="button" className={assessmentType === "pre" ? "active" : ""} onClick={() => selectAssessment("pre")}>الاختبار القبلي</button>
+              <button type="button" className={assessmentType === "post" ? "active" : ""} onClick={() => selectAssessment("post")}>الاختبار البعدي</button>
+            </div>
             <div className="trainer-test-note">التغييرات هنا تُنشر على اختبار المتدربين لهذه الدورة فقط. يُطلب من المتدرب إعادة محاولة الاختبار بعد تحديثه.</div>
             <div className="trainer-questions">
               {quizDraft.map((question, index) => <article className="portal-card trainer-question" key={index}>
@@ -316,7 +393,31 @@ export default function TrainerWorkspacePage() {
                 <label>تفسير الإجابة<textarea value={question.why} maxLength={500} onChange={(event) => updateQuestion(index, { why: event.target.value })} placeholder="تغذية راجعة تعليمية تظهر بعد الإجابة"/></label>
               </article>)}
             </div>
-            <button className="portal-button" onClick={() => void saveQuiz()} disabled={busy === "quiz" || quizDraft.length < 3}>{busy === "quiz" ? <LoaderCircle size={14}/> : <Save size={14}/>} حفظ ونشر الاختبار</button>
+            <button className="portal-button" onClick={() => void saveQuiz()} disabled={busy === "quiz" || quizDraft.length < 3}>{busy === "quiz" ? <LoaderCircle size={14}/> : <Save size={14}/>} حفظ ونشر {assessmentType === "pre" ? "الاختبار القبلي" : "الاختبار البعدي"}</button>
+          </>}
+
+          {tab === "assignments" && <>
+            <div className="portal-section-title"><div><h2><FileBarChart size={17}/> واجبات الدورة وتسليمات المتدربين</h2><p>انشر تكليفاً جديداً، ثم راجع التسليمات وسجل الدرجة والتغذية الراجعة.</p></div></div>
+            <form className="portal-card" onSubmit={(event) => void createAssignment(event)} style={{display:"grid",gap:10,marginBottom:14}}>
+              <label style={{display:"grid",gap:6}}>عنوان الواجب<input required minLength={4} maxLength={160} value={assignmentTitle} onChange={event=>setAssignmentTitle(event.target.value)} placeholder="مثال: تطبيق نموذج تقدير الحالة"/></label>
+              <label style={{display:"grid",gap:6}}>تعليمات الواجب<textarea required minLength={10} maxLength={3000} rows={4} value={assignmentDescription} onChange={event=>setAssignmentDescription(event.target.value)} placeholder="اشرح المطلوب ومعايير التسليم..."/></label>
+              <label style={{display:"grid",gap:6}}>آخر موعد للتسليم (اختياري)<input type="datetime-local" value={assignmentDueAt} onChange={event=>setAssignmentDueAt(event.target.value)}/></label>
+              <div><button className="portal-button" disabled={busy==="assignment-create"}>{busy==="assignment-create"?"جارٍ النشر...":"نشر الواجب"}</button></div>
+            </form>
+            {assignments.map(assignment=><article className="portal-card" key={assignment.assignmentId} style={{display:"grid",gap:10,marginBottom:12}}>
+              <div><strong>{assignment.title}</strong><p>{assignment.description}</p><small>عدد التسليمات: {submissions.filter(item=>item.assignmentId===assignment.assignmentId).length}</small></div>
+              {submissions.filter(item=>item.assignmentId===assignment.assignmentId).map(submission=><div key={submission.submissionId} style={{borderTop:"1px solid #e8eeee",paddingTop:12,display:"grid",gap:8}}>
+                <div><strong>{submission.studentName}</strong> <small>{submission.studentEmail} · {dateLabel(submission.submittedAt)}</small></div>
+                <div style={{whiteSpace:"pre-wrap",fontSize:11,lineHeight:1.9,color:"#526b74"}}>{submission.answer}</div>
+                <div style={{display:"grid",gridTemplateColumns:"minmax(100px,150px) minmax(0,1fr)",gap:8}}>
+                  <label style={{display:"grid",gap:5}}>الدرجة من 100<input type="number" min="0" max="100" step="1" value={(gradeDrafts[submission.submissionId]||{score:"",feedback:""}).score} onChange={event=>setGradeDrafts(current=>({...current,[submission.submissionId]:{...(current[submission.submissionId]||{score:"",feedback:""}),score:event.target.value}}))}/></label>
+                  <label style={{display:"grid",gap:5}}>ملاحظات التصحيح<textarea rows={2} value={(gradeDrafts[submission.submissionId]||{score:"",feedback:""}).feedback} onChange={event=>setGradeDrafts(current=>({...current,[submission.submissionId]:{...(current[submission.submissionId]||{score:"",feedback:""}),feedback:event.target.value}}))}/></label>
+                </div>
+                <div><button type="button" className="portal-button secondary" disabled={busy===submission.submissionId} onClick={()=>void gradeSubmission(submission)}>{busy===submission.submissionId?"جارٍ الحفظ...":submission.status==="graded"?"تحديث التقييم":"حفظ التقييم"}</button>{submission.status==="graded"&&<small> · تم تصحيحه: {submission.score}/100</small>}</div>
+              </div>)}
+              {!submissions.some(item=>item.assignmentId===assignment.assignmentId)&&<div className="portal-empty">لم تصل تسليمات لهذا الواجب بعد.</div>}
+            </article>)}
+            {!assignments.length&&<div className="portal-empty">لم تنشر واجبات لهذه الدورة حتى الآن.</div>}
           </>}
 
           {tab === "attendance" && <>
@@ -332,8 +433,8 @@ export default function TrainerWorkspacePage() {
 
           {tab === "results" && <>
             <div className="portal-section-title"><div><h2><GraduationCap size={17}/> نتائج المتدربين</h2><p>نتائج اختبار الدورة ومستوى إكمال الوحدات.</p></div></div>
-            <div className="trainer-table-wrap"><table className="trainer-table"><thead><tr><th>المتدرب</th><th>الوحدات المكتملة</th><th>درجة الاختبار</th><th>الحالة</th><th>آخر نشاط</th></tr></thead><tbody>
-              {detail.roster.map((person) => <tr key={person.userId}><td>{person.name}</td><td>{person.completedLessons}/{person.totalLessons}</td><td>{person.quizChecked ? person.quizScore + " / " + person.quizTotal : "لم يؤد بعد"}</td><td><span className={"trainer-result-state " + (person.quizPassed ? "passed" : "pending")}>{person.quizPassed ? "اجتاز" : person.quizChecked ? "لم يجتز" : "قيد الانتظار"}</span></td><td>{dateLabel(person.lastActivityAt)}</td></tr>)}
+            <div className="trainer-table-wrap"><table className="trainer-table"><thead><tr><th>المتدرب</th><th>الوحدات المكتملة</th><th>الاختبار القبلي</th><th>الاختبار البعدي</th><th>الحالة</th><th>آخر نشاط</th></tr></thead><tbody>
+              {detail.roster.map((person) => <tr key={person.userId}><td>{person.name}</td><td>{person.completedLessons}/{person.totalLessons}</td><td>{person.preQuizChecked ? person.preQuizScore + " / " + person.preQuizTotal : "لم يؤد بعد"}</td><td>{person.quizChecked ? person.quizScore + " / " + person.quizTotal : "لم يؤد بعد"}</td><td><span className={"trainer-result-state " + (person.quizPassed ? "passed" : "pending")}>{person.quizPassed ? "اجتاز" : person.quizChecked ? "لم يجتز" : "قيد الانتظار"}</span></td><td>{dateLabel(person.lastActivityAt)}</td></tr>)}
             </tbody></table></div>
             {!detail.roster.length && <div className="portal-empty">ستظهر النتائج هنا بعد التحاق المتدربين بالدورة.</div>}
           </>}
@@ -357,6 +458,8 @@ export default function TrainerWorkspacePage() {
               <article><span>متوسط الإجابات الصحيحة</span><strong>{detail.report.averageQuizScore}/{detail.roster[0]?.quizTotal || detail.quiz.length}</strong></article>
               {detail.report.attendanceRate !== null && <article><span>معدل الحضور</span><strong>{detail.report.attendanceRate}%</strong></article>}
               <article><span>الشهادات السارية</span><strong>{detail.report.certificateCount}</strong></article>
+              <article><span>متوسط تقييم الدورة</span><strong>{detail.report.courseAverageRating ?? "—"}/5</strong><small>{detail.report.courseReviewCount} تقييم</small></article>
+              <article><span>متوسط تقييمك كمدرب</span><strong>{detail.report.trainerAverageRating ?? "—"}/5</strong><small>{detail.report.trainerReviewCount} تقييم</small></article>
             </div>
             <div className="portal-card trainer-report-summary"><strong>ملخص الدورة</strong><p>عدد الوحدات: {detail.course.lessons.length} · نمط الدورة: {modeLabel(detail.course.mode)} · عدد أسئلة الاختبار: {detail.quiz.length}. تعتمد هذه المؤشرات على البيانات المسجلة داخل المنصة، ولا تتضمن تقديرات خارجية غير موثقة.</p></div>
             <Link className="portal-link-button secondary" href="/platform-admin/activities"><FileBarChart size={14}/> مراجعة تقارير المحاكاة الإشرافية</Link>

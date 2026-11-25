@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BookOpen, Plus, RefreshCw, Save, UserRoundCog } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
-type Course = { id:string; title:string; category:string; mode:string; duration:string; lessonCount:number; contentStatus?:string; trainerId:string|null; trainerName:string|null; assignedAt:string|null };
+type Course = { id:string; title:string; category:string; mode:string; duration:string; lessonCount:number; contentType?:"course"|"program"; contentStatus?:string; trainerId:string|null; trainerName:string|null; assignedAt:string|null };
 type Trainer = { userId:string; name:string; email:string };
 
 export default function AdminCoursesPage() {
@@ -46,7 +46,7 @@ export default function AdminCoursesPage() {
     {loading?<div className="portal-empty">جارٍ تحميل الدورات...</div>:<div style={{display:"grid",gap:10}}>
       {courses.map(course=><article className="portal-card" key={course.id}>
         <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
-          <div><span className="portal-chip">{course.category} · {mode(course.mode)}</span><h3>{course.title}</h3><p>{course.duration} · {course.lessonCount} وحدات</p></div>
+          <div><span className="portal-chip">{course.contentType==="program"?"برنامج تدريبي":"دورة تدريبية"} · {course.category} · {mode(course.mode)}</span><h3>{course.title}</h3><p>{course.duration} · {course.lessonCount} وحدات</p></div>
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{course.contentStatus&&course.contentStatus!=="catalog"&&<Link className="portal-link-button secondary" href={"/platform-admin/courses/editor?id="+encodeURIComponent(course.id)}>تحرير الكورس</Link>}<Link className="portal-link-button secondary" href={"/academy/"+course.id}>معاينة صفحة التعلم</Link></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:9,marginTop:12,alignItems:"end"}}>

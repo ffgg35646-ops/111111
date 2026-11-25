@@ -40,13 +40,13 @@ async function resolveCourse(db: Awaited<ReturnType<typeof getClinicalDatabase>>
   if (catalogCourse) return catalogCourse;
   const stored = await db.collection("platform_course_content").findOne(
     { courseId, status: "published" },
-    { projection: { _id: 0, courseId: 1, title: 1, trackId: 1, lessons: 1 } },
+    { projection: { _id: 0, courseId: 1, title: 1, trackId: 1, mode: 1, lessons: 1 } },
   );
   if (!stored) return null;
   const lessons = Array.isArray(stored.lessons) ? stored.lessons.map((lesson: Record<string, unknown>) => String(lesson.title || "")) : [];
   return {
     id: String(stored.courseId), title: String(stored.title || "دورة تدريبية"),
-    trackId: String(stored.trackId || "mental-health"), mode: "recorded" as const,
+    trackId: String(stored.trackId || "mental-health"), mode: stored.mode === "live" || stored.mode === "hybrid" ? stored.mode : "recorded",
     lessons,
   };
 }
@@ -66,10 +66,10 @@ export async function GET(request: NextRequest) {
         { status: 402 },
       );
     }
-    const [record, certificate, quizDocument, media] = await Promise.all([
+    const [record, certificate, quizDocument, media, attendance] = await Promise.all([
       db.collection("platform_course_progress").findOne(
         { userId: actor.userId, courseId },
-        { projection: { _id: 0, completedLessons: 1, reflection: 1, quizAnswers: 1, quizChecked: 1, updatedAt: 1 } },
+        { projection: { _id: 0, completedLessons: 1, reflection: 1, preQuizAnswers: 1, preQuizChecked: 1, quizAnswers: 1, quizChecked: 1, updatedAt: 1 } },
       ),
       db.collection("platform_certificates").findOne(
         { userId: actor.userId, courseId },
@@ -77,16 +77,22 @@ export async function GET(request: NextRequest) {
       ),
       db.collection("platform_course_quizzes").findOne(
         { courseId },
-        { projection: { _id: 0, questions: 1 } },
+        { projection: { _id: 0, questions: 1, preQuestions: 1, postQuestions: 1 } },
       ),
       db.collection("platform_course_media").findOne(
         { courseId, status: "published" },
         { projection: { _id: 0, sourceUrl: 1 } },
       ),
+      actor.role === "trainee" && course.mode !== "recorded"
+        ? db.collection("platform_classroom_attendance").findOne(
+            { userId: actor.userId, courseId, status: "attended" }, { projection: { _id: 1 } },
+          )
+        : Promise.resolve(null),
     ]);
-    const quiz = getPlatformCourseQuiz(course.trackId, Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null);
+    const postQuiz = getPlatformCourseQuiz(course.trackId, Array.isArray(quizDocument?.postQuestions) ? quizDocument.postQuestions as PlatformQuizQuestion[] : Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null);
+    const preQuiz = getPlatformCourseQuiz(course.trackId, Array.isArray(quizDocument?.preQuestions) ? quizDocument.preQuestions as PlatformQuizQuestion[] : null);
     return NextResponse.json(
-      { ...(record || { completedLessons: [], reflection: "", quizAnswers: {}, quizChecked: false }), certificate, quiz, hasProtectedVideo: Boolean(media && allowedCourseVideoUrl(media.sourceUrl)) },
+      { ...(record || { completedLessons: [], reflection: "", preQuizAnswers: {}, preQuizChecked: false, quizAnswers: {}, quizChecked: false }), certificate, preQuiz, postQuiz, quiz: postQuiz, attendanceVerified: course.mode === "recorded" || Boolean(attendance), hasProtectedVideo: Boolean(media && allowedCourseVideoUrl(media.sourceUrl)) },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
@@ -121,6 +127,9 @@ export async function POST(request: NextRequest) {
     ).slice(0, 20),
   );
   const quizChecked = data.quizChecked === true;
+  const rawPreAnswers = data.preQuizAnswers && typeof data.preQuizAnswers === "object" && !Array.isArray(data.preQuizAnswers) ? data.preQuizAnswers as Record<string, unknown> : {};
+  const preQuizAnswers = Object.fromEntries(Object.entries(rawPreAnswers).filter(([key, value]) => /^\\d{1,2}$/.test(key) && Number.isInteger(value) && Number(value) >= 0 && Number(value) <= 5).slice(0, 20));
+  const preQuizChecked = data.preQuizChecked === true;
   const now = new Date();
 
   try {
@@ -148,6 +157,8 @@ export async function POST(request: NextRequest) {
           courseTitle: course.title,
           completedLessons: completed,
           reflection,
+          preQuizAnswers,
+          preQuizChecked,
           quizAnswers,
           quizChecked,
           updatedAt: now,
@@ -159,9 +170,9 @@ export async function POST(request: NextRequest) {
 
     const quizDocument = await db.collection("platform_course_quizzes").findOne(
       { courseId },
-      { projection: { _id: 0, questions: 1 } },
+      { projection: { _id: 0, questions: 1, postQuestions: 1 } },
     );
-    const customQuiz = Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null;
+    const customQuiz = Array.isArray(quizDocument?.postQuestions) ? quizDocument.postQuestions as PlatformQuizQuestion[] : Array.isArray(quizDocument?.questions) ? quizDocument.questions as PlatformQuizQuestion[] : null;
     const quiz = scorePlatformCourseQuiz(course.trackId, quizAnswers, quizChecked, customQuiz);
     let attendanceVerified = course.mode === "recorded";
     if (actor.role === "trainee" && completed.length === course.lessons.length && quiz.passed && course.mode !== "recorded") {

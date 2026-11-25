@@ -9,7 +9,7 @@ import PlatformRequestForm from "@/components/platform-request-form";
 import { courses, learningTracks } from "@/lib/platform-catalog";
 
 const modeLabels={recorded:"مسجلة",live:"مباشرة",hybrid:"مباشرة ومسجلة"};
-type PublishedCourse = { id:string; title:string; summary:string; trackId:string; category:string; mode:"recorded"; level:string; duration:string; outcomes:string[]; lessons:{id:string;title:string;videoReady:boolean}[]; price:number };
+type PublishedCourse = { id:string; title:string; summary:string; trackId:string; category:string; mode:"recorded"|"live"|"hybrid"; contentType?:"course"|"program"; level:string; duration:string; outcomes:string[]; lessons:{id:string;title:string;videoReady:boolean}[]; price:number };
 
 function AcademyWorkspace() {
   const params = useSearchParams();
@@ -18,12 +18,13 @@ function AcademyWorkspace() {
     return requestedTrack && learningTracks.some(item => item.id === requestedTrack) ? requestedTrack : "all";
   });
   const [mode,setMode]=useState("all");
+  const [contentType,setContentType]=useState<"all"|"course"|"program">("all");
   const [selectedCourse,setSelectedCourse]=useState<string|null>(null);
   const [coursePrices,setCoursePrices]=useState<Record<string,number>>({});
   const [publishedCourses,setPublishedCourses]=useState<PublishedCourse[]>([]);
   useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));fetch("/api/academy/courses",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const rows=Array.isArray(data.courses)?data.courses:[];setPublishedCourses(rows);setCoursePrices(current=>({...current,...Object.fromEntries(rows.filter((item:PublishedCourse)=>typeof item.price==="number").map((item:PublishedCourse)=>[item.id,item.price]))}));}}).catch(error=>console.error("Published ETZAN courses unavailable",error));return()=>{active=false}},[]);
   const allCourses=useMemo(()=>[...courses,...publishedCourses.map(item=>({...item,lessons:item.lessons.map(lesson=>lesson.title)}))],[publishedCourses]);
-  const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)),[allCourses,track,mode]);
+  const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)&&(contentType==="all"||(("contentType" in course ? course.contentType : undefined)||"course")===contentType)),[allCourses,track,mode,contentType]);
   const chosen=allCourses.find(course=>course.id===selectedCourse);
 
   return <PlatformLayout title="الأكاديمية والمسارات التدريبية" description="برامج منظمة في الخدمة الاجتماعية وعلم النفس وCBT والإرشاد الأسري والاضطرابات النمائية والتوحد والقياس النفسي والممارسة الإكلينيكية والتطوير المهني.">
@@ -37,7 +38,7 @@ function AcademyWorkspace() {
       </article>)}
     </div>
 
-    <div className="portal-section-title"><div><h2>الدورات والبرامج</h2><p>{filtered.length} برامج في الكتالوج التدريبي</p></div><Link className="portal-link-button secondary" href="/classrooms"><Video size={14}/> الفصول المباشرة</Link></div>
+    <div className="portal-section-title"><div><h2>الدورات والبرامج</h2><p>{filtered.length} عنصر في الكتالوج · اختر النوع والمسار ونمط التدريب</p></div><Link className="portal-link-button secondary" href="/classrooms"><Video size={14}/> الفصول المباشرة</Link></div>
     <div className="portal-filter-row">
       <button className={track==="all"?"portal-filter active":"portal-filter"} onClick={()=>setTrack("all")}>كل المسارات</button>
       {learningTracks.map(item=><button key={item.id} className={track===item.id?"portal-filter active":"portal-filter"} onClick={()=>setTrack(item.id)}>{item.title}</button>)}
@@ -45,9 +46,14 @@ function AcademyWorkspace() {
     <div className="portal-filter-row">
       {(["all","recorded","live","hybrid"] as const).map(item=><button key={item} className={mode===item?"portal-filter active":"portal-filter"} onClick={()=>setMode(item)}>{item==="all"?"كل أنماط التعلم":modeLabels[item as keyof typeof modeLabels]??item}</button>)}
     </div>
+    <div className="portal-filter-row" aria-label="تصنيف المحتوى">
+      <button className={contentType==="all"?"portal-filter active":"portal-filter"} onClick={()=>setContentType("all")}>كل المحتوى</button>
+      <button className={contentType==="course"?"portal-filter active":"portal-filter"} onClick={()=>setContentType("course")}>الدورات التدريبية</button>
+      <button className={contentType==="program"?"portal-filter active":"portal-filter"} onClick={()=>setContentType("program")}>البرامج التدريبية</button>
+    </div>
     <div className="portal-grid">
       {filtered.map(course=><article className="portal-card course-card" key={course.id}>
-        <div className="course-card-top"><span className={"course-mode "+course.mode}>{modeLabels[course.mode]}</span><small>{course.level}</small></div>
+        <div className="course-card-top"><span className={"course-mode "+course.mode}>{modeLabels[course.mode]}</span><small>{course.contentType === "program" ? "برنامج تدريبي" : course.level}</small></div>
         <h3>{course.title}</h3><p>{course.summary}</p>
         <div className="course-meta"><span><Clock3 size={13}/>{course.duration}</span><span><BookOpen size={13}/>{course.lessons.length} دروس</span>{typeof coursePrices[course.id]==="number"&&<strong>{coursePrices[course.id].toFixed(2)} SAR</strong>}</div>
         <div className="course-card-actions"><Link className="portal-button" href={"/academy/"+course.id}>ابدأ التعلم</Link><button className="portal-button secondary" onClick={()=>setSelectedCourse(course.id)}>طلب الالتحاق</button></div>

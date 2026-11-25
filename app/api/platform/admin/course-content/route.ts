@@ -42,6 +42,9 @@ export async function POST(request: NextRequest) {
   const level = clean(data.level, 80);
   const duration = clean(data.duration, 100);
   const price = Number(data.price);
+  const mode = data.mode === "live" || data.mode === "hybrid" ? data.mode : "recorded";
+  const contentType = data.contentType === "program" ? "program" : "course";
+  const outcomes = Array.isArray(data.outcomes) ? data.outcomes.filter((value): value is string => typeof value === "string").map(value => clean(value, 240)).filter(Boolean).slice(0, 12) : [];
   const rawLessons = Array.isArray(data.lessons) ? data.lessons : [];
   if (!idPattern.test(courseId)) return NextResponse.json({ error: "معرّف الدورة غير صالح." }, { status: 400 });
   if (!title || !description) return NextResponse.json({ error: "اكتب اسم الكورس ووصفه." }, { status: 400 });
@@ -62,14 +65,14 @@ export async function POST(request: NextRequest) {
   });
   if (lessons.some(lesson => !lesson.title)) return NextResponse.json({ error: "اكتب اسماً لكل درس قبل الحفظ." }, { status: 400 });
   if (lessons.some(lesson => lesson.uploadStatus === "uploaded" && !lesson.videoId)) return NextResponse.json({ error: "يوجد درس حالته مرفوع دون معرّف فيديو صالح." }, { status: 400 });
-  if (data.publish === true && lessons.some(lesson => lesson.uploadStatus !== "uploaded" || !lesson.videoId)) return NextResponse.json({ error: "لا يمكن نشر الكورس قبل اكتمال رفع وتجهيز فيديو كل درس." }, { status: 400 });
+  if (data.publish === true && mode === "recorded" && lessons.some(lesson => lesson.uploadStatus !== "uploaded" || !lesson.videoId)) return NextResponse.json({ error: "لا يمكن نشر الدورة المسجلة قبل اكتمال تجهيز فيديو كل درس." }, { status: 400 });
 
   try {
-    if (data.publish === true) {
+    if (data.publish === true && mode !== "live" && lessons.some(lesson => lesson.videoId && lesson.uploadStatus === "uploaded")) {
       const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
       const apiKey = process.env.BUNNY_STREAM_API_KEY;
       if (!libraryId || !apiKey) return NextResponse.json({ error: "إعدادات Bunny Stream غير مكتملة؛ لا يمكن التحقق من جاهزية الفيديوهات." }, { status: 503 });
-      for (const lesson of lessons) {
+      for (const lesson of lessons.filter(item => item.videoId && item.uploadStatus === "uploaded")) {
         const check = await fetch("https://video.bunnycdn.com/library/" + encodeURIComponent(libraryId) + "/videos/" + encodeURIComponent(lesson.videoId), { headers: { AccessKey: apiKey, Accept: "application/json" }, cache: "no-store" });
         const video = await check.json().catch(() => ({}));
         if (!check.ok || Number(video.status) !== 3) return NextResponse.json({ error: "الفيديو «" + lesson.title + "» لم يكتمل تجهيزه بعد. انتظر حتى تظهر حالة جاهز للمشاهدة." }, { status: 409 });
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
     const existing = await collection.findOne({ courseId }, { projection: { _id: 0, createdAt: 1 } });
     const document = {
       courseId, title, summary: description, description, trackId, category: trackId,
-      mode: "recorded", level, duration, price: Math.round(price * 100) / 100, currency: "SAR",
+      mode, contentType, outcomes, level, duration, price: Math.round(price * 100) / 100, currency: "SAR",
       lessons, status: data.publish === true ? "published" : "draft",
       updatedAt: now, updatedBy: actor.userId, createdAt: existing?.createdAt || now,
     };

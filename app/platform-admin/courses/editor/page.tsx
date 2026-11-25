@@ -7,12 +7,12 @@ import { ArrowRight, BookOpen, Check, LoaderCircle, Plus, Save, Trash2, UploadCl
 import { PlatformLayout } from "@/components/platform-layout";
 
 type LessonDraft = { id: string; title: string; videoId: string; videoName: string; videoSize: number; uploadStatus: string; progress: number; error: string };
-type CourseDraft = { courseId: string; title: string; description: string; trackId: string; level: string; duration: string; price: string; lessons: LessonDraft[] };
+type CourseDraft = { courseId: string; title: string; description: string; trackId: string; level: string; duration: string; price: string; mode: "recorded" | "live" | "hybrid"; contentType: "course" | "program"; lessons: LessonDraft[] };
 const tracks = [
   ["social-work","الخدمة الاجتماعية"],["mental-health","علم النفس"],["cbt","العلاج المعرفي السلوكي"],["family-guidance","الإرشاد والعلاج الأسري"],["developmental","الاضطرابات النمائية"],["autism","طيف التوحد"],["psychometrics","التقييم والقياس النفسي"],["clinical-practice","الممارسة الإكلينيكية"],["professional-development","التطوير المهني"],
 ] as const;
 const newLesson = (): LessonDraft => ({ id: "lesson-" + crypto.randomUUID(), title: "", videoId: "", videoName: "", videoSize: 0, uploadStatus: "not_uploaded", progress: 0, error: "" });
-const emptyCourse = (): CourseDraft => ({ courseId: "", title: "", description: "", trackId: "social-work", level: "مبتدئ", duration: "", price: "", lessons: [newLesson()] });
+const emptyCourse = (): CourseDraft => ({ courseId: "", title: "", description: "", trackId: "social-work", level: "مبتدئ", duration: "", price: "", mode: "recorded", contentType: "course", lessons: [newLesson()] });
 const formatSize = (bytes: number) => bytes >= 1024 ** 3 ? (bytes / 1024 ** 3).toFixed(2) + " GB" : (bytes / 1024 ** 2).toFixed(0) + " MB";
 const makeCourseId = () => "course-" + crypto.randomUUID().replaceAll("-", "").slice(0, 24);
 
@@ -31,7 +31,7 @@ export default function CourseEditorPage() {
     let active = true;
     fetch("/api/platform/admin/course-content?courseId=" + encodeURIComponent(editId), { cache: "no-store" })
       .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error || "تعذر تحميل الكورس."); return data.course; })
-      .then(item => { if (active && item) setCourse({ courseId: item.courseId, title: item.title || "", description: item.description || item.summary || "", trackId: item.trackId || "social-work", level: item.level || "مبتدئ", duration: item.duration || "", price: String(item.price ?? ""), lessons: (item.lessons || []).map((lesson: Record<string, unknown>) => ({ id: String(lesson.id), title: String(lesson.title || ""), videoId: String(lesson.videoId || ""), videoName: String(lesson.videoName || ""), videoSize: Number(lesson.videoSize || 0), uploadStatus: String(lesson.uploadStatus || "not_uploaded"), progress: 100, error: "" })) }); })
+      .then(item => { if (active && item) setCourse({ courseId: item.courseId, title: item.title || "", description: item.description || item.summary || "", trackId: item.trackId || "social-work", level: item.level || "مبتدئ", duration: item.duration || "", price: String(item.price ?? ""), mode: item.mode === "live" || item.mode === "hybrid" ? item.mode : "recorded", contentType: item.contentType === "program" ? "program" : "course", lessons: (item.lessons || []).map((lesson: Record<string, unknown>) => ({ id: String(lesson.id), title: String(lesson.title || ""), videoId: String(lesson.videoId || ""), videoName: String(lesson.videoName || ""), videoSize: Number(lesson.videoSize || 0), uploadStatus: String(lesson.uploadStatus || "not_uploaded"), progress: 100, error: "" })) }); })
       .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : "تعذر تحميل الكورس."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -115,14 +115,14 @@ export default function CourseEditorPage() {
     if (!course.title.trim() || !course.description.trim() || !course.duration.trim() || !course.price.trim()) { setError("أكمل اسم الكورس والوصف والمدة والسعر."); return; }
     if (course.lessons.some(lesson => !lesson.title.trim())) { setError("اكتب اسم كل درس."); return; }
     if (course.lessons.some(lesson => lesson.uploadStatus === "uploading" || lesson.uploadStatus === "failed")) { setError("انتظر اكتمال رفع الفيديوهات أو أعد محاولة الفيديو الذي فشل."); return; }
-    if (publish && course.lessons.some(lesson => lesson.uploadStatus !== "uploaded" || !lesson.videoId)) { setError("لا يمكن نشر الكورس قبل رفع فيديو لكل درس. احفظه كمسودة إذا كنت ستكمل الرفع لاحقاً."); return; }
+    if (publish && course.mode === "recorded" && course.lessons.some(lesson => lesson.uploadStatus !== "uploaded" || !lesson.videoId)) { setError("لا يمكن نشر الدورة المسجلة قبل تجهيز فيديو كل درس. يمكنك حفظها كمسودة حتى يكتمل الرفع."); return; }
     const courseId = course.courseId || makeCourseId();
     if (!course.courseId) patchCourse({ courseId });
     setSaving(true); setPublishing(publish);
     try {
       const response = await fetch("/api/platform/admin/course-content", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId, title: course.title, description: course.description, trackId: course.trackId, level: course.level, duration: course.duration, price: Number(course.price), lessons: course.lessons.map(({ id, title, videoId, videoName, videoSize, uploadStatus }) => ({ id, title, videoId, videoName, videoSize, uploadStatus })), publish }),
+        body: JSON.stringify({ courseId, title: course.title, description: course.description, trackId: course.trackId, level: course.level, duration: course.duration, price: Number(course.price), mode: course.mode, contentType: course.contentType, lessons: course.lessons.map(({ id, title, videoId, videoName, videoSize, uploadStatus }) => ({ id, title, videoId, videoName, videoSize, uploadStatus })), publish }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر حفظ الكورس.");
@@ -132,10 +132,10 @@ export default function CourseEditorPage() {
     finally { setSaving(false); setPublishing(false); }
   }
 
-  return <PlatformLayout title={editId ? "تحرير الكورس والدروس" : "إضافة كورس جديد"} description="بيانات الكورس مرة واحدة، ثم أضف لكل درس اسماً وفيديو مستقلاً. الرفع المباشر يدعم الملفات الكبيرة عبر جلسات TUS.">
+  return <PlatformLayout title={editId ? "تحرير الكورس والدروس" : "إضافة كورس جديد"} description="أنشئ دورة مسجلة أو مباشرة أو هجينة، أو برنامجاً تدريبياً منظماً. أضف الوحدات وارفع فيديوهات الدورات المسجلة عبر جلسات TUS.">
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
       <Link href="/platform-admin/courses" className="portal-link-button secondary"><ArrowRight size={14}/> العودة لإدارة الدورات</Link>
-      <span className="portal-chip">رفع مباشر · ملفات كبيرة</span>
+      <span className="portal-chip">دورات مسجلة ومباشرة وبرامج تدريبية</span>
     </div>
     {error && <div className="portal-callout" role="alert" style={{ borderColor: "#e7b4ad", color: "#a33" }}>{error}</div>}
     {notice && <div className="portal-callout" role="status">{notice}</div>}
@@ -146,6 +146,8 @@ export default function CourseEditorPage() {
         <label style={{ display: "grid", gap: 6 }}>وصف الكورس<textarea value={course.description} onChange={e => patchCourse({ description: e.target.value })} placeholder="اكتب وصفاً واضحاً لأهداف الكورس ومحتواه..." rows={4} maxLength={3000}/></label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12 }}>
           <label style={{ display: "grid", gap: 6 }}>المسار<select value={course.trackId} onChange={e => patchCourse({ trackId: e.target.value })}>{tracks.map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          <label style={{ display: "grid", gap: 6 }}>نوع المحتوى<select value={course.contentType} onChange={e => patchCourse({ contentType: e.target.value as "course" | "program" })}><option value="course">دورة تدريبية</option><option value="program">برنامج تدريبي</option></select></label>
+          <label style={{ display: "grid", gap: 6 }}>نمط التدريب<select value={course.mode} onChange={e => patchCourse({ mode: e.target.value as "recorded" | "live" | "hybrid" })}><option value="recorded">مسجلة</option><option value="live">مباشرة</option><option value="hybrid">هجينة (مباشرة ومسجلة)</option></select></label>
           <label style={{ display: "grid", gap: 6 }}>المستوى<select value={course.level} onChange={e => patchCourse({ level: e.target.value })}>{["مبتدئ","مبتدئ إلى متوسط","متوسط","متقدم","جميع المستويات"].map(x => <option key={x}>{x}</option>)}</select></label>
           <label style={{ display: "grid", gap: 6 }}>مدة الكورس<input value={course.duration} onChange={e => patchCourse({ duration: e.target.value })} placeholder="مثال: 12 ساعة تعليمية"/></label>
           <label style={{ display: "grid", gap: 6 }}>سعر الكورس (ريال سعودي)<input type="number" min="0" max="1000000" step="0.01" value={course.price} onChange={e => patchCourse({ price: e.target.value })} placeholder="0 للدورة المجانية"/></label>
@@ -174,7 +176,7 @@ export default function CourseEditorPage() {
         </article>)}
       </div>
       <div className="portal-card" style={{ marginTop: 16, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ color: "#71848a", fontSize: 11 }}>احفظ كمسودة أثناء تجهيز المحتوى، أو انشر الكورس بعد التأكد من أسماء الدروس ورفع الفيديوهات.</span>
+        <span style={{ color: "#71848a", fontSize: 11 }}>الدورة المسجلة تتطلب فيديو جاهزاً لكل وحدة. أما المباشرة فيمكن نشر جدول وحداتها دون فيديو، والهجينة يمكن الجمع فيها بين اللقاءات والتسجيلات.</span>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button className="portal-button secondary" disabled={saving} onClick={() => void save(false)}><Save size={14}/> {saving && !publishing ? "جارٍ الحفظ..." : "حفظ كمسودة"}</button>
           <button className="portal-button" disabled={saving} onClick={() => void save(true)}><Check size={14}/> {saving && publishing ? "جارٍ النشر..." : "حفظ ونشر الكورس"}</button>

@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       { courseId, status: "published" },
       { projection: { _id: 0, courseId: 1, title: 1, mode: 1 } },
     );
-    const course = catalogCourse || (storedCourse ? { id: String(storedCourse.courseId), title: String(storedCourse.title || "دورة تدريبية"), mode: "recorded" as const } : null);
+    const course = catalogCourse || (storedCourse ? { id: String(storedCourse.courseId), title: String(storedCourse.title || "دورة تدريبية"), mode: storedCourse.mode === "live" || storedCourse.mode === "hybrid" ? storedCourse.mode : "recorded" as const } : null);
     if (!course) return NextResponse.json({ error: "الدورة المحددة غير موجودة أو غير منشورة." }, { status: 404 });
     if (kind === "classroom_registration" && course.mode === "recorded") {
       return NextResponse.json({ error: "هذه الدورة مسجلة وليست فصلاً مباشراً." }, { status: 400 });
