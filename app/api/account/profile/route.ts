@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
     const account = await db.collection("platform_users").findOne({ userId: actor.userId }, { projection: { _id: 0, firstName: 1, fatherName: 1, name: 1, username: 1, email: 1, emailVerified: 1 } });
     if (!account) return NextResponse.json({ error: "الحساب غير موجود." }, { status: 404 });
     const profile = await db.collection("etzan_account_profiles").findOne({ userId: actor.userId }, { projection: { _id: 0, avatarDataUrl: 1, phone: 1, city: 1, bio: 1, updatedAt: 1 } });
-    return NextResponse.json({ profile: { ...account, avatarDataUrl: profile?.avatarDataUrl || "", phone: profile?.phone || "", city: profile?.city || "", bio: profile?.bio || "" } }, { headers: { "Cache-Control": "no-store" } });
+    const fullName = String(account.name || "");
+    const nameParts = fullName.split(/\\s+/).filter(Boolean);
+    return NextResponse.json({ profile: { ...account, firstName: account.firstName || nameParts[0] || "", fatherName: account.fatherName || nameParts.slice(1).join(" "), username: account.username || "", avatarDataUrl: profile?.avatarDataUrl || "", phone: profile?.phone || "", city: profile?.city || "", bio: profile?.bio || "" } }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Account profile GET", error);
     return NextResponse.json({ error: "تعذر تحميل بيانات الحساب." }, { status: 503 });
