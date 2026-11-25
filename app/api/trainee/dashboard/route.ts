@@ -94,19 +94,23 @@ export async function GET(request: NextRequest) {
           ).sort({ startTime: 1 }).limit(40).toArray()
         : Promise.resolve([]),
     ]);
-    const directClassroomSessions = requests.filter((item) =>
-      item.kind === "classroom_registration" && item.status === "approved" &&
-      item.zoomMeeting && typeof item.zoomMeeting.joinUrl === "string" && item.preferredAt,
-    ).map((item) => ({
-      sessionId: String(item.requestId || ""),
-      courseId: String(item.courseId || ""),
-      courseTitle: String(item.courseTitle || "فصل مباشر"),
-      topic: String(item.courseTitle || "فصل مباشر"),
-      startTime: item.preferredAt,
-      durationMinutes: Number(item.durationMinutes) || 90,
-      joinUrl: String(item.zoomMeeting.joinUrl),
-      status: "scheduled",
-    }));
+    const directClassroomSessions = requests.flatMap((item) => {
+      const meeting = item.zoomMeeting && typeof item.zoomMeeting === "object" && !Array.isArray(item.zoomMeeting)
+        ? item.zoomMeeting as Record<string, unknown>
+        : {};
+      const joinUrl = typeof meeting.joinUrl === "string" ? meeting.joinUrl : "";
+      if (item.kind !== "classroom_registration" || item.status !== "approved" || !joinUrl || !item.preferredAt) return [];
+      return [{
+        sessionId: String(item.requestId || ""),
+        courseId: String(item.courseId || ""),
+        courseTitle: String(item.courseTitle || "فصل مباشر"),
+        topic: String(item.courseTitle || "فصل مباشر"),
+        startTime: item.preferredAt,
+        durationMinutes: Number(item.durationMinutes) || 90,
+        joinUrl,
+        status: "scheduled",
+      }];
+    });
     const allSessions = [...sessions, ...directClassroomSessions].sort((left, right) =>
       new Date(String(left.startTime || "")).getTime() - new Date(String(right.startTime || "")).getTime(),
     );
