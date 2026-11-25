@@ -142,7 +142,7 @@ export default function CourseEditorPage() {
             <button type="button" className="portal-button secondary" onClick={() => removeLesson(lesson.id)} disabled={course.lessons.length === 1}><Trash2 size={14}/> حذف الدرس</button>
           </div>
           <label style={{ display: "grid", gap: 6 }}>اسم الدرس<input value={lesson.title} onChange={e => patchLesson(lesson.id, { title: e.target.value })} placeholder={"مثال: الدرس " + (index + 1) + " - المقدمة"} maxLength={180}/></label>
-          <label style={{ display: "grid", gap: 8, border: "1px dashed #80b9b2", borderRadius: 12, padding: 18, background: "#f6fbfa", textAlign: "center", cursor: "pointer" }}>
+          <label onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); const file = event.dataTransfer.files?.[0]; if (file) void uploadLesson(lesson, file); }} style={{ display: "grid", gap: 8, border: "1px dashed #80b9b2", borderRadius: 12, padding: 18, background: "#f6fbfa", textAlign: "center", cursor: "pointer" }}>
             <UploadCloud size={28} style={{ margin: "0 auto", color: "#16877d" }}/>
             <strong>{lesson.videoName || "اسحب ملف الفيديو إلى هنا أو اضغط لاختياره"}</strong>
             <span style={{ color: "#71848a", fontSize: 11 }}>MP4 أو MOV أو WebM · حتى 25GB للملف الواحد · رفع مباشر مجزأ</span>
