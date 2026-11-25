@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type SignedInUser = { name: string; email: string; role: string; sessionId?: string };
+type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string };
 type NavigationItem = { href: string; label: string; icon: LucideIcon; roles?: string[]; group: string };
 
 const roleLabels: Record<string, string> = {
@@ -64,6 +64,9 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
             role: String(data.user.role || ""),
             sessionId: typeof data.user.sessionId === "string" ? data.user.sessionId : undefined,
           });
+          fetch("/api/account/profile", { cache: "no-store" }).then((profileResponse) => profileResponse.ok ? profileResponse.json() : null).then((profileData) => {
+            if (active && profileData?.profile?.avatarDataUrl) setUser((current) => current ? { ...current, avatarDataUrl: String(profileData.profile.avatarDataUrl) } : current);
+          }).catch(() => {});
         }
       })
       .catch(() => {});
@@ -93,7 +96,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
         </div>
 
         <div className="portal-sidebar-profile">
-          <span className="portal-user-avatar">{user?.name?.trim().charAt(0) || "م"}</span>
+          <span className="portal-user-avatar">{user?.avatarDataUrl ? <img src={user.avatarDataUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}/> : user?.name?.trim().charAt(0) || "م"}</span>
           <span className="portal-user-details">
             <strong>{user?.name || "مساحة المستخدم"}</strong>
             <small>{roleLabels[user?.role || ""] || (user ? user.role : "مرحباً بك في اتزان")}</small>
@@ -126,7 +129,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
         </nav>
 
         <div className="portal-sidebar-bottom">
-          {user && <div className="portal-account-links"><Link href="/account/security" onClick={onClose}><ShieldCheck size={15}/> أمان الحساب</Link><Link href="/account/privacy" onClick={onClose}><LockKeyhole size={15}/> الخصوصية</Link></div>}
+          {user && <div className="portal-account-links"><Link href="/account/profile" onClick={onClose}><Users size={15}/> الملف الشخصي</Link><Link href="/account/security" onClick={onClose}><ShieldCheck size={15}/> أمان الحساب</Link><Link href="/account/privacy" onClick={onClose}><LockKeyhole size={15}/> الخصوصية</Link></div>}
           <div className="portal-sidebar-caption"><span>اتزان | ETZAN</span><small>بيئة تعلم وتطوير مهني</small></div>
         </div>
       </aside>
