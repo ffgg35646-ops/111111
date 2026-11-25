@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     await users.createIndex({ email: 1 }, { unique: true });
     await users.createIndex({ username: 1 }, { unique: true, sparse: true });
     const existing = await users.findOne({ $or: [{ email }, { username }] }, { projection: { _id: 0, email: 1, username: 1, emailVerified: 1 } });
-    if (existing?.email === email && existing.emailVerified === true) return NextResponse.json({ error: "البريد الإلكتروني مسجل بالفعل." }, { status: 409 });
+    if (existing?.email === email && (existing.emailVerified === true || (existing as Record<string, unknown>).role !== "trainee")) return NextResponse.json({ error: "البريد الإلكتروني مسجل بالفعل." }, { status: 409 });
     if (existing?.username === username && existing.email !== email) return NextResponse.json({ error: "اسم المستخدم مستخدم بالفعل." }, { status: 409 });
 
     const now = new Date();
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     await users.updateOne({ email, role: "trainee" }, {
       $set: {
         userId, firstName, fatherName, name, username, email, role: "trainee",
-        status: "pending_verification", emailVerified: false,
+        status: "pending_verification", emailVerified: false, registrationSource: "self_registration",
         passwordSalt: passwordParts[1], passwordHash: passwordParts[2],
         updatedAt: now, registrationUpdatedAt: now,
       },
