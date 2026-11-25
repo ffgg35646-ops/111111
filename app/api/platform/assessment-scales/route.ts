@@ -7,6 +7,7 @@ import { practiceScales } from "@/lib/platform-catalog";
 
 export const runtime = "nodejs";
 const managers: PlatformRole[] = ["admin", "platform_manager", "supervisor", "quality_manager"];
+const editors: PlatformRole[] = ["admin", "platform_manager", "quality_manager"];
 const clean = (value: unknown, max = 3000) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const licenseStatuses = new Set(["original", "public_domain", "licensed", "permission_pending", "restricted"]);
 const categories = new Set(["psychological", "social", "behavioral", "developmental", "mixed"]);
@@ -76,6 +77,7 @@ function normalizeScale(data: Record<string, unknown>) {
 
   if (title.length < 3 || !categories.has(category) || !domain || !description || !targetGroups.length || !administrationInstructions || !scoringInstructions || !licenseStatuses.has(licenseStatus)) return null;
   if (status === "published" && ["permission_pending", "restricted"].includes(licenseStatus)) return null;
+  if (licenseStatus === "licensed" && (!rightsHolder || !licenseReference)) return null;
   if (digitalAdministrationAllowed && !["original", "public_domain", "licensed"].includes(licenseStatus)) return null;
   if (digitalAdministrationAllowed && licenseStatus === "licensed" && (!rightsHolder || !licenseReference)) return null;
   if (digitalAdministrationAllowed && (!items.length || items.length !== rawItems.length)) return null;
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = await requirePlatformRole(request, managers);
+  const actor = await requirePlatformRole(request, editors);
   if (!actor) return NextResponse.json({ error: "إدارة مكتبة المقاييس متاحة للمسؤولين المخولين فقط." }, { status: 403 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "بيانات المقياس غير صالحة." }, { status: 400 }); }
