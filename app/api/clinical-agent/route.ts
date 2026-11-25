@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { recordPlatformAiUsage } from "@/lib/platform-ai";
+import { getBuiltInScenarioPrivateContext } from "@/lib/platform-simulation-private";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -39,16 +40,24 @@ export async function POST(request: NextRequest) {
   const mode = body.mode === "client" ? "client" : "supervisor";
   let privateScenarioContext = "";
   if (caseId) {
-    try {
-      const db = await getClinicalDatabase();
-      const custom = await db.collection("platform_simulation_scenarios").findOne({ scenarioId: caseId, status: "active" });
-      if (custom) privateScenarioContext = [
-        typeof custom.personaInstructions === "string" ? "تعليمات الشخصية الخاصة: " + custom.personaInstructions : "",
-        typeof custom.hiddenContext === "string" ? "السياق المخفي الذي يجب كشفه تدريجياً فقط عند السؤال المناسب: " + custom.hiddenContext : "",
-      ].filter(Boolean).join("\n");
-    } catch (error) {
-      console.error("Unable to load private simulation context", error);
-      return NextResponse.json({ error: "تعذر تحميل تفاصيل الحالة المحمية. أعد المحاولة." }, { status: 503 });
+    const builtInPrivate = getBuiltInScenarioPrivateContext(caseId);
+    if (builtInPrivate) {
+      privateScenarioContext = [
+        "تعليمات الشخصية الخاصة: " + builtInPrivate.personaInstructions,
+        "السياق المخفي الذي يجب كشفه تدريجياً فقط عند السؤال المناسب: " + builtInPrivate.hiddenContext,
+      ].join("\n");
+    } else {
+      try {
+        const db = await getClinicalDatabase();
+        const custom = await db.collection("platform_simulation_scenarios").findOne({ scenarioId: caseId, status: "active" });
+        if (custom) privateScenarioContext = [
+          typeof custom.personaInstructions === "string" ? "تعليمات الشخصية الخاصة: " + custom.personaInstructions : "",
+          typeof custom.hiddenContext === "string" ? "السياق المخفي الذي يجب كشفه تدريجياً فقط عند السؤال المناسب: " + custom.hiddenContext : "",
+        ].filter(Boolean).join("\n");
+      } catch (error) {
+        console.error("Unable to load private simulation context", error);
+        return NextResponse.json({ error: "تعذر تحميل تفاصيل الحالة المحمية. أعد المحاولة." }, { status: 503 });
+      }
     }
   }
   const messages = Array.isArray(body.messages) ? body.messages.slice(-24) : [];

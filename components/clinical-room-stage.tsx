@@ -1094,15 +1094,14 @@ export default function ClinicalRoomStage(props: ClinicalRoomStageProps) {
   const enterVR = async () => {
     setXrMessage("جارٍ التحقق من دعم النظارة...");
     try {
-      const sessionPromise = xrStore.enterVR();
-      props.onStartRealtimeVoice();
-      props.onRoomEvent?.("clinic_voice_start_requested", "طلب المتدرب بدء الحوار الصوتي الحي عند دخول غرفة الواقع الافتراضي.");
-      const session = await sessionPromise;
+      const session = await xrStore.enterVR();
       if (!session) {
         props.onImmersiveChange?.(false);
         setXrMessage("لم يتم العثور على جلسة WebXR. افتح المنصة من متصفح النظارة المتوافق عبر HTTPS.");
         return;
       }
+      props.onStartRealtimeVoice();
+      props.onRoomEvent?.("clinic_voice_start_requested", "طلب المتدرب بدء الحوار الصوتي الحي بعد نجاح دخول جلسة WebXR.");
       props.onImmersiveChange?.(true);
       session.addEventListener("end", () => props.onImmersiveChange?.(false), { once: true });
       setXrMessage("تم تشغيل الواقع الافتراضي. اقترب من الشخصية وتحدث معها من لوحة المقابلة داخل القاعة.");
