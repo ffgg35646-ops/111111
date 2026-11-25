@@ -14,15 +14,15 @@ type AcademyCourse = Course & { contentType:"course"|"program"; price?:number; c
 
 function AcademyWorkspace() {
   const params = useSearchParams();
-  const [track,setTrack]=useState(() => {
-    const requestedTrack = params.get("track");
-    return requestedTrack && learningTracks.some(item => item.id === requestedTrack) ? requestedTrack : "all";
-  });
+  const requestedTrack = params.get("track");
+  const [availableTracks,setAvailableTracks]=useState(learningTracks);
+  const [track,setTrack]=useState(() => requestedTrack || "all");
   const [mode,setMode]=useState("all");
   const [contentType,setContentType]=useState<"all"|"course"|"program">("all");
   const [selectedCourse,setSelectedCourse]=useState<string|null>(null);
   const [coursePrices,setCoursePrices]=useState<Record<string,number>>({});
   const [publishedCourses,setPublishedCourses]=useState<PublishedCourse[]>([]);
+  useEffect(()=>{let active=true;fetch("/api/specialist-tracks",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active&&Array.isArray(data.tracks)){const rows=data.tracks.map((item:{id:string;title:string;summary:string;accent?:string;skills?:string[]})=>({id:item.id,title:item.title,summary:item.summary,accent:item.accent||"teal",skills:Array.isArray(item.skills)?item.skills:[]}));setAvailableTracks(rows);if(requestedTrack&&rows.some((item:{id:string})=>item.id===requestedTrack))setTrack(requestedTrack);else if(requestedTrack)setTrack("all");}}).catch(error=>console.error("ETZAN specialist track catalog unavailable",error));return()=>{active=false}},[requestedTrack]);
   useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));fetch("/api/academy/courses",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const rows=Array.isArray(data.courses)?data.courses:[];setPublishedCourses(rows);setCoursePrices(current=>({...current,...Object.fromEntries(rows.filter((item:PublishedCourse)=>typeof item.price==="number").map((item:PublishedCourse)=>[item.id,item.price]))}));}}).catch(error=>console.error("Published ETZAN courses unavailable",error));return()=>{active=false}},[]);
   const allCourses=useMemo<AcademyCourse[]>(()=>[...courses.map(item=>({...item,contentType:"course" as const})),...publishedCourses.map(item=>({...item,contentType:item.contentType==="program"?"program" as const:"course" as const,lessons:item.lessons.map(lesson=>lesson.title)}))],[publishedCourses]);
   const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)&&(contentType==="all"||(course.contentType||"course")===contentType)),[allCourses,track,mode,contentType]);
@@ -32,7 +32,7 @@ function AcademyWorkspace() {
     <div className="portal-callout">اختر دورة لفتح وحداتها التعليمية والأنشطة القصيرة واختبار الفهم. تسجيلات الفيديو تظهر عند إضافة رابط التسجيل المعتمد لكل دورة، أما الفصول المباشرة فتُنسق عبر Zoom بعد اعتماد طلب الالتحاق.</div>
     <div className="portal-section-title"><div><h2>المسارات التخصصية</h2><p>اختر مجالاً لاستعراض البرامج ذات الصلة</p></div></div>
     <div className="portal-grid">
-      {learningTracks.map(item=><article className="portal-card track-card" key={item.id}>
+      {availableTracks.map(item=><article className="portal-card track-card" key={item.id}>
         <span className="track-icon"><GraduationCap size={18}/></span><h3>{item.title}</h3><p>{item.summary}</p>
         <div className="portal-chip-row">{item.skills.map(skill=><span className="portal-chip" key={skill}>{skill}</span>)}</div>
         <button className="portal-button secondary" onClick={()=>{setTrack(item.id);setSelectedCourse(null);}}>عرض دورات المسار</button>
@@ -42,7 +42,7 @@ function AcademyWorkspace() {
     <div className="portal-section-title"><div><h2>الدورات والبرامج</h2><p>{filtered.length} عنصر في الكتالوج · اختر النوع والمسار ونمط التدريب</p></div><Link className="portal-link-button secondary" href="/classrooms"><Video size={14}/> الفصول المباشرة</Link></div>
     <div className="portal-filter-row">
       <button className={track==="all"?"portal-filter active":"portal-filter"} onClick={()=>setTrack("all")}>كل المسارات</button>
-      {learningTracks.map(item=><button key={item.id} className={track===item.id?"portal-filter active":"portal-filter"} onClick={()=>setTrack(item.id)}>{item.title}</button>)}
+      {availableTracks.map(item=><button key={item.id} className={track===item.id?"portal-filter active":"portal-filter"} onClick={()=>setTrack(item.id)}>{item.title}</button>)}
     </div>
     <div className="portal-filter-row">
       {(["all","recorded","live","hybrid"] as const).map(item=><button key={item} className={mode===item?"portal-filter active":"portal-filter"} onClick={()=>setMode(item)}>{item==="all"?"كل أنماط التعلم":modeLabels[item as keyof typeof modeLabels]??item}</button>)}
