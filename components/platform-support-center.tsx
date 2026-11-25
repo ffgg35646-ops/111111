@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertCircle, ArrowUpRight, CheckCircle2, Circle, Clock3, Headphones,
+  AlertCircle, ArrowUpRight, Headphones,
   MessageCircle, MessageSquare, Plus, RefreshCw, Search, Send, ShieldCheck,
   UserRound, X,
 } from "lucide-react";
@@ -52,7 +52,6 @@ const categoryLabels: Record<string, string> = {
   technical: "مشكلة تقنية", course: "الدورات والمحتوى", account: "الحساب والدخول",
   payment: "المدفوعات", other: "استفسار عام",
 };
-const priorityLabels: Record<string, string> = { low: "منخفضة", normal: "عادية", high: "مرتفعة", urgent: "عاجلة" };
 
 function dateLabel(value: string | Date) {
   const date = new Date(value);

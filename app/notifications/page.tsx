@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, MessageSquare, RefreshCw } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -18,7 +18,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const response = await fetch("/api/platform/notifications", { cache: "no-store" });
       const data = await response.json();
@@ -28,9 +28,7 @@ export default function NotificationsPage() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "تعذر تحميل الإشعارات.");
     } finally { setLoading(false); }
-  }
-
-  useEffect(() => { void load(); }, []);
+  }, []);
 
   async function markAll() {
     await fetch("/api/platform/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ markAll: true }) });
