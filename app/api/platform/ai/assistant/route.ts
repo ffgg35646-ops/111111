@@ -49,17 +49,35 @@ async function searchPlatformKnowledge(query: string, actorUserId: string, actor
   const semantic = await searchSemanticKnowledge(query, { userId: actorUserId, role: actorRole });
   if (semantic?.length) return { sources: semantic, method: "semantic" };
   const db = await getClinicalDatabase();
-  const [articles, books] = await Promise.all([
+  const [articles, books, customCourses] = await Promise.all([
     db.collection("etzan_articles").find({ status: "published" }, {
       projection: { _id: 0, articleId: 1, title: 1, summary: 1, content: 1, category: 1 },
     }).sort({ updatedAt: -1, createdAt: -1 }).limit(150).toArray(),
     db.collection("etzan_books").find({ published: true }, {
       projection: { _id: 0, bookId: 1, title: 1, author: 1, description: 1, category: 1 },
     }).sort({ updatedAt: -1, createdAt: -1 }).limit(150).toArray(),
+    db.collection("platform_course_content").find({ status: "published" }, {
+      projection: { _id: 0, courseId: 1, title: 1, description: 1, summary: 1, trackId: 1, level: 1, duration: 1, lessons: 1 },
+    }).sort({ updatedAt: -1 }).limit(250).toArray(),
   ]);
   const documents: SourceDocument[] = [
     ...articles.map((item) => ({ type: "مقال منشور", title: String(item.title || "مقال علمي"), href: "/articles", text: [item.category, item.summary, item.content].filter(Boolean).join("\n").slice(0, 7000) })),
     ...books.map((item) => ({ type: "كتاب منشور", title: String(item.title || "كتاب"), href: "/books", text: [item.author, item.category, item.description].filter(Boolean).join("\n").slice(0, 2500) })),
+    ...customCourses.map((item) => {
+      const courseId = typeof item.courseId === "string" ? item.courseId : "";
+      const lessons = Array.isArray(item.lessons) ? item.lessons : [];
+      const lessonDetails = lessons.flatMap((lesson) => {
+        if (!lesson || typeof lesson !== "object" || Array.isArray(lesson)) return [];
+        const row = lesson as Record<string, unknown>;
+        return [clean(row.title, 180), clean(row.videoName, 240)].filter(Boolean);
+      });
+      return {
+        type: "دورة منشورة",
+        title: String(item.title || "دورة تدريبية"),
+        href: courseId ? "/academy/" + encodeURIComponent(courseId) : "/academy",
+        text: [item.description, item.summary, item.trackId, item.level, item.duration, ...lessonDetails].filter(Boolean).join("\n").slice(0, 7000),
+      };
+    }),
     ...learningTracks.map((item) => ({ type: "مسار مهني", title: item.title, href: "/specialties", text: [item.summary, ...item.skills].join("\n") })),
     ...courses.map((item) => ({ type: "مقرر تدريبي", title: item.title, href: "/academy", text: [item.category, item.summary, ...item.outcomes, ...item.lessons].join("\n") })),
     ...trainingCases.map((item) => ({ type: "حالة تدريبية منشورة", title: item.title, href: "/cases", text: [item.track, item.briefing, ...item.learningGoals].join("\n") })),

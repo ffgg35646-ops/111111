@@ -16,6 +16,7 @@
 The learner assistant is role-protected and uses published materials only:
 - Published article records from `etzan_articles`.
 - Published book metadata/descriptions from `etzan_books`.
+- Published custom course descriptions and lesson titles/file names from `platform_course_content`; unpublished course drafts are excluded.
 - The static course and track catalog, public training-case summaries, and original practice-tool descriptions.
 - It never indexes unpublished records, hidden persona instructions, private consultation notes, trainee submissions, or licensed assessment items.
 
@@ -32,7 +33,7 @@ Default embedding configuration:
 
 Create an Atlas Vector Search index on `platform_ai_knowledge_chunks` with a vector field named `embedding` using the configured dimensions and cosine similarity, plus filter fields `visibility` and `indexRunId`. After the index becomes queryable, set `ETZAN_AI_VECTOR_SEARCH_ENABLED=true`. If the embedding model or dimensions change, create a matching Atlas index and rebuild the index. The indexing process sends published educational text to the configured embedding provider through AI Gateway; assess provider contracts, data location, and cost before enabling it.
 
-Reindexing is an administrator-triggered operation, not a background sync. Re-run it after publishing or substantially editing content. Attachments and every uploaded file are not automatically indexed yet.
+Reindexing is an administrator-triggered operation, not a background sync. Re-run it after publishing or substantially editing content. Uploaded course video binaries are not transcribed or indexed as audio/video; only the published course description and lesson titles/file names are searchable until approved transcripts or subtitles are added. Attachments and every uploaded file are not automatically indexed yet.
 
 ## AI provider configuration
 

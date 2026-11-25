@@ -61,13 +61,16 @@ function makeChunks(source: Omit<KnowledgeChunk, "chunkIndex" | "content" | "con
 
 export async function loadPublishedKnowledgeChunks(): Promise<KnowledgeChunk[]> {
   const db = await getClinicalDatabase();
-  const [articles, books] = await Promise.all([
+  const [articles, books, customCourses] = await Promise.all([
     db.collection("etzan_articles").find({ status: "published" }, {
       projection: { _id: 0, articleId: 1, title: 1, summary: 1, content: 1, category: 1 },
     }).sort({ updatedAt: -1, createdAt: -1 }).limit(120).toArray(),
     db.collection("etzan_books").find({ published: true }, {
       projection: { _id: 0, bookId: 1, title: 1, author: 1, description: 1, category: 1 },
     }).sort({ updatedAt: -1, createdAt: -1 }).limit(120).toArray(),
+    db.collection("platform_course_content").find({ status: "published" }, {
+      projection: { _id: 0, courseId: 1, title: 1, description: 1, summary: 1, trackId: 1, level: 1, duration: 1, lessons: 1 },
+    }).sort({ updatedAt: -1 }).limit(250).toArray(),
   ]);
 
   const sources: Array<{ sourceId: string; sourceType: string; sourceTitle: string; sourceHref: string; text: string }> = [
@@ -85,6 +88,24 @@ export async function loadPublishedKnowledgeChunks(): Promise<KnowledgeChunk[]> 
       sourceHref: "/books",
       text: [item.author, item.category, item.description].map((value) => safeText(value, 6000)).filter(Boolean).join("\n"),
     })),
+    ...customCourses.map((item) => {
+      const courseId = safeText(item.courseId, 80);
+      const lessons = Array.isArray(item.lessons) ? item.lessons : [];
+      const lessonDetails = lessons.flatMap((lesson) => {
+        if (!lesson || typeof lesson !== "object" || Array.isArray(lesson)) return [];
+        const row = lesson as Record<string, unknown>;
+        return [safeText(row.title, 180), safeText(row.videoName, 240)].filter(Boolean);
+      });
+      return {
+        sourceId: "custom-course:" + courseId,
+        sourceType: "دورة منشورة",
+        sourceTitle: safeText(item.title, 180) || "دورة تدريبية",
+        sourceHref: courseId ? "/academy/" + encodeURIComponent(courseId) : "/academy",
+        text: [item.description, item.summary, item.trackId, item.level, item.duration, ...lessonDetails]
+          .map((value) => safeText(value, 6000)).filter(Boolean).join("\n"),
+      };
+    }).filter((item) => item.sourceId !== "custom-course:"),
+
     ...learningTracks.map((item) => ({
       sourceId: "track:" + item.id,
       sourceType: "مسار مهني",
