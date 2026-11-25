@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, CloudUpload, FileVideo, LoaderCircle, Plus, Save, Trash2, UploadCloud } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Plus, Save, Trash2, UploadCloud } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
 type LessonDraft = { id: string; title: string; videoId: string; videoName: string; videoSize: number; uploadStatus: string; progress: number; error: string };
