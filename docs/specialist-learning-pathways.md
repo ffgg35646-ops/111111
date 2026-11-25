@@ -49,3 +49,11 @@
 - WHO, International Classification of Functioning, Disability and Health (ICF): https://www.who.int/classifications/international-classification-of-functioning-disability-and-health
 - NICE, Autism spectrum disorder in under 19s: recognition, referral and diagnosis: https://www.nice.org.uk/guidance/cg128/chapter/Recommendations
 - AAIDD, Defining Criteria for Intellectual Disability: https://aaidd.org/intellectual-disability/definition/
+
+
+## إدارة المسارات داخل المنصة
+تُعرض المسارات الأساسية من كتالوج المنصة، ويمكن لإدارة المنصة تعديل وصف المسار ونواتج التعلم والوحدات والتطبيق العملي وترتيب الظهور، أو إيقاف المسار مؤقتاً. وتُحفظ التعديلات في مجموعة MongoDB باسم `platform_specialist_tracks` دون حذف بيانات الكتالوج الأصلية.
+
+يمكن إضافة مسارات مهنية جديدة من لوحة إدارة المسارات. تظهر المسارات النشطة في صفحة المسارات التخصصية والأكاديمية، وتتاح في قائمة اختيار المسار عند إنشاء الكورس. تتحقق واجهة حفظ الكورس من أن المسار المختار موجود ونشط. أرشفة مسار مضاف لا تحذف الكورسات أو سجلات التدريب المرتبطة به.
+
+توجد صلاحية مستقلة باسم `specialist_tracks` يمكن منحها للأدمن الفرعي. وتُفحص الصلاحية في واجهة الإدارة وواجهات API على الخادم. تسجل عمليات الإضافة والتعديل وتغيير الحالة والأرشفة في سجل التدقيق.

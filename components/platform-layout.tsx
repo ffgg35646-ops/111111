@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string };
+type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string; permissions?: string[] };
 type NavigationItem = { href: string; label: string; icon: LucideIcon; roles?: string[]; group: string };
 
 const roleLabels: Record<string, string> = {
@@ -65,6 +65,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
             email: String(data.user.email),
             role: String(data.user.role || ""),
             sessionId: typeof data.user.sessionId === "string" ? data.user.sessionId : undefined,
+            permissions: Array.isArray(data.user.permissions) ? data.user.permissions.filter((item: unknown): item is string => typeof item === "string") : [],
           });
           fetch("/api/account/profile", { cache: "no-store" }).then((profileResponse) => profileResponse.ok ? profileResponse.json() : null).then((profileData) => {
             if (active && profileData?.profile?.avatarDataUrl) setUser((current) => current ? { ...current, avatarDataUrl: String(profileData.profile.avatarDataUrl) } : current);
@@ -77,6 +78,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
   const isManager = user?.role === "admin" || user?.role === "platform_manager";
   const canEditSite = isManager || user?.role === "sub_admin";
+  const canManageSpecialistTracks = isManager || (user?.role === "sub_admin" && user.permissions?.includes("specialist_tracks") === true);
   const watermark = user ? user.name + " · " + user.email + (user.sessionId ? " · " + user.sessionId.slice(-6) : "") : "";
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -129,7 +131,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
             );
           })}
 
-          {canEditSite && <div className="portal-side-group portal-management-group"><p>إدارة المحتوى</p>{isManager && <Link href="/platform-admin" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin") ? " active" : "")}><ShieldCheck size={17}/><span>لوحة الإدارة</span></Link>}<Link href="/platform-admin/site-content" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/site-content") ? " active" : "")}><FileText size={17}/><span>صفحات الموقع</span></Link></div>}
+          {canEditSite && <div className="portal-side-group portal-management-group"><p>إدارة المحتوى</p>{isManager && <Link href="/platform-admin" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin") ? " active" : "")}><ShieldCheck size={17}/><span>لوحة الإدارة</span></Link>}<Link href="/platform-admin/site-content" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/site-content") ? " active" : "")}><FileText size={17}/><span>صفحات الموقع</span></Link>{canManageSpecialistTracks && <Link href="/platform-admin/specialist-tracks" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/specialist-tracks") ? " active" : "")}><GraduationCap size={17}/><span>إدارة المسارات المهنية</span></Link>}</div>}
           {!user && <Link href="/login" onClick={onClose} className="portal-side-link portal-login-link"><LockKeyhole size={17}/><span>تسجيل الدخول</span></Link>}
         </nav>
 

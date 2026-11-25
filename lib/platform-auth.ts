@@ -180,7 +180,7 @@ export function clearedPlatformSessionCookieOptions() {
 }
 
 
-export const SITE_PAGE_PERMISSIONS = ["site_home", "site_about", "site_privacy", "site_owner"] as const;
+export const SITE_PAGE_PERMISSIONS = ["site_home", "site_about", "site_privacy", "site_owner", "specialist_tracks"] as const;
 export type SitePagePermission = (typeof SITE_PAGE_PERMISSIONS)[number];
 
 export async function requirePlatformPermission(request: NextRequest, permission: SitePagePermission) {

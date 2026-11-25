@@ -2,7 +2,7 @@
 import {useEffect,useState,type FormEvent} from "react";
 import {PlatformLayout} from "@/components/platform-layout";
 import {UserPlus,RefreshCw} from "lucide-react";
-const options=[["site_home","الصفحة الرئيسية"],["site_about","من نحن"],["site_privacy","سياسة الخصوصية"]];
+const options=[["site_home","الصفحة الرئيسية"],["site_about","من نحن"],["site_privacy","سياسة الخصوصية"],["specialist_tracks","إدارة المسارات المهنية"]];
 type SubAdmin={userId:string;name:string;email:string;status:string;permissions:string[]};
 export default function SubAdminsPage(){
  const [users,setUsers]=useState<SubAdmin[]>([]);const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [permissions,setPermissions]=useState<string[]>(["site_home"]);const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");

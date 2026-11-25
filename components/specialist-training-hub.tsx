@@ -1,16 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Activity, ArrowLeft, BookOpen, Brain, CheckCircle2, ClipboardCheck,
   ClipboardList, FileCheck2, GraduationCap, HeartHandshake, Lightbulb,
-  Microscope, ShieldAlert, Sparkles, Stethoscope, Users, Workflow
+  Microscope, ShieldAlert, Sparkles, Stethoscope, Users, Workflow,
+  type LucideIcon
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
 type Section = "paths" | "case-study" | "scales" | "reasoning" | "support";
+type ManagedTrack = {
+  id: string; title: string; category: string; summary: string; outcomes: string[];
+  units: string[]; practice: string; iconName?: string; isCustom?: boolean;
+  isManaged?: boolean; skills?: string[]; accent?: string;
+};
+type DisplayTrack = {
+  id: string; title: string; category: string; summary: string; icon: LucideIcon;
+  outcomes: string[]; units: string[]; practice: string;
+};
+const trackIcons: Record<string, LucideIcon> = {
+  users: Users, brain: Brain, "heart-handshake": HeartHandshake, workflow: Workflow,
+  activity: Activity, microscope: Microscope, stethoscope: Stethoscope,
+  "graduation-cap": GraduationCap, "book-open": BookOpen,
+};
 
 const tracks = [
   {
@@ -206,16 +221,71 @@ function sectionFromQuery(value: string | null): Section {
 export default function SpecialistTrainingHub() {
   const params = useSearchParams();
   const requestedTrack = params.get("track");
-  const [activeTrackId, setActiveTrackId] = useState(
-    tracks.some((track) => track.id === requestedTrack) ? requestedTrack ?? "social-work" : "social-work"
-  );
+  const [managedTracks, setManagedTracks] = useState<ManagedTrack[]>([]);
+  const [tracksLoaded, setTracksLoaded] = useState(false);
+  const [activeTrackId, setActiveTrackId] = useState(requestedTrack || "social-work");
   const [section, setSection] = useState<Section>(() => sectionFromQuery(params.get("section")));
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/specialist-tracks", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل المسارات.");
+        if (active && Array.isArray(data.tracks)) {
+          setManagedTracks(data.tracks as ManagedTrack[]);
+          setTracksLoaded(true);
+        }
+      })
+      .catch((error) => console.error("ETZAN specialist tracks unavailable", error));
+    return () => { active = false; };
+  }, []);
+
+  const allTracks = useMemo<DisplayTrack[]>(() => {
+    if (!tracksLoaded) return tracks as DisplayTrack[];
+    const byId = new Map(managedTracks.map((track) => [track.id, track]));
+    const builtIn = tracks
+      .filter((track) => byId.has(track.id))
+      .map((track) => {
+        const managed = byId.get(track.id);
+        if (!managed?.isManaged) return track as DisplayTrack;
+        return {
+          ...track,
+          title: managed.title || track.title,
+          category: managed.category || track.category,
+          summary: managed.summary || track.summary,
+          outcomes: managed.outcomes?.length ? managed.outcomes : track.outcomes,
+          units: managed.units?.length ? managed.units : track.units,
+          practice: managed.practice || track.practice,
+          icon: trackIcons[managed.iconName || ""] || track.icon,
+        };
+      });
+    const custom = managedTracks.filter((track) => track.isCustom).map((track): DisplayTrack => ({
+      id: track.id,
+      title: track.title,
+      category: track.category || "تخصص مهني",
+      summary: track.summary,
+      outcomes: track.outcomes?.length ? track.outcomes : (track.skills || []),
+      units: track.units?.length ? track.units : (track.skills || []),
+      practice: track.practice || "طبّق المهارات المستهدفة على حالة تدريبية افتراضية، ثم راجع النتائج مع مشرف مؤهل.",
+      icon: trackIcons[track.iconName || ""] || GraduationCap,
+    }));
+    return [...builtIn, ...custom];
+  }, [managedTracks, tracksLoaded]);
+
+  useEffect(() => {
+    if (requestedTrack && allTracks.some((track) => track.id === requestedTrack)) {
+      setActiveTrackId(requestedTrack);
+    } else if (!allTracks.some((track) => track.id === activeTrackId)) {
+      setActiveTrackId(allTracks[0]?.id || "");
+    }
+  }, [requestedTrack, allTracks, activeTrackId]);
   const [caseDraft, setCaseDraft] = useState(initialCaseDraft);
   const [caseSummary, setCaseSummary] = useState(false);
   const [selectedToolId, setSelectedToolId] = useState<string>(scaleTools[0].id);
   const [reasoningAnswer, setReasoningAnswer] = useState<string>("");
   const [differentialAnswers, setDifferentialAnswers] = useState<Record<number,string>>({});
-  const activeTrack = tracks.find((track) => track.id === activeTrackId) ?? tracks[0];
+  const activeTrack = allTracks.find((track) => track.id === activeTrackId) ?? allTracks[0] ?? (tracks[0] as DisplayTrack);
   const activeTool = scaleTools.find((tool) => tool.id === selectedToolId) ?? scaleTools[0];
   const TrackIcon = activeTrack.icon;
   const academyTrackId = activeTrackId;
@@ -283,14 +353,14 @@ export default function SpecialistTrainingHub() {
             <div className="specialist-section-heading"><div><span>01 · المسارات التعليمية</span><h3>اختر المجال الذي تريد التخصص فيه</h3><p>كل مسار يضم موضوعات معرفية ومهارات وممارسة تطبيقية قابلة للتقييم.</p></div><BookOpen size={22} /></div>
             <div className="specialist-track-layout">
               <div className="specialist-track-list">
-                {tracks.map((track) => {
+                {allTracks.map((track) => {
                   const Icon = track.icon;
                   return <button type="button" key={track.id} onClick={() => setActiveTrackId(track.id)} className={activeTrackId === track.id ? "specialist-track-button selected" : "specialist-track-button"}>
                     <span><Icon size={18} /></span><span><strong>{track.title}</strong><small>{track.category}</small></span><ArrowLeft size={14} />
                   </button>;
                 })}
               </div>
-              <article className="specialist-track-detail">
+              {allTracks.length ? <article className="specialist-track-detail">
                 <div className="specialist-track-detail-top"><span className="specialist-track-icon"><TrackIcon size={23} /></span><small>{activeTrack.category}</small></div>
                 <h4>{activeTrack.title}</h4><p>{activeTrack.summary}</p>
                 <div className="specialist-detail-columns">
@@ -302,7 +372,7 @@ export default function SpecialistTrainingHub() {
                   <Link href={"/academy?track=" + academyTrackId} className="specialist-primary">الدورات والبرامج <ArrowLeft size={15} /></Link>
                   <Link href="/cases" className="specialist-secondary">الحالات التدريبية <ArrowLeft size={15} /></Link>
                 </div>
-              </article>
+              </article> : <div className="specialist-callout"><ShieldAlert size={18}/><p>لا توجد مسارات نشطة حالياً. تواصل مع إدارة المنصة لإعادة تفعيل مسار مهني.</p></div>}
             </div>
           </section>
         )}

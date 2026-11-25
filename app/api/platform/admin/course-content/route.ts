@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
+import { learningTracks } from "@/lib/platform-catalog";
 
 export const runtime = "nodejs";
 
@@ -79,6 +80,14 @@ export async function POST(request: NextRequest) {
       }
     }
     const db = await getClinicalDatabase();
+    const isBuiltInTrack = learningTracks.some((track) => track.id === trackId);
+    const configuredTrack = await db.collection("platform_specialist_tracks").findOne(
+      { id: trackId }, { projection: { _id: 1, status: 1 } },
+    );
+    const trackIsActive = isBuiltInTrack
+      ? configuredTrack?.status !== "inactive" && configuredTrack?.status !== "archived"
+      : configuredTrack?.status === "active";
+    if (!trackIsActive) return NextResponse.json({ error: "المسار المحدد غير موجود أو غير نشط. حدّث قائمة المسارات ثم اختر مساراً متاحاً." }, { status: 400 });
     const now = new Date();
     const collection = db.collection("platform_course_content");
     await collection.createIndex({ courseId: 1 }, { unique: true });

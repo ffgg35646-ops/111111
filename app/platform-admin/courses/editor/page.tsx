@@ -8,7 +8,7 @@ import { PlatformLayout } from "@/components/platform-layout";
 
 type LessonDraft = { id: string; title: string; videoId: string; videoName: string; videoSize: number; uploadStatus: string; progress: number; error: string };
 type CourseDraft = { courseId: string; title: string; description: string; trackId: string; level: string; duration: string; price: string; mode: "recorded" | "live" | "hybrid"; contentType: "course" | "program"; lessons: LessonDraft[] };
-const tracks = [
+const defaultTrackOptions = [
   ["social-work","الخدمة الاجتماعية"],["mental-health","علم النفس"],["cbt","العلاج المعرفي السلوكي"],["family-guidance","الإرشاد والعلاج الأسري"],["developmental","الاضطرابات النمائية"],["autism","طيف التوحد"],["psychometrics","التقييم والقياس النفسي"],["clinical-practice","الممارسة الإكلينيكية"],["professional-development","التطوير المهني"],
 ] as const;
 const newLesson = (): LessonDraft => ({ id: "lesson-" + crypto.randomUUID(), title: "", videoId: "", videoName: "", videoSize: 0, uploadStatus: "not_uploaded", progress: 0, error: "" });
@@ -20,11 +20,24 @@ export default function CourseEditorPage() {
   const params = useSearchParams();
   const editId = params.get("id") || "";
   const [course, setCourse] = useState<CourseDraft>(() => emptyCourse());
+  const [trackOptions, setTrackOptions] = useState<ReadonlyArray<readonly [string, string]>>(defaultTrackOptions);
   const [loading, setLoading] = useState(Boolean(editId));
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/specialist-tracks", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !Array.isArray(data.tracks)) return;
+        if (active) setTrackOptions(data.tracks.map((item: { id: string; title: string }) => [item.id, item.title] as const));
+      })
+      .catch((error) => console.error("ETZAN course track options unavailable", error));
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!editId) return;
@@ -145,7 +158,7 @@ export default function CourseEditorPage() {
         <label style={{ display: "grid", gap: 6 }}>اسم الكورس<input value={course.title} onChange={e => patchCourse({ title: e.target.value })} placeholder="مثال: أساسيات الإدارة المهنية" maxLength={180}/></label>
         <label style={{ display: "grid", gap: 6 }}>وصف الكورس<textarea value={course.description} onChange={e => patchCourse({ description: e.target.value })} placeholder="اكتب وصفاً واضحاً لأهداف الكورس ومحتواه..." rows={4} maxLength={3000}/></label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12 }}>
-          <label style={{ display: "grid", gap: 6 }}>المسار<select value={course.trackId} onChange={e => patchCourse({ trackId: e.target.value })}>{tracks.map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          <label style={{ display: "grid", gap: 6 }}>المسار<select value={course.trackId} onChange={e => patchCourse({ trackId: e.target.value })}>{trackOptions.map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></label>
           <label style={{ display: "grid", gap: 6 }}>نوع المحتوى<select value={course.contentType} onChange={e => patchCourse({ contentType: e.target.value as "course" | "program" })}><option value="course">دورة تدريبية</option><option value="program">برنامج تدريبي</option></select></label>
           <label style={{ display: "grid", gap: 6 }}>نمط التدريب<select value={course.mode} onChange={e => patchCourse({ mode: e.target.value as "recorded" | "live" | "hybrid" })}><option value="recorded">مسجلة</option><option value="live">مباشرة</option><option value="hybrid">هجينة (مباشرة ومسجلة)</option></select></label>
           <label style={{ display: "grid", gap: 6 }}>المستوى<select value={course.level} onChange={e => patchCourse({ level: e.target.value })}>{["مبتدئ","مبتدئ إلى متوسط","متوسط","متقدم","جميع المستويات"].map(x => <option key={x}>{x}</option>)}</select></label>
