@@ -5,6 +5,7 @@ import { courses } from "@/lib/platform-catalog";
 import { allowedCourseVideoUrl } from "@/lib/platform-security";
 import { ensurePlatformCourseCertificate } from "@/lib/platform-certificates";
 import { getPlatformCourseQuiz, scorePlatformCourseQuiz, type PlatformQuizQuestion } from "@/lib/platform-quizzes";
+import { hasApprovedCourseEnrollment } from "@/lib/platform-course-access";
 
 export const runtime = "nodejs";
 
