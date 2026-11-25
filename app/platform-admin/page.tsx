@@ -124,7 +124,7 @@ export default function AdminDashboardPage() {
   if (!authorized) return null;
 
   return (
-    <main className="app-shell">
+    <main className="app-shell admin-dashboard-shell">
       <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
         <div className="brand-block">
           <div className="brand-copy"><strong>اتزان | ETZAN</strong><span>الإدارة والتشغيل</span></div>
@@ -136,7 +136,7 @@ export default function AdminDashboardPage() {
             <div className="nav-section" key={section.title}>
               <p>{section.title}</p>
               {section.items.map((item) => (
-                <Link key={item.href} href={item.href} className="nav-item"><span>{item.label}</span></Link>
+                <Link key={item.href} href={item.href} className={"nav-item" + (item.href === "/platform-admin" ? " active" : "")}><span>{item.label}</span></Link>
               ))}
             </div>
           ))}
@@ -161,13 +161,13 @@ export default function AdminDashboardPage() {
         </header>
 
         <div className="page-content">
-          <div className="welcome-row">
+          <div className="welcome-row admin-welcome">
             <div><div className="eyebrow">لوحة التشغيل</div><h1>نظرة عامة</h1><p>مؤشرات من قاعدة البيانات وروابط مباشرة إلى وحدات الإدارة.</p></div>
           </div>
 
           {error && <div className="portal-callout" role="alert">{error}</div>}
 
-          <div className="stats-grid">
+          <div className="stats-grid admin-stats-grid">
             {stats.map((stat) => (
               <article className="stat-card" key={stat.key}>
                 <div className="stat-label">{stat.label}</div>

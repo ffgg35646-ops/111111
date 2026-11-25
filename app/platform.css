@@ -291,3 +291,87 @@
   .trainee-dashboard>.trainee-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .portal-breadcrumb>span,.portal-breadcrumb>b{display:none}
 }
+
+
+/* ETZAN visual refresh — unified premium member workspace */
+.portal-root{background:#eef3f6!important;color:#1b3344!important}
+.portal-shell{background:#eef3f6}
+.portal-sidebar{background:linear-gradient(158deg,#101f35 0%,#12364a 48%,#10585b 100%)!important;box-shadow:-16px 0 42px #10263b20!important}
+.portal-sidebar-brand-icon{border-color:#62d9c24d!important;background:linear-gradient(145deg,#176f70,#124b5a)!important;color:#b4f5e3!important}
+.portal-user-avatar{background:linear-gradient(145deg,#d9f6ed,#aee6d8)!important;color:#145b5d!important;box-shadow:0 5px 16px #071c2c44}
+.portal-sidebar-profile{border-color:#c1efe31a!important;background:linear-gradient(115deg,#ffffff12,#ffffff06)!important}
+.portal-side-group>p{color:#8dbab8!important}
+.portal-side-link{color:#c8d8e0!important}
+.portal-side-link svg{color:#8fc8c0!important}
+.portal-side-link:hover{background:#ffffff11!important;border-color:#ffffff1c!important}
+.portal-side-link.active{border-color:#61d4bf48!important;background:linear-gradient(95deg,#187e795c,#2da58a38)!important;box-shadow:inset -3px 0 #6fe0c4,0 7px 18px #061c2d22!important}
+.portal-management-group .portal-side-link{color:#f0dfbd!important}
+.portal-management-group .portal-side-link svg{color:#e0bd7f!important}
+.portal-sidebar-bottom{border-color:#ffffff1d!important}
+.portal-account-links a{border-color:#ffffff20!important;color:#bdd5d6!important}
+.portal-account-links a:hover{background:#ffffff13!important;color:#fff!important}
+.portal-sidebar-caption span{color:#e1f2ef!important}
+.portal-sidebar-caption small{color:#8eafb1!important}
+.portal-main{background:linear-gradient(180deg,#f5f8fa 0%,#edf2f5 100%)!important}
+.portal-main>.portal-topbar{border-color:#e1e9ed!important;background:#ffffffed!important;box-shadow:0 5px 22px #132f4207!important}
+.portal-breadcrumb strong{color:#1d3b4d!important}
+.portal-menu-toggle{border-color:#d8e4e9!important;background:#f8fbfc!important;color:#176e70!important}
+.portal-home-link{border-color:#dce7e9!important;background:#f8fbfc!important;color:#486671!important}
+.portal-home-link svg{color:#168a85!important}
+.portal-main .portal-heading{border-color:#dce6e9!important}
+.portal-main .portal-heading>span{color:#13877f!important}
+.portal-main .portal-heading>span:before{background:#35b89f!important;box-shadow:0 0 0 4px #35b89f1c}
+.portal-main .portal-heading h1{color:#172f45!important;letter-spacing:-.8px!important}
+.portal-main .portal-heading p{color:#718592!important}
+.portal-main .portal-section-title h2{color:#1a3a4b!important}
+.portal-main .portal-section-title p{color:#758995!important}
+.portal-main .portal-card{border-color:#dfe8eb!important;border-radius:17px!important;background:linear-gradient(155deg,#fff 0%,#fbfdfe 100%)!important;box-shadow:0 7px 22px #17354a0a,0 1px 2px #17354a08!important}
+.portal-main .portal-card:hover{border-color:#bddbd7!important;box-shadow:0 15px 32px #17354a12!important;transform:translateY(-2px)}
+.portal-main .portal-card h3{color:#203e50!important}
+.portal-main .portal-card p{color:#728692!important}
+.portal-main .track-icon{border-color:#d3ece5!important;background:linear-gradient(145deg,#e7f7f1,#d9f0eb)!important;color:#117c78!important}
+.portal-main .portal-chip{border-color:#dfebe7!important;background:#f0f7f4!important;color:#4e776e!important}
+.portal-main .portal-button,.portal-main .portal-link-button{border:1px solid #137e77!important;background:linear-gradient(135deg,#126d72 0%,#168c80 100%)!important;color:#fff!important;box-shadow:0 7px 16px #116e731f!important}
+.portal-main .portal-button:hover,.portal-main .portal-link-button:hover{box-shadow:0 10px 22px #116e732b!important}
+.portal-main .portal-button.secondary,.portal-main .portal-link-button.secondary{border-color:#d7e7e3!important;background:#f3f8f6!important;color:#286e68!important;box-shadow:none!important}
+.portal-main .portal-empty{border-color:#cbdedc!important;background:linear-gradient(145deg,#fbfdfd,#f5faf9)!important;color:#718a8c!important}
+.portal-main .portal-callout{border-color:#d9e8e7!important;background:#f0f8f7!important;color:#3e7773!important}
+.portal-main>.portal-footer{border-color:#dce6e9!important;color:#82949d!important}
+
+/* Member dashboard hero and metric color language */
+.trainee-dashboard>.trainee-welcome-card{min-height:166px!important;padding:30px 32px!important;border:1px solid #1b65705c!important;border-radius:21px!important;background:radial-gradient(circle at 12% 12%,#39c7ad45,transparent 25%),radial-gradient(circle at 92% 90%,#4e9bc02b,transparent 28%),linear-gradient(112deg,#12283e 0%,#15485a 52%,#11766f 100%)!important;box-shadow:0 18px 42px #102c3e27!important}
+.trainee-dashboard>.trainee-welcome-card:after{left:28px;bottom:-70px;width:220px;height:220px;border-color:#ffffff24!important;box-shadow:0 0 0 25px #ffffff09,0 0 0 52px #ffffff06!important}
+.trainee-welcome-card>div>span{color:#77e0c5!important;letter-spacing:.2px}
+.trainee-welcome-card h2{font-size:27px!important;letter-spacing:-.6px!important}
+.trainee-welcome-card p{color:#d0e2e8!important}
+.trainee-welcome-card .portal-button{border-color:#d4fff04d!important;background:linear-gradient(135deg,#f5fffb,#dff6ef)!important;color:#155b60!important;box-shadow:0 9px 22px #071d2a33!important}
+.trainee-dashboard>.trainee-metrics-grid{gap:14px!important;margin-bottom:32px!important}
+.trainee-dashboard .trainee-metric-card{min-height:158px!important;padding:19px!important;overflow:hidden;border-radius:17px!important}
+.trainee-dashboard .trainee-metric-card:before{position:absolute;top:0;right:18px;left:18px;height:3px;border-radius:0 0 8px 8px;background:linear-gradient(90deg,#168d83,#55c8ad);content:""}
+.trainee-dashboard .trainee-metric-card:nth-child(2):before{background:linear-gradient(90deg,#347eb1,#67b7dc)}
+.trainee-dashboard .trainee-metric-card:nth-child(3):before{background:linear-gradient(90deg,#b18749,#e0bf7d)}
+.trainee-dashboard .trainee-metric-card:nth-child(4):before{background:linear-gradient(90deg,#6d65b0,#aaa2e0)}
+.trainee-dashboard .trainee-metric-card:nth-child(5):before{background:linear-gradient(90deg,#277d98,#72c1c8)}
+.trainee-dashboard .trainee-metric-card:nth-child(6):before{background:linear-gradient(90deg,#4c8b67,#9bc98d)}
+.trainee-metric-card .track-icon{width:42px!important;height:42px!important;border-radius:13px!important}
+.trainee-metric-card:nth-child(2) .track-icon{border-color:#d9eaf5!important;background:#eef6fc!important;color:#347eb1!important}
+.trainee-metric-card:nth-child(3) .track-icon{border-color:#eee4d0!important;background:#faf5e9!important;color:#a77b3e!important}
+.trainee-metric-card:nth-child(4) .track-icon{border-color:#e6e1f4!important;background:#f4f1fb!important;color:#7565af!important}
+.trainee-metric-card:nth-child(5) .track-icon{border-color:#d9ebef!important;background:#edf7f8!important;color:#287e98!important}
+.trainee-metric-card:nth-child(6) .track-icon{border-color:#dcebdd!important;background:#f0f7ef!important;color:#4e8b64!important}
+.trainee-metric-card>div:nth-child(2){color:#172f45!important;font-size:29px!important}
+.trainee-metric-card>strong{color:#294a5a!important;font-size:11px!important}
+.trainee-metric-card>small{color:#7d919b!important;font-size:9px!important}
+.trainee-dashboard .portal-card{overflow:hidden}
+.trainee-dashboard .portal-card h3{color:#203f50!important}
+.trainee-dashboard .portal-card strong{color:#294858!important}
+.trainee-dashboard .portal-card small{color:#7a8e98!important}
+.trainee-dashboard .portal-card>div[style*="height: 8px"],.trainee-dashboard .portal-card>div[style*="height: 10px"]{background:#e5edf0!important}
+.trainee-dashboard .portal-card>div[style*="height: 8px"]>div,.trainee-dashboard .portal-card>div[style*="height: 10px"]>div{background:linear-gradient(90deg,#147c82,#43bba0)!important}
+@media(max-width:1250px){.trainee-dashboard>.trainee-metrics-grid{gap:11px!important}}
+@media(max-width:700px){
+ .trainee-dashboard>.trainee-welcome-card{padding:23px!important;border-radius:17px!important}
+ .trainee-welcome-card h2{font-size:23px!important}
+ .trainee-dashboard .trainee-metric-card{min-height:139px!important}
+ .trainee-metric-card>div:nth-child(2){font-size:25px!important}
+}
