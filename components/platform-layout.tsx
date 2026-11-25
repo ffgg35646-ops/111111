@@ -121,7 +121,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
             );
           })}
 
-          {isManager && <div className="portal-side-group portal-management-group"><p>الإدارة</p><Link href="/platform-admin" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin") ? " active" : "")}><ShieldCheck size={17}/><span>لوحة الإدارة</span></Link></div>}
+          {isManager && <div className="portal-side-group portal-management-group"><p>الإدارة</p><Link href="/platform-admin" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin") ? " active" : "")}><ShieldCheck size={17}/><span>لوحة الإدارة</span></Link><Link href="/platform-admin/students" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/students") ? " active" : "")}><GraduationCap size={17}/><span>الطلاب</span></Link></div>}
           {!user && <Link href="/login" onClick={onClose} className="portal-side-link portal-login-link"><LockKeyhole size={17}/><span>تسجيل الدخول</span></Link>}
         </nav>
 
