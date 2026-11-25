@@ -38,6 +38,23 @@ export default function CourseEditorPage() {
   }, [editId]);
 
   const totalSize = useMemo(() => course.lessons.reduce((sum, lesson) => sum + lesson.videoSize, 0), [course.lessons]);
+  useEffect(() => {
+    const pending = course.lessons.filter(lesson => lesson.uploadStatus === "processing" && lesson.videoId);
+    if (!pending.length) return;
+    let active = true;
+    const check = async () => {
+      for (const lesson of pending) {
+        try {
+          const response = await fetch("/api/platform/admin/course-video/status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ videoId: lesson.videoId }) });
+          const data = await response.json();
+          if (active && response.ok && data.isReady) setCourse(current => ({ ...current, lessons: current.lessons.map(item => item.id === lesson.id ? { ...item, uploadStatus: "uploaded", progress: 100, error: "" } : item) }));
+        } catch { /* keep checking while the admin page remains open */ }
+      }
+    };
+    void check();
+    const timer = window.setInterval(() => void check(), 12000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [course.lessons]);
   function patchCourse(patch: Partial<CourseDraft>) { setCourse(current => ({ ...current, ...patch })); }
   function patchLesson(id: string, patch: Partial<LessonDraft>) { setCourse(current => ({ ...current, lessons: current.lessons.map(lesson => lesson.id === id ? { ...lesson, ...patch } : lesson) })); }
   function addLesson() { setCourse(current => ({ ...current, lessons: [...current.lessons, newLesson()] })); }
@@ -87,7 +104,7 @@ export default function CourseEditorPage() {
           }
         }
       }
-      patchLesson(lesson.id, { videoId: session.videoId, videoName: file.name, videoSize: file.size, uploadStatus: "uploaded", progress: 100, error: "" });
+      patchLesson(lesson.id, { videoId: session.videoId, videoName: file.name, videoSize: file.size, uploadStatus: "processing", progress: 100, error: "اكتمل نقل الملف، وجارٍ تجهيز الفيديو والجودات للمشاهدة." });
     } catch (cause) {
       patchLesson(lesson.id, { uploadStatus: "failed", error: cause instanceof Error ? cause.message : "فشل رفع الفيديو." });
     }
@@ -110,7 +127,7 @@ export default function CourseEditorPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر حفظ الكورس.");
       setCourse(current => ({ ...current, courseId }));
-      setNotice(publish ? "تم حفظ الكورس ونشره في سجل المحتوى. سيظهر للطلاب بعد ربط كتالوج الأكاديمية." : "تم حفظ مسودة الكورس والدروس بنجاح.");
+      setNotice(publish ? "تم حفظ الكورس ونشره في الأكاديمية. أصبح متاحاً للطلاب بعد اعتماد الالتحاق والدفع." : "تم حفظ مسودة الكورس والدروس بنجاح.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "تعذر حفظ الكورس."); }
     finally { setSaving(false); setPublishing(false); }
   }
@@ -150,7 +167,7 @@ export default function CourseEditorPage() {
             <input type="file" accept="video/*" style={{ display: "none" }} onChange={e => { const file = e.target.files?.[0]; if (file) void uploadLesson(lesson, file); e.currentTarget.value = ""; }}/>
           </label>
           {lesson.uploadStatus === "uploading" && <div style={{ display: "grid", gap: 6 }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}><span>جارٍ رفع الفيديو</span><strong>{lesson.progress}%</strong></div><div style={{ height: 8, borderRadius: 20, background: "#e8efee", overflow: "hidden" }}><div style={{ height: "100%", width: lesson.progress + "%", background: "#16877d", transition: "width .2s" }}/></div><span style={{ fontSize: 10, color: "#71848a" }}>{formatSize(lesson.videoSize)} · اترك الصفحة مفتوحة حتى يكتمل الرفع</span></div>}
-          {lesson.uploadStatus === "uploaded" && <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#16805e", fontSize: 11 }}><Check size={15}/> تم رفع {lesson.videoName} · {formatSize(lesson.videoSize)} · الفيديو قيد معالجة خدمة التخزين</div>}
+          {lesson.uploadStatus === "processing" && <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#a36a18", fontSize: 11 }}><LoaderCircle size={15}/> اكتمل رفع {lesson.videoName} · {formatSize(lesson.videoSize)} · جارٍ تجهيز الفيديو، سيتم تحديث الحالة تلقائياً</div>}{lesson.uploadStatus === "uploaded" && <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#16805e", fontSize: 11 }}><Check size={15}/> الفيديو جاهز للمشاهدة: {lesson.videoName} · {formatSize(lesson.videoSize)}</div>}
           {lesson.error && <div role="alert" style={{ color: "#a33", fontSize: 11 }}>{lesson.error}</div>}
           {lesson.uploadStatus === "failed" && <button className="portal-button secondary" type="button" onClick={() => document.getElementById("retry-" + lesson.id)?.click()}><UploadCloud size={14}/> إعادة اختيار الفيديو</button>}
           <input id={"retry-" + lesson.id} type="file" accept="video/*" hidden onChange={e => { const file = e.target.files?.[0]; if (file) void uploadLesson(lesson, file); e.currentTarget.value = ""; }}/>
