@@ -80,7 +80,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
     </section>
 
     {error && <div className="portal-callout" role="alert">{error}</div>}
-    {loading && <div className="portal-empty">جارٍ تحميل مؤشرات التعلم وحسابك...</div>}
+    {loading && <div className="portal-grid trainee-metrics-grid" aria-busy="true" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12 }}>{[0,1,2,3,4,5].map((item)=><section className="portal-card" key={item}><div className="portal-skeleton" style={{width:38,height:38,borderRadius:11,marginBottom:14}}/><div className="portal-skeleton" style={{width:"58%",height:11,marginBottom:12}}/><div className="portal-skeleton" style={{width:"38%",height:24,marginBottom:10}}/><div className="portal-skeleton" style={{width:"78%",height:9}}/></section>)}</div>}
     {data && <>
       <div className="portal-grid trainee-metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12 }}>
         <Metric icon={BookOpen} label="دوراتي النشطة" value={data.summary.enrolledCourses} hint={"منها " + data.summary.completedCourses + " مكتملة"}/>
