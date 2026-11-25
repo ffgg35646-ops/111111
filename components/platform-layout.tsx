@@ -24,6 +24,7 @@ const roleLabels: Record<string, string> = {
   support: "فريق الدعم",
   content_manager: "مسؤول المحتوى",
   quality_manager: "مسؤول الجودة",
+  sub_admin: "أدمن فرعي",
 };
 
 const navigation: NavigationItem[] = [
@@ -74,6 +75,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
   }, []);
 
   const isManager = user?.role === "admin" || user?.role === "platform_manager";
+  const canEditSite = isManager || user?.role === "sub_admin";
   const watermark = user ? user.name + " · " + user.email + (user.sessionId ? " · " + user.sessionId.slice(-6) : "") : "";
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -124,7 +126,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
             );
           })}
 
-          {isManager && <div className="portal-side-group portal-management-group"><p>الإدارة</p><Link href="/platform-admin" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin") ? " active" : "")}><ShieldCheck size={17}/><span>لوحة الإدارة</span></Link><Link href="/platform-admin/students" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/students") ? " active" : "")}><GraduationCap size={17}/><span>الطلاب</span></Link></div>}
+          {canEditSite && <div className="portal-side-group portal-management-group"><p>إدارة المحتوى</p>{isManager && <Link href="/platform-admin" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin") ? " active" : "")}><ShieldCheck size={17}/><span>لوحة الإدارة</span></Link>}<Link href="/platform-admin/site-content" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/site-content") ? " active" : "")}><FileText size={17}/><span>صفحات الموقع</span></Link></div>}
           {!user && <Link href="/login" onClick={onClose} className="portal-side-link portal-login-link"><LockKeyhole size={17}/><span>تسجيل الدخول</span></Link>}
         </nav>
 

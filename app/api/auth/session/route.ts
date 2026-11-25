@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const activeAccount = await requirePlatformRole(request, [user.role]);
     if (!activeAccount) return NextResponse.json({ authenticated: false }, { status: 401, headers: { "Cache-Control": "no-store" } });
     user.name = activeAccount.name;
+    user.permissions = activeAccount.permissions || [];
   }
   return NextResponse.json({ authenticated: true, user }, { headers: { "Cache-Control": "no-store" } });
 }

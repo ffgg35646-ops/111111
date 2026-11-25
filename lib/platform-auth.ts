@@ -5,7 +5,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 
 export const PLATFORM_SESSION_COOKIE = "clinical_platform_session";
 export const PLATFORM_DEVICE_COOKIE = "etzan_platform_device";
-export const PLATFORM_ROLES = ["admin", "platform_manager", "supervisor", "trainer", "trainee", "consultant", "accountant", "support", "content_manager", "quality_manager"] as const;
+export const PLATFORM_ROLES = ["admin", "platform_manager", "sub_admin", "supervisor", "trainer", "trainee", "consultant", "accountant", "support", "content_manager", "quality_manager"] as const;
 export type PlatformRole = (typeof PLATFORM_ROLES)[number];
 
 export type PlatformSession = {
@@ -16,6 +16,7 @@ export type PlatformSession = {
   mustChangePassword?: boolean;
   sessionId?: string;
   deviceId?: string;
+  permissions?: string[];
 };
 
 const ISSUER = "clinical-learning-platform";
@@ -143,7 +144,7 @@ export async function requirePlatformRole(request: NextRequest, roles: PlatformR
 
     const account = await db.collection("platform_users").findOne(
       { userId: session.userId, email: session.email },
-      { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1, status: 1, mustChangePassword: 1 } },
+      { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1, status: 1, mustChangePassword: 1, permissions: 1 } },
     );
     if (!account || account.status !== "active" || account.mustChangePassword === true) return null;
     if (typeof account.role !== "string" || !PLATFORM_ROLES.includes(account.role as PlatformRole)) return null;
@@ -158,6 +159,7 @@ export async function requirePlatformRole(request: NextRequest, roles: PlatformR
       mustChangePassword: false,
       sessionId: session.sessionId,
       deviceId: session.deviceId,
+      permissions: Array.isArray(account.permissions) ? account.permissions.filter((item): item is string => typeof item === "string") : [],
     } satisfies PlatformSession;
   } catch (error) {
     console.error("Unable to verify current platform account status", error);
@@ -175,4 +177,38 @@ export function platformDeviceCookieOptions(isProduction = process.env.NODE_ENV 
 
 export function clearedPlatformSessionCookieOptions() {
   return { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" as const, path: "/", maxAge: 0, expires: new Date(0) };
+}
+
+
+export const SITE_PAGE_PERMISSIONS = ["site_home", "site_about", "site_privacy", "site_owner"] as const;
+export type SitePagePermission = (typeof SITE_PAGE_PERMISSIONS)[number];
+
+export async function requirePlatformPermission(request: NextRequest, permission: SitePagePermission) {
+  const session = await readPlatformSession(request);
+  if (!session || session.mustChangePassword || !session.sessionId || !session.deviceId) return null;
+  try {
+    const db = await getClinicalDatabase();
+    const now = new Date();
+    const sessionRecord = await db.collection("platform_sessions").findOne({
+      sessionId: session.sessionId, userId: session.userId, deviceId: session.deviceId,
+      status: "active", expiresAt: { $gt: now },
+    }, { projection: { _id: 1 } });
+    if (!sessionRecord) return null;
+    const account = await db.collection("platform_users").findOne(
+      { userId: session.userId, email: session.email, status: "active", mustChangePassword: { $ne: true } },
+      { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1, permissions: 1 } },
+    );
+    if (!account || typeof account.role !== "string") return null;
+    const allowed = account.role === "admin" || account.role === "platform_manager" ||
+      (account.role === "sub_admin" && Array.isArray(account.permissions) && account.permissions.includes(permission));
+    if (!allowed) return null;
+    return {
+      userId: session.userId, email: session.email, name: String(account.name || session.name),
+      role: account.role as PlatformRole, permissions: Array.isArray(account.permissions) ? account.permissions.filter((item): item is string => typeof item === "string") : [],
+      sessionId: session.sessionId, deviceId: session.deviceId, mustChangePassword: false,
+    };
+  } catch (error) {
+    console.error("Unable to verify site content permission", error);
+    return null;
+  }
 }

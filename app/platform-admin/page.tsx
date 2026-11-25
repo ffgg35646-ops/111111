@@ -21,6 +21,8 @@ const sections: NavSection[] = [
     { label: "المستخدمون والأدوار", href: "/platform-admin/users" },
     { label: "الدورات والمدربون", href: "/platform-admin/courses" },
     { label: "المحتوى العلمي", href: "/platform-admin/content" },
+    { label: "صفحات الموقع", href: "/platform-admin/site-content" },
+    { label: "الأدمن الفرعي", href: "/platform-admin/sub-admins" },
     { label: "الكتب والمنتجات", href: "/platform-admin/books" },
     { label: "المقاييس والنماذج", href: "/platform-admin/forms" },
     { label: "الاستشارات والمواعيد", href: "/platform-admin/availability" },
