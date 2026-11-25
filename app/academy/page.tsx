@@ -68,5 +68,5 @@ function AcademyWorkspace() {
 }
 
 export default function AcademyPage() {
-  return <Suspense fallback={<div className="portal-callout">تحميل الأكاديمية...</div>}><AcademyWorkspace /></Suspense>;
+  return <Suspense fallback={<div className="portal-grid" aria-busy="true">{[0,1,2,3].map((item)=><section className="portal-card" key={item}><div className="portal-skeleton" style={{width:42,height:42,borderRadius:11,marginBottom:14}}/><div className="portal-skeleton" style={{width:"60%",height:13,marginBottom:10}}/><div className="portal-skeleton" style={{width:"90%",height:9,marginBottom:7}}/><div className="portal-skeleton" style={{width:"72%",height:9}}/></section>)}</div>}><AcademyWorkspace /></Suspense>;
 }
