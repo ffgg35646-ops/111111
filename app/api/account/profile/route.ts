@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (!account) return NextResponse.json({ error: "الحساب غير موجود." }, { status: 404 });
     const profile = await db.collection("etzan_account_profiles").findOne({ userId: actor.userId }, { projection: { _id: 0, avatarDataUrl: 1, phone: 1, city: 1, bio: 1, updatedAt: 1 } });
     const fullName = String(account.name || "");
-    const nameParts = fullName.split(/\\s+/).filter(Boolean);
+    const nameParts = fullName.split(/\s+/).filter(Boolean);
     return NextResponse.json({ profile: { ...account, firstName: account.firstName || nameParts[0] || "", fatherName: account.fatherName || nameParts.slice(1).join(" "), username: account.username || "", avatarDataUrl: profile?.avatarDataUrl || "", phone: profile?.phone || "", city: profile?.city || "", bio: profile?.bio || "" } }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Account profile GET", error);
