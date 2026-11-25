@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
@@ -16,6 +16,7 @@ export type PlatformSession = {
   mustChangePassword?: boolean;
   sessionId?: string;
   deviceId?: string;
+  deviceAgentHash?: string;
   permissions?: string[];
 };
 
@@ -23,6 +24,11 @@ const ISSUER = "clinical-learning-platform";
 const AUDIENCE = "platform-user-session";
 const SESSION_SECONDS = 60 * 60 * 8;
 const DEVICE_SECONDS = 60 * 60 * 24 * 180;
+
+export function platformDeviceAgentHash(request: NextRequest) {
+  const userAgent = request.headers.get("user-agent")?.slice(0, 240) || "unknown";
+  return createHash("sha256").update(userAgent).digest("hex");
+}
 
 function sessionSecret() {
   const value = process.env.PLATFORM_SESSION_SECRET;
@@ -57,13 +63,14 @@ export function verifyPasswordHash(password: string, encoded: string) {
 }
 
 export async function issuePlatformSession(user: PlatformSession) {
-  if (!user.sessionId || !user.deviceId) throw new Error("A registered device session is required.");
+  if (!user.sessionId || !user.deviceId || !user.deviceAgentHash) throw new Error("A registered device-bound session is required.");
   return new SignJWT({
     email: user.email,
     name: user.name,
     role: user.role,
     mustChangePassword: user.mustChangePassword === true,
     deviceId: user.deviceId,
+    deviceAgentHash: user.deviceAgentHash,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuer(ISSUER)
@@ -83,8 +90,11 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
     const role = payload.role;
     if (
       typeof payload.sub !== "string" || typeof payload.jti !== "string" ||
-      typeof payload.deviceId !== "string" ||
+      typeof payload.deviceId !== "string" || typeof payload.deviceAgentHash !== "string" ||
       !/^[0-9a-f-]{36}$/i.test(payload.jti) || !/^[0-9a-f-]{36}$/i.test(payload.deviceId) ||
+      !/^[0-9a-f]{64}$/i.test(payload.deviceAgentHash) ||
+      request.cookies.get(PLATFORM_DEVICE_COOKIE)?.value !== payload.deviceId ||
+      payload.deviceAgentHash !== platformDeviceAgentHash(request) ||
       typeof payload.email !== "string" || typeof payload.name !== "string" ||
       typeof role !== "string" || !PLATFORM_ROLES.includes(role as PlatformRole)
     ) return null;
@@ -96,6 +106,7 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
       mustChangePassword: payload.mustChangePassword === true,
       sessionId: payload.jti,
       deviceId: payload.deviceId,
+      deviceAgentHash: payload.deviceAgentHash,
     };
   } catch { return null; }
 }
@@ -159,6 +170,7 @@ export async function requirePlatformRole(request: NextRequest, roles: PlatformR
       mustChangePassword: false,
       sessionId: session.sessionId,
       deviceId: session.deviceId,
+      deviceAgentHash: session.deviceAgentHash,
       permissions: Array.isArray(account.permissions) ? account.permissions.filter((item): item is string => typeof item === "string") : [],
     } satisfies PlatformSession;
   } catch (error) {
@@ -205,7 +217,7 @@ export async function requirePlatformPermission(request: NextRequest, permission
     return {
       userId: session.userId, email: session.email, name: String(account.name || session.name),
       role: account.role as PlatformRole, permissions: Array.isArray(account.permissions) ? account.permissions.filter((item): item is string => typeof item === "string") : [],
-      sessionId: session.sessionId, deviceId: session.deviceId, mustChangePassword: false,
+      sessionId: session.sessionId, deviceId: session.deviceId, deviceAgentHash: session.deviceAgentHash, mustChangePassword: false,
     };
   } catch (error) {
     console.error("Unable to verify site content permission", error);

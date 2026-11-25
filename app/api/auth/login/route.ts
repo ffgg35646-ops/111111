@@ -2,16 +2,14 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
 import { recordSecurityEvent } from "@/lib/platform-security";
+import { checkLoginAttemptLimit, recordFailedLoginAttempt } from "@/lib/platform-rate-limit";
 import {
   issuePlatformSession, parsePasswordHash, PLATFORM_DEVICE_COOKIE, PLATFORM_SESSION_COOKIE,
   PLATFORM_ROLES, platformDeviceCookieOptions, platformSessionCookieOptions,
-  verifyPasswordHash, verifyStoredPassword, type PlatformRole,
+  verifyPasswordHash, verifyStoredPassword, platformDeviceAgentHash, type PlatformRole,
 } from "@/lib/platform-auth";
 
 export const runtime = "nodejs";
-const attempts = new Map<string, { count: number; resetAt: number }>();
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 7;
 const validUuid = (value: string | undefined) => Boolean(value && /^[0-9a-f-]{36}$/i.test(value));
 const maxDevices = () => Math.max(1, Math.min(5, Number.parseInt(process.env.PLATFORM_MAX_DEVICES || "2", 10) || 2));
 function clean(value: unknown, max: number) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
@@ -20,14 +18,7 @@ export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ error: "مصدر تسجيل الدخول غير مسموح." }, { status: 403 });
 
-  const address = (request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown").trim();
-  const nowMs = Date.now();
-  const attempt = attempts.get(address);
-  if (attempt && attempt.resetAt > nowMs && attempt.count >= MAX_ATTEMPTS) {
-    return NextResponse.json({ error: "محاولات كثيرة لتسجيل الدخول. انتظر 15 دقيقة ثم حاول مجدداً." }, {
-      status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(Math.ceil((attempt.resetAt - nowMs) / 1000)) },
-    });
-  }
+  const address = (request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "").trim().slice(0, 120);
 
   let body: unknown;
   try { body = await request.json(); }
@@ -46,6 +37,13 @@ export async function POST(request: NextRequest) {
   let databaseUnavailable = false;
   try {
     db = await getClinicalDatabase();
+    const rateLimit = await checkLoginAttemptLimit(db, address, email);
+    if (rateLimit.blocked) {
+      await recordSecurityEvent(db, { action: "login_rate_limited", request, metadata: { retryAfterSeconds: rateLimit.retryAfterSeconds } });
+      return NextResponse.json({ error: "تم إيقاف محاولات الدخول مؤقتاً لحماية الحساب. حاول بعد انتهاء المهلة." }, {
+        status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(rateLimit.retryAfterSeconds) },
+      });
+    }
     const users = db.collection("platform_users");
     await users.createIndex({ email: 1 }, { unique: true });
     account = await users.findOne({ email });
@@ -81,11 +79,20 @@ export async function POST(request: NextRequest) {
     verifyStoredPassword(password, String(account.passwordSalt || ""), String(account.passwordHash || "")));
 
   if (!validAccount || !account) {
-    const current = attempts.get(address);
-    attempts.set(address, current && current.resetAt > nowMs
-      ? { count: current.count + 1, resetAt: current.resetAt }
-      : { count: 1, resetAt: nowMs + WINDOW_MS });
-    if (db) await recordSecurityEvent(db, { action: "login_failed", request, metadata: { reason: "invalid_credentials" } });
+    if (db) {
+      await recordFailedLoginAttempt(db, address, email);
+      const rateLimit = await checkLoginAttemptLimit(db, address, email);
+      await recordSecurityEvent(db, {
+        action: rateLimit.blocked ? "login_rate_limited" : "login_failed",
+        request,
+        metadata: { reason: "invalid_credentials", retryAfterSeconds: rateLimit.blocked ? rateLimit.retryAfterSeconds : 0 },
+      });
+      if (rateLimit.blocked) {
+        return NextResponse.json({ error: "محاولات كثيرة لتسجيل الدخول. تم إيقاف المحاولات مؤقتاً لحماية الحساب." }, {
+          status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(rateLimit.retryAfterSeconds) },
+        });
+      }
+    }
     return NextResponse.json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيح، أو أن الحساب غير نشط." }, {
       status: 401, headers: { "Cache-Control": "no-store" },
     });
@@ -125,13 +132,15 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionId = randomUUID();
+    const deviceAgentHash = platformDeviceAgentHash(request);
     const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     await sessions.insertOne({
-      sessionId, userId: user.userId, deviceId, userAgent: request.headers.get("user-agent")?.slice(0, 240) || "",
+      sessionId, userId: user.userId, deviceId, deviceAgentHash,
+      userAgent: request.headers.get("user-agent")?.slice(0, 240) || "",
       status: "active", createdAt: now, lastSeenAt: now, expiresAt, ipAddressStored: false,
     });
 
-    const token = await issuePlatformSession({ ...user, sessionId, deviceId });
+    const token = await issuePlatformSession({ ...user, sessionId, deviceId, deviceAgentHash });
     const response = NextResponse.json({
       success: true,
       user: { ...user, sessionId, sessionExpiresAt: expiresAt },

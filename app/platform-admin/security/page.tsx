@@ -7,10 +7,11 @@ import { PlatformLayout } from "@/components/platform-layout";
 type EventRow = { eventId: string; action: string; actorUserId?: string; targetId?: string; route?: string; userAgent?: string; metadata?: Record<string, unknown>; createdAt: string };
 const labels: Record<string, string> = {
   login_succeeded: "تسجيل دخول ناجح", login_failed: "محاولة دخول فاشلة",
-  login_blocked_device_limit: "رفض الدخول بسبب حد الأجهزة", logout: "تسجيل خروج",
+  login_blocked_device_limit: "رفض الدخول بسبب حد الأجهزة", login_rate_limited: "تقييد محاولات الدخول", logout: "تسجيل خروج",
   password_changed: "تغيير كلمة المرور", password_change_failed: "فشل تغيير كلمة المرور",
   device_session_revoked: "إنهاء جلسة جهاز", classroom_join_accessed: "فتح رابط فصل مباشر",
   classroom_recording_accessed: "فتح رابط تسجيل محاضرة", course_video_started: "بدء تشغيل فيديو دورة",
+  course_video_access_link_issued: "إصدار رابط فيديو مؤقت", course_lesson_video_access_issued: "إصدار رابط درس مؤقت",
   protected_course_media_saved: "تحديث وسيط دورة", protected_course_media_disabled: "تعطيل وسيط دورة",
 };
 
