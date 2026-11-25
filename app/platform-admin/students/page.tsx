@@ -201,7 +201,7 @@ export default function PlatformStudentsPage() {
 
       {error && <p role="alert" style={{ color: "#b64b48", fontSize: 12 }}>{error}</p>}
       {notice && <p role="status" style={{ color: "#287b61", fontSize: 12 }}>{notice}</p>}
-      {loading ? <div className="portal-card">جارٍ تحميل الطلاب...</div> :
+      {loading ? <div className="portal-grid" aria-busy="true">{[0,1,2].map((item)=><section className="portal-card" key={item} style={{display:"flex",alignItems:"center",gap:12}}><div className="portal-skeleton" style={{width:42,height:42,borderRadius:"50%",flex:"0 0 42px"}}/><div style={{flex:1}}><div className="portal-skeleton" style={{width:"42%",height:12,marginBottom:9}}/><div className="portal-skeleton" style={{width:"76%",height:9,marginBottom:7}}/><div className="portal-skeleton" style={{width:"58%",height:9}}/></div></section>)}</div> :
         matching.length === 0 ? <div className="portal-card" style={{ textAlign: "center", color: "#82919a", padding: 28 }}>لا توجد نتائج.</div> :
         <div style={{ display: "grid", gap: 9 }}>
           {matching.map((student) => <article className="portal-card" key={student.userId} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", alignItems: "center", gap: 12 }}>
