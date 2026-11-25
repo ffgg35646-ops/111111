@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const actor = await requirePlatformRole(request, ["admin", "platform_manager", "supervisor", "quality_manager"]);
+  const actor = await requirePlatformRole(request, editors);
   if (!actor) return NextResponse.json({ error: "لا تملك صلاحية أرشفة المقاييس." }, { status: 403 });
   const id = clean(request.nextUrl.searchParams.get("id"), 60);
   if (!id) return NextResponse.json({ error: "حدد المقياس المطلوب أرشفته." }, { status: 400 });
