@@ -19,7 +19,7 @@ type ManagedTrack = {
 };
 type DisplayTrack = {
   id: string; title: string; category: string; summary: string; icon: LucideIcon;
-  outcomes: string[]; units: string[]; practice: string;
+  outcomes: readonly string[]; units: readonly string[]; practice: string;
 };
 const trackIcons: Record<string, LucideIcon> = {
   users: Users, brain: Brain, "heart-handshake": HeartHandshake, workflow: Workflow,
@@ -241,8 +241,8 @@ export default function SpecialistTrainingHub() {
     return () => { active = false; };
   }, []);
 
-  const allTracks = useMemo<DisplayTrack[]>(() => {
-    if (!tracksLoaded) return tracks as DisplayTrack[];
+  const allTracks = useMemo<readonly DisplayTrack[]>(() => {
+    if (!tracksLoaded) return tracks;
     const byId = new Map(managedTracks.map((track) => [track.id, track]));
     const builtIn = tracks
       .filter((track) => byId.has(track.id))
@@ -285,7 +285,7 @@ export default function SpecialistTrainingHub() {
   const [selectedToolId, setSelectedToolId] = useState<string>(scaleTools[0].id);
   const [reasoningAnswer, setReasoningAnswer] = useState<string>("");
   const [differentialAnswers, setDifferentialAnswers] = useState<Record<number,string>>({});
-  const activeTrack = allTracks.find((track) => track.id === activeTrackId) ?? allTracks[0] ?? (tracks[0] as DisplayTrack);
+  const activeTrack = allTracks.find((track) => track.id === activeTrackId) ?? allTracks[0] ?? tracks[0];
   const activeTool = scaleTools.find((tool) => tool.id === selectedToolId) ?? scaleTools[0];
   const TrackIcon = activeTrack.icon;
   const academyTrackId = activeTrackId;
