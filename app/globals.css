@@ -87,3 +87,57 @@
  .admin-dashboard-shell .quick-grid{gap:8px!important}
  .admin-dashboard-shell .quick-grid button{min-height:93px;padding:11px!important}
 }
+
+
+/* ETZAN approved administrator dashboard — matches the member dashboard */
+.admin-dashboard-shell{min-height:100dvh;overflow-x:clip;background:#eef3f6!important;color:#183747!important}
+.admin-dashboard-shell .sidebar{position:sticky;top:0;height:100dvh;min-height:100dvh;width:286px;flex:0 0 286px;padding:24px 16px 16px;overflow-y:auto}
+.admin-dashboard-shell .main-area{min-width:0;flex:1;background:linear-gradient(180deg,#f6f9fa 0%,#edf3f5 100%)}
+.admin-dashboard-shell .topbar{position:sticky;top:0;z-index:20;min-height:74px;height:auto;padding:12px clamp(20px,3vw,46px);background:#ffffffed;border-bottom:1px solid #dfe9ec;box-shadow:0 5px 22px #17394b08;backdrop-filter:blur(12px)}
+.admin-dashboard-shell .breadcrumb strong{color:#183747;font-size:13px}
+.admin-dashboard-shell .page-content{width:100%;max-width:1540px;margin:0 auto;padding:30px clamp(20px,3vw,46px) 48px}
+.admin-dashboard-shell .admin-welcome{min-height:164px;align-items:center;margin-bottom:22px;padding:27px 30px;border:1px solid #176f7050;border-radius:20px;background:radial-gradient(circle at 8% 8%,#38bfa83e,transparent 27%),radial-gradient(circle at 92% 90%,#4e9bc02b,transparent 28%),linear-gradient(112deg,#12283e 0%,#15485a 52%,#11766f 100%);box-shadow:0 18px 42px #102c3e20;color:#fff}
+.admin-dashboard-shell .admin-welcome .eyebrow{color:#85e0cc;font-size:11px;font-weight:800}
+.admin-dashboard-shell .admin-welcome h1{margin:7px 0;color:#fff;font-size:27px;letter-spacing:-.5px}
+.admin-dashboard-shell .admin-welcome p{margin:0;color:#c7e0e2;font-size:11px;line-height:1.9}
+.admin-dashboard-shell .stats-grid{gap:14px;margin-bottom:22px}
+.admin-dashboard-shell .stat-card{position:relative;min-height:145px;padding:20px;border:1px solid #dfe9ec;border-radius:17px;background:linear-gradient(155deg,#fff,#fbfdfe);box-shadow:0 7px 22px #17354a0a;overflow:hidden}
+.admin-dashboard-shell .stat-card:before{position:absolute;top:0;right:18px;left:18px;height:3px;border-radius:0 0 8px 8px;background:linear-gradient(90deg,#168d83,#55c8ad);content:""}
+.admin-dashboard-shell .stat-label{color:#718692;font-size:11px}
+.admin-dashboard-shell .stat-value{margin:9px 0 5px;color:#17364a;font-size:29px;font-weight:800}
+.admin-dashboard-shell .stat-note{color:#8799a2;font-size:10px}
+.admin-dashboard-shell .panel{margin-bottom:17px;padding:20px;border:1px solid #dfe9ec;border-radius:17px;background:linear-gradient(155deg,#fff,#fbfdfe);box-shadow:0 7px 22px #17354a0a}
+.admin-dashboard-shell .panel-heading h2{color:#1b3b4c;font-size:15px}
+.admin-dashboard-shell .panel-heading p{color:#82949c;font-size:10px;line-height:1.8}
+.admin-dashboard-shell .quick-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.admin-dashboard-shell .quick-grid button{min-height:105px;padding:15px;border:1px solid #e2ebed;border-radius:13px;background:#fbfdfd;transition:.18s ease}
+.admin-dashboard-shell .quick-grid button:hover{transform:translateY(-2px);border-color:#b9ddd5;background:#f4faf8;box-shadow:0 9px 20px #173d4b0d}
+.admin-dashboard-shell .quick-grid strong{color:#234556;font-size:11px}
+.admin-dashboard-shell .quick-grid small{color:#84979e;font-size:9px}
+.admin-dashboard-shell .page-footer{padding:16px;color:#81949c}
+@media(max-width:1100px){
+ .admin-dashboard-shell .sidebar{width:250px;flex-basis:250px}
+ .admin-dashboard-shell .quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ .admin-dashboard-shell{display:block}
+ .admin-dashboard-shell .sidebar{position:fixed;right:0;top:0;bottom:0;z-index:40;width:min(310px,88vw);height:100dvh;min-height:0;box-shadow:-16px 0 42px #10263b30}
+ .admin-dashboard-shell .sidebar-collapsed{transform:translateX(105%);width:min(310px,88vw);flex-basis:auto;padding:0;overflow:hidden}
+ .admin-dashboard-shell .topbar{min-height:62px;padding:9px 13px;gap:9px}
+ .admin-dashboard-shell .topbar-actions{min-width:0;gap:7px}
+ .admin-dashboard-shell .search-box{min-width:0;width:min(42vw,220px)}
+ .admin-dashboard-shell .admin-profile{display:none}
+ .admin-dashboard-shell .page-content{padding:18px 12px calc(30px + env(safe-area-inset-bottom))}
+ .admin-dashboard-shell .admin-welcome{min-height:0;padding:22px 19px;border-radius:17px}
+ .admin-dashboard-shell .admin-welcome h1{font-size:23px}
+ .admin-dashboard-shell .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .admin-dashboard-shell .stat-card{min-height:126px;padding:14px;border-radius:14px}
+ .admin-dashboard-shell .stat-value{font-size:25px}
+ .admin-dashboard-shell .panel{padding:15px;border-radius:14px}
+ .admin-dashboard-shell .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .admin-dashboard-shell .quick-grid button{min-height:90px;padding:12px}
+}
+@media(max-width:380px){
+ .admin-dashboard-shell .page-content{padding-inline:9px}
+ .admin-dashboard-shell .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
