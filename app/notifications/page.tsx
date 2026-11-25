@@ -30,6 +30,8 @@ export default function NotificationsPage() {
     } finally { setLoading(false); }
   }, []);
 
+  useEffect(() => { void load(); }, [load]);
+
   async function markAll() {
     await fetch("/api/platform/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ markAll: true }) });
     setItems((current) => current.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString() })));
