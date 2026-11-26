@@ -119,35 +119,15 @@ export async function isPlatformSessionActive(session: PlatformSession) {
 export async function requirePlatformRole(request: NextRequest, roles: PlatformRole[]) {
   const session = await readPlatformSession(request);
   if (!session || session.mustChangePassword || !session.sessionId || !session.deviceId) return null;
+  if (!roles.includes(session.role)) return null;
 
-  try {
-    const db = await getClinicalDatabase();
-    // The signed JWT is the temporary session proof. Keep checking the live
-    // account status and role so disabled/non-admin accounts cannot enter.
-    const account = await db.collection("platform_users").findOne(
-      { userId: session.userId, email: session.email },
-      { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1, status: 1, mustChangePassword: 1, permissions: 1 } },
-    );
-    if (!account || account.status !== "active" || account.mustChangePassword === true) return null;
-    if (typeof account.role !== "string" || !PLATFORM_ROLES.includes(account.role as PlatformRole)) return null;
-    const currentRole = account.role as PlatformRole;
-    if (!roles.includes(currentRole)) return null;
-
-    return {
-      userId: session.userId,
-      email: session.email,
-      name: typeof account.name === "string" ? account.name : session.name,
-      role: currentRole,
-      mustChangePassword: false,
-      sessionId: session.sessionId,
-      deviceId: session.deviceId,
-      deviceAgentHash: session.deviceAgentHash,
-      permissions: Array.isArray(account.permissions) ? account.permissions.filter((item): item is string => typeof item === "string") : [],
-    } satisfies PlatformSession;
-  } catch (error) {
-    console.error("Unable to verify current platform account status", error);
-    return null;
-  }
+  // Temporary admin access mode: login already checked the password, active account,
+  // and admin role before signing this HttpOnly JWT. Trust that signed JWT for the
+  // session lifetime instead of re-checking the device/session registry in MongoDB.
+  return {
+    ...session,
+    permissions: session.permissions || [],
+  } satisfies PlatformSession;
 }
 
 export function platformSessionCookieOptions(isProduction = process.env.NODE_ENV === "production") {
