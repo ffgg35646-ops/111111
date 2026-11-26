@@ -1027,3 +1027,51 @@ body > main:has(> .portal-card) > .portal-card .portal-button {
     animation-duration: .01ms !important;
   }
 }
+
+
+/* First administrator registration: verified bootstrap inside the ETZAN identity. */
+.etzan-auth-page{
+  min-height:100vh;display:grid;place-items:center;padding:24px;
+  color:#eff8f5!important;color-scheme:dark;
+  background:radial-gradient(ellipse at 78% 8%,rgba(13,89,91,.28),transparent 36%),linear-gradient(145deg,#04171d,#061e26 58%,#04161c)!important;
+  font-family:'Cairo','IBM Plex Sans Arabic',Tahoma,sans-serif!important;
+}
+.etzan-auth-card{
+  width:min(100%,520px);padding:clamp(22px,4vw,36px)!important;
+  border:1px solid #24505a!important;border-radius:22px!important;
+  background:linear-gradient(145deg,rgba(11,43,53,.98),rgba(5,25,32,.99))!important;
+  color:#eff8f5!important;box-shadow:0 28px 80px rgba(0,0,0,.36)!important;
+}
+.etzan-auth-brand{display:flex;align-items:center;gap:12px;padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid rgba(42,203,181,.15)}
+.etzan-auth-brand .portal-brand-mark{width:46px;height:46px;border:1px solid rgba(233,189,105,.34)!important;border-radius:15px!important;background:linear-gradient(145deg,rgba(42,203,181,.18),rgba(233,189,105,.12))!important;color:#e9bd69!important}
+.etzan-auth-brand strong,.etzan-auth-brand small{display:block}
+.etzan-auth-brand strong{color:#f4faf7;font:900 16px 'Cairo',sans-serif}
+.etzan-auth-brand small{margin-top:3px;color:#8faeaa;font:500 10px 'Cairo',sans-serif}
+.etzan-auth-heading{margin-bottom:20px}
+.etzan-auth-kicker{display:inline-flex;align-items:center;gap:6px;color:#e9bd69;font:800 10px 'Cairo',sans-serif}
+.etzan-auth-heading h1{margin:10px 0 8px;color:#f5faf7;font:900 clamp(21px,4vw,27px)/1.45 'Cairo',sans-serif}
+.etzan-auth-heading p{margin:0;color:#a5bfbb;font:500 11px/2 'Cairo',sans-serif}
+.etzan-auth-heading p strong{color:#f0ce8a}
+.etzan-auth-form{display:grid;gap:13px}
+.etzan-auth-form label{display:grid;gap:7px;color:#c5d9d4;font:700 10px 'Cairo',sans-serif}
+.etzan-auth-form input{
+  width:100%;min-width:0;min-height:45px;padding:11px 13px;
+  border:1px solid #24505a!important;border-radius:10px!important;
+  background:#061e26!important;color:#eff8f5!important;
+  font:500 12px 'Cairo',sans-serif!important;outline:0;
+}
+.etzan-auth-form input::placeholder{color:#6f918f}
+.etzan-auth-form input:focus{border-color:#2acbb5!important;box-shadow:0 0 0 3px rgba(42,203,181,.1)!important}
+.etzan-auth-form .etzan-auth-code{text-align:center;letter-spacing:.55em;font-size:24px!important;font-weight:900!important}
+.etzan-auth-submit{width:100%;min-height:47px!important;justify-content:center!important;margin-top:5px!important;border:1px solid rgba(233,189,105,.48)!important;border-radius:11px!important;background:linear-gradient(105deg,#c9943f,#e9bd69)!important;color:#17272a!important;font:900 11px 'Cairo',sans-serif!important}
+.etzan-auth-error,.etzan-auth-notice{margin:0;padding:10px 12px;border-radius:9px;font:600 10px/1.8 'Cairo',sans-serif}
+.etzan-auth-error{border:1px solid rgba(239,132,121,.25);background:rgba(151,54,54,.16);color:#ffbdb4}
+.etzan-auth-notice{border:1px solid rgba(42,203,181,.2);background:rgba(21,153,135,.12);color:#a6e5d9}
+.etzan-auth-security{display:flex;align-items:flex-start;gap:8px;margin-top:16px;padding:12px;border:1px solid rgba(233,189,105,.16);border-radius:11px;background:rgba(233,189,105,.055);color:#b9c9bf;font:500 9px/1.9 'Cairo',sans-serif}
+.etzan-auth-security svg{flex:0 0 auto;color:#e9bd69;margin-top:2px}
+.etzan-auth-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:22px;padding-top:16px;border-top:1px solid rgba(42,203,181,.13)}
+.etzan-auth-links a{display:inline-flex;align-items:center;gap:6px;color:#e9bd69!important;text-decoration:none;font:700 10px 'Cairo',sans-serif}
+.etzan-auth-links a:hover{color:#f5d99b!important}
+.etzan-auth-back{justify-self:center;border:0;background:transparent;color:#98b8b4;font:600 10px 'Cairo',sans-serif;padding:9px;cursor:pointer}
+.etzan-auth-back:hover{color:#e9bd69}
+@media(max-width:560px){.etzan-auth-page{padding:13px}.etzan-auth-card{padding:21px!important;border-radius:17px!important}.etzan-auth-brand{margin-bottom:18px;padding-bottom:16px}}
