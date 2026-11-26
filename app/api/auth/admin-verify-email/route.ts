@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const otherAdmin = await users.findOne({ role: "admin", userId: { $ne: lock.userId } }, { projection: { _id: 0, userId: 1 } });
     if (otherAdmin) {
       await codes.deleteMany({ email, purpose: "verify_admin" });
-      await db.collection("platform_setup_locks").deleteOne({ _id: SETUP_LOCK_ID, userId: lock.userId });
+      await db.collection("platform_setup_locks").deleteOne({ setupKey: SETUP_LOCK_ID, userId: lock.userId });
       return NextResponse.json({ error: "تم إعداد مدير النظام بالفعل. لا يمكن إنشاء مدير أول آخر من التسجيل العام." }, { status: 409 });
     }
 
