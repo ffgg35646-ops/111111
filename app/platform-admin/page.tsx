@@ -54,7 +54,7 @@ const sections: NavSection[] = [
 ];
 
 const shortcuts: NavItem[] = [
-  { label: "إدارة الحسابات", href: "/platform-admin/users" },
+  { label: "إنشاء حساب مستخدم وإدارة الحسابات", href: "/platform-admin/users" },
   { label: "إسناد المدربين للدورات", href: "/platform-admin/courses" },
   { label: "مراجعة الطلبات والحجوزات", href: "/platform-admin/requests" },
   { label: "تذاكر دعم الطلاب", href: "/platform-admin/support" },
@@ -166,7 +166,7 @@ export default function AdminDashboardPage() {
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن وحدة أو إجراء..." aria-label="البحث في وحدات الإدارة" />
             </label>
             <Link className="admin-profile" href="/platform-admin/users" style={{ textDecoration: "none", color: "inherit" }}>
-              <div><strong>إدارة الحسابات</strong><span>المستخدمون والأدوار</span></div>
+              <div><strong>إنشاء حساب / إدارة الحسابات</strong><span>إضافة المستخدمين وتحديد أدوارهم</span></div>
             </Link>
           </div>
         </header>
