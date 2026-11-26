@@ -524,3 +524,34 @@ html[data-theme="purple-hybrid"] .trainee-hero-kicker{background:#e9ddfb;color:#
 html[data-theme="purple-hybrid"] .trainee-hero-copy h2{color:#2c2054}
 @media(max-width:850px){.trainee-hero-banner{grid-template-columns:1fr}.trainee-hero-media .etzan-slider{height:240px}}
 @media(max-width:600px){.trainee-hero-banner{padding:13px;border-radius:16px;gap:10px}.trainee-hero-copy{padding:8px}.trainee-hero-copy h2{font-size:23px}.trainee-hero-media .etzan-slider{height:205px}}
+
+
+/* Full-site visual identity: the selected clinic theme applies across public pages,
+   learning portals, account screens and administrator workspaces. */
+html[data-theme="blue-light"]{--site-bg:#f2f7fc;--site-surface:#fff;--site-ink:#17324d;--site-muted:#6f8295;--site-line:#dce8f2;--site-accent:#176fc1;--site-accent-2:#4a9de0;--site-soft:#e7f2fc;--site-shadow:0 14px 38px #174a7512;--site-nav:#fff}
+html[data-theme="emerald-dark"]{--site-bg:#0d211c;--site-surface:#17352c;--site-ink:#f1f6f0;--site-muted:#b0c5ba;--site-line:#315347;--site-accent:#d6b15f;--site-accent-2:#70b89a;--site-soft:#25483c;--site-shadow:0 16px 42px #0005;--site-nav:#102820}
+html[data-theme="teal-light"]{--site-bg:#eff9f6;--site-surface:#fff;--site-ink:#123d3b;--site-muted:#688985;--site-line:#d6ebe5;--site-accent:#078879;--site-accent-2:#37b6a2;--site-soft:#ddf3ec;--site-shadow:0 14px 38px #0b655012;--site-nav:#fff}
+html[data-theme="purple-hybrid"]{--site-bg:#f5f1fb;--site-surface:#fff;--site-ink:#30234d;--site-muted:#827593;--site-line:#e5dcf0;--site-accent:#7547bd;--site-accent-2:#a47bd7;--site-soft:#eee6f8;--site-shadow:0 14px 38px #38215d14;--site-nav:#251b3c}
+html[data-theme] body{background:var(--site-bg);color:var(--site-ink);transition:background .2s,color .2s}
+html[data-theme] :is(.portal-root,.portal-shell,.app-shell,.main-area,.page-content,.portal-main,.portal-content){background-color:var(--site-bg);color:var(--site-ink)}
+html[data-theme] :is(.portal-topbar,.portal-sidebar,.topbar,.sidebar,.portal-nav,.portal-footer){background-color:var(--site-nav);border-color:var(--site-line);color:var(--site-ink)}
+html[data-theme] :is(.portal-card,.portal-panel,.panel,.stat-card,.content-card,.dashboard-card,.settings-card,.form-card,.table-card,.modal-card,.auth-card,.course-card,.book-card,.article-card,.consultation-card,.membership-card){background:var(--site-surface);border-color:var(--site-line);color:var(--site-ink);box-shadow:var(--site-shadow)}
+html[data-theme] :is(h1,h2,h3,h4,.portal-heading h1,.portal-section-title h2,.welcome-row h1,.panel-heading h2){color:var(--site-ink)}
+html[data-theme] :is(p,.muted,.portal-heading p,.portal-section-title p,.portal-card p,.stat-card p,.breadcrumb){color:var(--site-muted)}
+html[data-theme] :is(.portal-button,.primary-button,.etzan-cta,.auth-submit,.submit-button,button[data-primary="true"]){background:var(--site-accent);border-color:var(--site-accent);color:#fff}
+html[data-theme] :is(.portal-button.secondary,.portal-link-button,.text-button,.etzan-kicker){color:var(--site-accent)}
+html[data-theme] :is(.portal-side-link.active,.portal-nav a[aria-current="page"],.nav-item.active,.tab-button.active,.filter-chip.active){background:var(--site-soft);color:var(--site-accent);border-color:var(--site-line)}
+html[data-theme] :is(input,textarea,select,.search-box){background:var(--site-surface);color:var(--site-ink);border-color:var(--site-line)}
+html[data-theme] :is(.portal-brand,.portal-brand strong,.portal-logo,.etzan-logo){color:var(--site-ink)}
+html[data-theme] .etzan-home{background:var(--site-bg);color:var(--site-ink)}
+html[data-theme] .etzan-nav{background:var(--site-nav);border-color:var(--site-line)}
+html[data-theme] .etzan-nav nav a,html[data-theme] .etzan-login{color:var(--site-muted)}
+html[data-theme] .portal-root a:hover,html[data-theme] .portal-shell a:hover{color:var(--site-accent)}
+html[data-theme="emerald-dark"] :is(.portal-root,.portal-shell,.portal-main,.portal-content,.portal-grid,.app-shell,.main-area,.page-content){background-color:#0d211c}
+html[data-theme="emerald-dark"] :is(.portal-card,.portal-panel,.panel,.stat-card,.content-card,.dashboard-card,.settings-card,.form-card,.table-card,.modal-card,.auth-card,.course-card,.book-card,.article-card,.consultation-card,.membership-card){background:#17352c;color:#f1f6f0;border-color:#315347}
+html[data-theme="emerald-dark"] :is(input,textarea,select,.search-box){background:#102820;color:#f1f6f0;border-color:#315347}
+html[data-theme="emerald-dark"] :is(.portal-topbar,.portal-sidebar,.topbar,.sidebar,.portal-nav){background:#102820;border-color:#315347}
+html[data-theme="emerald-dark"] :is(h1,h2,h3,h4,.portal-heading h1,.portal-section-title h2,.welcome-row h1,.panel-heading h2){color:#f1f6f0}
+html[data-theme="emerald-dark"] :is(p,.muted,.portal-heading p,.portal-section-title p,.breadcrumb){color:#b0c5ba}
+html[data-theme="emerald-dark"] .etzan-nav nav a,html[data-theme="emerald-dark"] .etzan-login{color:#d8e5dd}
+html[data-theme="emerald-dark"] .etzan-home{background:#0d211c}
