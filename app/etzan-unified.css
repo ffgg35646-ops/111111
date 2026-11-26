@@ -1,0 +1,1029 @@
+/* ETZAN Unified Visual Identity
+   One shared navy / deep-teal / turquoise / warm-gold system for public,
+   member and administration workspaces. Loaded after all legacy theme CSS. */
+
+:root {
+  --etzan-night: #04171d;
+  --etzan-night-2: #061e26;
+  --etzan-sidebar: #03151c;
+  --etzan-surface: #092630;
+  --etzan-surface-2: #0d303a;
+  --etzan-surface-3: #123b44;
+  --etzan-line: #1d4b54;
+  --etzan-line-soft: rgba(62, 191, 174, .18);
+  --etzan-text: #eff8f5;
+  --etzan-muted: #9ab7b5;
+  --etzan-teal: #2acbb5;
+  --etzan-teal-strong: #159987;
+  --etzan-gold: #e9bd69;
+  --etzan-gold-strong: #c9943f;
+  --etzan-danger: #f0a49b;
+  --etzan-shadow: 0 16px 38px rgba(0, 0, 0, .25);
+}
+
+/* Keep the selected theme setting, but make its application consistent across roles. */
+html[data-theme="blue-light"],
+html[data-theme="emerald-dark"],
+html[data-theme="teal-light"],
+html[data-theme="purple-hybrid"] {
+  --ui-bg: #04171d;
+  --ui-surface: #092630;
+  --ui-surface-2: #0d303a;
+  --ui-ink: #eff8f5;
+  --ui-muted: #9ab7b5;
+  --ui-line: #1d4b54;
+  --ui-accent: #2acbb5;
+  --ui-accent-strong: #e9bd69;
+  --ui-soft: #123b44;
+  --ui-sidebar: #03151c;
+  --ui-sidebar-ink: #eff8f5;
+  --ui-sidebar-muted: #8eaeab;
+  --ui-hero: linear-gradient(120deg, #06252e 0%, #0a4a50 58%, #0d6b64 100%);
+  --ui-shadow: 0 16px 38px rgba(0, 0, 0, .25);
+  --ui-sidebar-hover: rgba(255,255,255,.055);
+  --ui-sidebar-stroke: rgba(54, 194, 174, .2);
+  --ui-sidebar-active: rgba(42, 203, 181, .16);
+  --ui-sidebar-active-border: rgba(233, 189, 105, .32);
+}
+
+html[data-theme] body {
+  background: var(--etzan-night) !important;
+  color: var(--etzan-text) !important;
+}
+
+/* Shared member, trainer, consultant and internal administration pages. */
+.portal-root:not(.etzan-member-dashboard) {
+  min-height: 100vh !important;
+  color-scheme: dark;
+  color: var(--etzan-text) !important;
+  background:
+    radial-gradient(ellipse at 76% 0%, rgba(13, 89, 91, .22), transparent 35%),
+    linear-gradient(145deg, #04171d 0%, #061c23 55%, #04161c 100%) !important;
+  font-family: 'Cairo', 'IBM Plex Sans Arabic', Tahoma, sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-shell {
+  min-height: 100vh;
+  background: transparent !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-main,
+.portal-root:not(.etzan-member-dashboard) .portal-content {
+  background: transparent !important;
+  color: var(--etzan-text) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar {
+  background: linear-gradient(180deg, #041b23 0%, #03151c 100%) !important;
+  color: var(--etzan-text) !important;
+  border-inline-end: 1px solid var(--etzan-line) !important;
+  box-shadow: -18px 0 44px rgba(0,0,0,.24) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-header {
+  border-bottom: 1px solid rgba(255,255,255,.09) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-brand,
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-brand strong,
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-brand em,
+.portal-root:not(.etzan-member-dashboard) .portal-user-details strong {
+  color: #f5faf7 !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-brand strong small {
+  color: var(--etzan-gold) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-brand em,
+.portal-root:not(.etzan-member-dashboard) .portal-user-details small,
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-caption,
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-caption small {
+  color: var(--etzan-muted) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-brand-icon {
+  border: 1px solid rgba(233,189,105,.32) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, rgba(42,203,181,.16), rgba(233,189,105,.12)) !important;
+  color: var(--etzan-gold) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-profile {
+  border: 1px solid var(--etzan-line-soft) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, #0b2b35, #071f28) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-user-avatar {
+  border: 1px solid rgba(233,189,105,.35) !important;
+  background: linear-gradient(145deg, #e9bd69, #159987) !important;
+  color: #071a20 !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-side-group > p {
+  color: #73bcb1 !important;
+  font: 800 10px 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-side-link {
+  min-height: 42px;
+  margin: 3px 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  color: #bfd3d0 !important;
+  font: 600 11px 'Cairo', sans-serif !important;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-side-link svg {
+  color: var(--etzan-teal) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-side-link:hover {
+  transform: translateX(-2px);
+  border-color: rgba(42,203,181,.2) !important;
+  background: rgba(255,255,255,.055) !important;
+  color: #fff !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-side-link.active {
+  border-color: rgba(233,189,105,.3) !important;
+  background: linear-gradient(100deg, rgba(21,153,135,.28), rgba(13,48,58,.8)) !important;
+  color: #fff !important;
+  box-shadow: inset -3px 0 var(--etzan-gold), 0 8px 22px rgba(0,0,0,.18) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-side-link.active svg {
+  color: var(--etzan-gold) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-bottom {
+  border-top-color: rgba(255,255,255,.1) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-sidebar-backdrop.is-visible {
+  background: rgba(0,0,0,.7) !important;
+  backdrop-filter: blur(4px);
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-main > .portal-topbar {
+  min-height: 70px !important;
+  padding: 10px clamp(14px, 2.5vw, 34px) !important;
+  border-bottom: 1px solid var(--etzan-line) !important;
+  background: rgba(4, 23, 29, .92) !important;
+  color: var(--etzan-text) !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,.13) !important;
+  backdrop-filter: blur(16px);
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-breadcrumb,
+.portal-root:not(.etzan-member-dashboard) .portal-breadcrumb strong {
+  color: #eaf5f1 !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-breadcrumb span {
+  color: var(--etzan-muted) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-menu-toggle {
+  border: 1px solid var(--etzan-line) !important;
+  border-radius: 10px !important;
+  background: #0a2932 !important;
+  color: var(--etzan-teal) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-home-link {
+  border: 1px solid rgba(233,189,105,.25) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.045) !important;
+  color: #e9d5a6 !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-home-link svg {
+  color: var(--etzan-gold) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-main > .portal-content {
+  max-width: 1600px !important;
+  padding: 26px clamp(14px, 2.8vw, 40px) 42px !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-heading {
+  margin-bottom: 24px !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-heading > span {
+  color: var(--etzan-gold) !important;
+  font: 800 10px 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-heading h1 {
+  color: #f6faf7 !important;
+  font: 900 clamp(22px, 2vw, 29px)/1.45 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-heading p {
+  color: var(--etzan-muted) !important;
+  font: 500 11px/1.9 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-section-title h2 {
+  color: #f2f8f5 !important;
+  font: 900 16px 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-section-title p {
+  color: var(--etzan-muted) !important;
+  font: 500 10px/1.9 'Cairo', sans-serif !important;
+}
+
+/* Reusable premium surfaces across all module pages. */
+.portal-root:not(.etzan-member-dashboard) :is(
+  .portal-card,
+  .portal-panel,
+  .course-detail-panel,
+  .classroom-register,
+  .consultation-form-panel,
+  .book-order-panel,
+  .certificate-verify-card,
+  .trainer-selected-course,
+  .trainer-workspace-panel,
+  .community-admin-report,
+  .community-admin-post,
+  .community-admin-stats article,
+  .trainer-course-card,
+  .course-card,
+  .book-card,
+  .case-library-card,
+  .platform-request-form,
+  .classroom-interaction,
+  .classroom-interaction-grid article,
+  .scale-workspace,
+  .scale-quiz,
+  .certificate-issue-card
+) {
+  border: 1px solid var(--etzan-line) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, rgba(11, 43, 53, .98), rgba(6, 29, 37, .98)) !important;
+  color: var(--etzan-text) !important;
+  box-shadow: var(--etzan-shadow) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(
+  .portal-card,
+  .course-card,
+  .book-card,
+  .case-library-card,
+  .trainer-course-card,
+  .community-admin-report,
+  .community-admin-post
+) {
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(
+  .portal-card,
+  .course-card,
+  .book-card,
+  .case-library-card,
+  .trainer-course-card,
+  .community-admin-report,
+  .community-admin-post
+):hover {
+  transform: translateY(-2px);
+  border-color: rgba(233,189,105,.42) !important;
+  box-shadow: 0 18px 38px rgba(0,0,0,.28) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(
+  .portal-card h2,
+  .portal-card h3,
+  .portal-card strong,
+  .course-card h3,
+  .book-card h3,
+  .trainer-course-card h3,
+  .community-admin-report h3,
+  .community-admin-post h3
+) {
+  color: #f2f8f5 !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(
+  .portal-card p,
+  .portal-card small,
+  .course-meta,
+  .course-detail-head p,
+  .request-form-heading p,
+  .community-admin-report p,
+  .community-admin-post p,
+  .trainer-course-card p,
+  .certificate-verify-card p
+) {
+  color: var(--etzan-muted) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-chip,
+.portal-root:not(.etzan-member-dashboard) .course-mode,
+.portal-root:not(.etzan-member-dashboard) .community-admin-status {
+  border: 1px solid rgba(42,203,181,.2) !important;
+  border-radius: 999px !important;
+  background: rgba(21,153,135,.14) !important;
+  color: #a6e5d9 !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-section-title .portal-link-button,
+.portal-root:not(.etzan-member-dashboard) .portal-link-button.secondary,
+.portal-root:not(.etzan-member-dashboard) .portal-button.secondary {
+  border: 1px solid rgba(42,203,181,.22) !important;
+  border-radius: 10px !important;
+  background: rgba(21,153,135,.12) !important;
+  color: #a6e5d9 !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(.portal-button:not(.secondary), .portal-link-button:not(.secondary), .request-submit) {
+  border: 1px solid rgba(233,189,105,.48) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(105deg, #c9943f 0%, #e9bd69 55%, #f0d18f 100%) !important;
+  color: #17272a !important;
+  box-shadow: 0 7px 20px rgba(201,148,63,.16) !important;
+  font: 800 10px 'Cairo', sans-serif !important;
+  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(.portal-button:not(.secondary), .portal-link-button:not(.secondary), .request-submit):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 10px 25px rgba(201,148,63,.25) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-filter {
+  border: 1px solid var(--etzan-line) !important;
+  border-radius: 999px !important;
+  background: #08232c !important;
+  color: #b3cbca !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-filter.active {
+  border-color: rgba(233,189,105,.48) !important;
+  background: rgba(201,148,63,.18) !important;
+  color: #f2d89f !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .track-icon,
+.portal-root:not(.etzan-member-dashboard) .service-choice-icon,
+.portal-root:not(.etzan-member-dashboard) .scale-symbol {
+  border: 1px solid rgba(42,203,181,.2) !important;
+  border-radius: 13px !important;
+  background: rgba(21,153,135,.14) !important;
+  color: var(--etzan-teal) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(.portal-callout, .portal-empty, .trainer-empty-state) {
+  border: 1px solid rgba(42,203,181,.2) !important;
+  border-radius: 13px !important;
+  background: rgba(10, 43, 52, .78) !important;
+  color: #aac5c0 !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(.portal-callout, .portal-empty) {
+  box-shadow: none !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-skeleton {
+  background: linear-gradient(90deg, #0a2a34, #14434b, #0a2a34) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-main > .portal-footer {
+  border-top: 1px solid var(--etzan-line) !important;
+  color: #789b9a !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .portal-main > .portal-footer span {
+  color: inherit !important;
+}
+
+/* Forms, filters and data tables. */
+.portal-root:not(.etzan-member-dashboard) :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select
+) {
+  border: 1px solid #24505a !important;
+  border-radius: 9px !important;
+  background: #061e26 !important;
+  color: #eff8f5 !important;
+  font: 500 11px 'Cairo', sans-serif !important;
+  outline: none;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(input, textarea, select)::placeholder {
+  color: #789b9a !important;
+  opacity: 1;
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(input, textarea, select):focus {
+  border-color: var(--etzan-teal) !important;
+  box-shadow: 0 0 0 3px rgba(42,203,181,.1) !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) input[type="checkbox"],
+.portal-root:not(.etzan-member-dashboard) input[type="radio"] {
+  accent-color: var(--etzan-gold);
+}
+
+.portal-root:not(.etzan-member-dashboard) table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid var(--etzan-line);
+  border-radius: 13px;
+  background: #08232c;
+  color: var(--etzan-text);
+}
+
+.portal-root:not(.etzan-member-dashboard) :is(th, td) {
+  padding: 11px 13px;
+  border-bottom: 1px solid rgba(42,203,181,.12);
+  color: #c6d9d5;
+  text-align: right;
+  font-size: 10px;
+}
+
+.portal-root:not(.etzan-member-dashboard) th {
+  background: #0d303a;
+  color: #e9c77f;
+  font-weight: 800;
+}
+
+.portal-root:not(.etzan-member-dashboard) tr:last-child td {
+  border-bottom: 0;
+}
+
+.portal-root:not(.etzan-member-dashboard) .community-admin-actions :is(.community-admin-primary, .community-admin-secondary) {
+  border-radius: 9px !important;
+  font: 800 9px 'Cairo', sans-serif !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .community-admin-primary {
+  background: var(--etzan-teal-strong) !important;
+  color: #fff !important;
+}
+
+.portal-root:not(.etzan-member-dashboard) .community-admin-danger,
+.portal-root:not(.etzan-member-dashboard) .portal-button.danger {
+  border-color: rgba(240,164,155,.25) !important;
+  background: rgba(151,54,54,.18) !important;
+  color: #ffbdb4 !important;
+}
+
+/* Dedicated administrator overview: exactly the same surface, edge and accent system. */
+.admin-dashboard-shell {
+  min-height: 100vh !important;
+  color-scheme: dark;
+  background:
+    radial-gradient(ellipse at 76% 0%, rgba(13,89,91,.22), transparent 35%),
+    linear-gradient(145deg, #04171d 0%, #061c23 55%, #04161c 100%) !important;
+  color: var(--etzan-text) !important;
+  font-family: 'Cairo', 'IBM Plex Sans Arabic', Tahoma, sans-serif !important;
+}
+
+.admin-dashboard-shell .sidebar {
+  width: 276px;
+  flex: 0 0 276px;
+  padding: 22px 16px 16px;
+  border-inline-start: 1px solid var(--etzan-line) !important;
+  background: linear-gradient(180deg, #041b23 0%, #03151c 100%) !important;
+  color: var(--etzan-text) !important;
+  box-shadow: -18px 0 44px rgba(0,0,0,.24) !important;
+}
+
+.admin-dashboard-shell .brand-block {
+  border-bottom: 1px solid rgba(255,255,255,.09) !important;
+}
+
+.admin-dashboard-shell .brand-block strong {
+  color: #f5faf7 !important;
+  font: 900 15px 'Cairo', sans-serif !important;
+}
+
+.admin-dashboard-shell .brand-block span,
+.admin-dashboard-shell .workspace-label,
+.admin-dashboard-shell .nav-section > p {
+  color: #8eaeab !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+.admin-dashboard-shell .brand-mark {
+  border: 1px solid rgba(233,189,105,.3) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, rgba(42,203,181,.16), rgba(233,189,105,.12)) !important;
+  color: var(--etzan-gold) !important;
+}
+
+.admin-dashboard-shell .nav-item {
+  min-height: 42px;
+  margin: 3px 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  color: #bfd3d0 !important;
+  font: 600 10px 'Cairo', sans-serif !important;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+}
+
+.admin-dashboard-shell .nav-item:hover {
+  transform: translateX(-2px);
+  border-color: rgba(42,203,181,.2) !important;
+  background: rgba(255,255,255,.055) !important;
+  color: #fff !important;
+}
+
+.admin-dashboard-shell .nav-item.active {
+  border-color: rgba(233,189,105,.3) !important;
+  background: linear-gradient(100deg, rgba(21,153,135,.28), rgba(13,48,58,.8)) !important;
+  color: #fff !important;
+  box-shadow: inset -3px 0 var(--etzan-gold), 0 8px 22px rgba(0,0,0,.18) !important;
+}
+
+.admin-dashboard-shell .main-area {
+  min-width: 0;
+  background: transparent !important;
+}
+
+.admin-dashboard-shell .topbar {
+  min-height: 70px;
+  height: auto !important;
+  padding: 10px clamp(14px, 2.5vw, 34px) !important;
+  border-bottom: 1px solid var(--etzan-line) !important;
+  background: rgba(4,23,29,.92) !important;
+  color: var(--etzan-text) !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,.13) !important;
+  backdrop-filter: blur(16px);
+}
+
+.admin-dashboard-shell .breadcrumb,
+.admin-dashboard-shell .breadcrumb strong,
+.admin-dashboard-shell .admin-profile strong,
+.admin-dashboard-shell .icon-button {
+  color: #eaf5f1 !important;
+}
+
+.admin-dashboard-shell .admin-profile {
+  border-color: var(--etzan-line) !important;
+}
+
+.admin-dashboard-shell .admin-profile span,
+.admin-dashboard-shell .page-footer,
+.admin-dashboard-shell .page-footer span {
+  color: var(--etzan-muted) !important;
+}
+
+.admin-dashboard-shell .avatar {
+  border: 1px solid rgba(233,189,105,.34);
+  background: linear-gradient(145deg, #e9bd69, #159987);
+  color: #071a20;
+}
+
+.admin-dashboard-shell .search-box {
+  border-color: var(--etzan-line) !important;
+  background: #061e26 !important;
+  color: var(--etzan-muted) !important;
+}
+
+.admin-dashboard-shell .search-box input {
+  background: transparent !important;
+  color: var(--etzan-text) !important;
+}
+
+.admin-dashboard-shell .page-content {
+  max-width: 1600px !important;
+  padding: 27px clamp(14px, 2.8vw, 40px) 35px !important;
+  background: transparent !important;
+}
+
+.admin-dashboard-shell .admin-welcome {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 170px;
+  margin: 0 0 22px !important;
+  padding: 30px clamp(20px, 3vw, 36px) !important;
+  border: 1px solid rgba(42,203,181,.22) !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 8% 15%, rgba(42,203,181,.2), transparent 25%),
+    radial-gradient(circle at 92% 90%, rgba(233,189,105,.13), transparent 28%),
+    linear-gradient(112deg, #062630 0%, #0a424b 58%, #0a625c 100%) !important;
+  box-shadow: 0 18px 42px rgba(0,0,0,.22) !important;
+}
+
+.admin-dashboard-shell .admin-welcome::after {
+  position: absolute;
+  z-index: -1;
+  left: 34px;
+  bottom: -92px;
+  width: 245px;
+  height: 245px;
+  border: 1px solid rgba(233,189,105,.24);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgba(255,255,255,.035), 0 0 0 58px rgba(255,255,255,.02);
+  content: "";
+}
+
+.admin-dashboard-shell .admin-welcome :is(.eyebrow, h1, p) {
+  color: #f5faf7 !important;
+}
+
+.admin-dashboard-shell .admin-welcome .eyebrow {
+  color: var(--etzan-gold) !important;
+  font: 800 11px 'Cairo', sans-serif !important;
+}
+
+.admin-dashboard-shell .admin-welcome h1 {
+  font: 900 clamp(24px, 3vw, 31px) 'Cairo', sans-serif !important;
+}
+
+.admin-dashboard-shell .admin-welcome p {
+  color: #c3dad5 !important;
+  font: 500 11px/1.9 'Cairo', sans-serif !important;
+}
+
+.admin-dashboard-shell .admin-stats-grid {
+  gap: 14px !important;
+  margin-bottom: 21px !important;
+}
+
+.admin-dashboard-shell :is(.stat-card, .roadmap-panel, .panel) {
+  border: 1px solid var(--etzan-line) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, #0b2b35, #071f28) !important;
+  color: var(--etzan-text) !important;
+  box-shadow: var(--etzan-shadow) !important;
+}
+
+.admin-dashboard-shell .stat-card {
+  position: relative;
+  min-height: 145px;
+  overflow: hidden;
+  padding: 19px !important;
+}
+
+.admin-dashboard-shell .stat-card::before {
+  position: absolute;
+  top: 0;
+  right: 18px;
+  left: 18px;
+  height: 3px;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(90deg, var(--etzan-teal), var(--etzan-gold));
+  content: "";
+}
+
+.admin-dashboard-shell :is(.stat-label, .stat-note, .panel-heading p, .quick-grid button small) {
+  color: var(--etzan-muted) !important;
+}
+
+.admin-dashboard-shell :is(.stat-value, .panel-heading h2, .quick-grid button strong) {
+  color: #f2f8f5 !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+.admin-dashboard-shell .stat-value {
+  font-size: 27px !important;
+  font-weight: 900 !important;
+}
+
+.admin-dashboard-shell .panel-heading h2 {
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+.admin-dashboard-shell .quick-grid {
+  gap: 11px !important;
+}
+
+.admin-dashboard-shell .quick-grid button {
+  min-height: 118px;
+  border: 1px solid rgba(42,203,181,.16) !important;
+  border-radius: 13px !important;
+  background: linear-gradient(145deg, #0d303a, #08242d) !important;
+  color: var(--etzan-text) !important;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+}
+
+.admin-dashboard-shell .quick-grid button:hover {
+  transform: translateY(-3px);
+  border-color: rgba(233,189,105,.42) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.22) !important;
+}
+
+.admin-dashboard-shell .quick-grid button small,
+.admin-dashboard-shell .page-footer a {
+  color: var(--etzan-gold) !important;
+}
+
+.admin-dashboard-shell .notice-strip,
+.admin-dashboard-shell .module-chips span {
+  border: 1px solid rgba(42,203,181,.17) !important;
+  border-radius: 12px !important;
+  background: rgba(10,43,52,.75) !important;
+  color: #c1d9d4 !important;
+}
+
+.admin-dashboard-shell .notice-strip strong,
+.admin-dashboard-shell .module-chips span {
+  color: #d8eae4 !important;
+}
+
+.admin-dashboard-shell .notice-icon,
+.admin-dashboard-shell .quick-icon,
+.admin-dashboard-shell .support-icon {
+  border: 1px solid rgba(42,203,181,.18) !important;
+  background: rgba(21,153,135,.16) !important;
+  color: var(--etzan-teal) !important;
+}
+
+.admin-dashboard-shell .primary-button {
+  border: 1px solid rgba(233,189,105,.42) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(105deg, #c9943f, #e9bd69) !important;
+  color: #17272a !important;
+  box-shadow: 0 8px 20px rgba(201,148,63,.16) !important;
+  font: 800 11px 'Cairo', sans-serif !important;
+}
+
+.admin-dashboard-shell .activity-row {
+  border-color: rgba(42,203,181,.12) !important;
+}
+
+.admin-dashboard-shell .activity-symbol {
+  background: rgba(21,153,135,.14) !important;
+  color: var(--etzan-teal) !important;
+}
+
+.admin-dashboard-shell .status-pill {
+  border: 1px solid rgba(42,203,181,.14);
+  background: rgba(21,153,135,.14);
+  color: #a7e4d8;
+}
+
+.admin-dashboard-shell .roadmap-tag {
+  border: 1px solid var(--etzan-line);
+  background: #0d303a !important;
+  color: var(--etzan-muted) !important;
+}
+
+.admin-dashboard-shell .page-footer {
+  border-top: 1px solid var(--etzan-line);
+}
+
+/* Standalone sign-in, registration and recovery surfaces. */
+body > main:has(> .portal-card) {
+  background:
+    radial-gradient(ellipse at 76% 0%, rgba(13,89,91,.23), transparent 37%),
+    linear-gradient(145deg, #04171d, #061e26) !important;
+  color: var(--etzan-text) !important;
+  color-scheme: dark;
+}
+
+body > main:has(> .portal-card) > .portal-card {
+  border: 1px solid var(--etzan-line) !important;
+  border-radius: 20px !important;
+  background: linear-gradient(145deg, #0b2b35, #061e26) !important;
+  color: var(--etzan-text) !important;
+  box-shadow: 0 22px 65px rgba(0,0,0,.3) !important;
+}
+
+body > main:has(> .portal-card) > .portal-card :is(h1, h2, strong) {
+  color: #f3f8f5 !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+body > main:has(> .portal-card) > .portal-card p,
+body > main:has(> .portal-card) > .portal-card label {
+  color: #a8c0bd !important;
+}
+
+body > main:has(> .portal-card) > .portal-card :is(input, textarea, select) {
+  border: 1px solid #24505a !important;
+  border-radius: 9px !important;
+  background: #061e26 !important;
+  color: #eff8f5 !important;
+}
+
+body > main:has(> .portal-card) > .portal-card a {
+  color: var(--etzan-gold) !important;
+}
+
+body > main:has(> .portal-card) > .portal-card .portal-button {
+  min-height: 43px;
+  border: 1px solid rgba(233,189,105,.48) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(105deg, #c9943f, #e9bd69) !important;
+  color: #17272a !important;
+}
+
+/* Public landing page shares the same logo, metal accents and deep-teal hero. */
+.etzan-home {
+  --etzan-navy: #061c27;
+  --etzan-gold: #cda75e;
+  --etzan-teal: #20a995;
+  background: #f3f6f3 !important;
+  color: #17303b !important;
+}
+
+.etzan-home .etzan-nav {
+  background: #061c27 !important;
+  border-bottom: 1px solid rgba(205,167,94,.28) !important;
+}
+
+.etzan-home .etzan-logo,
+.etzan-home .etzan-nav nav a,
+.etzan-home .etzan-login {
+  color: #e9f2ed !important;
+}
+
+.etzan-home .etzan-logo small {
+  color: #9db4b3 !important;
+}
+
+.etzan-home .etzan-mark {
+  border-color: rgba(205,167,94,.7) !important;
+  background: linear-gradient(145deg, #0d3942, #061b27) !important;
+  color: #e9bd69 !important;
+}
+
+.etzan-home .etzan-nav nav a:hover,
+.etzan-home .etzan-login:hover {
+  color: #e9bd69 !important;
+}
+
+.etzan-home .etzan-hero {
+  background:
+    radial-gradient(ellipse at 82% 50%, rgba(42,203,181,.17), transparent 48%),
+    linear-gradient(120deg, #061c27 0%, #0b3540 58%, #0d5554 100%) !important;
+}
+
+.etzan-home .etzan-hero h1,
+.etzan-home .etzan-section.etzan-dark-section .etzan-section-head h2 {
+  color: #f6faf7 !important;
+}
+
+.etzan-home .etzan-hero-copy > p,
+.etzan-home .etzan-hero > div:first-child > p,
+.etzan-home .etzan-hero-proof {
+  color: #bfd2ce !important;
+}
+
+.etzan-home .etzan-kicker,
+.etzan-home .etzan-hero h1 em {
+  color: #e9bd69 !important;
+}
+
+.etzan-home .etzan-cta {
+  border-color: #e9bd69 !important;
+  background: linear-gradient(105deg, #c9943f, #e9bd69) !important;
+  color: #17272a !important;
+}
+
+.etzan-home .etzan-outline {
+  border-color: rgba(233,189,105,.55) !important;
+  background: rgba(255,255,255,.035) !important;
+  color: #e9f2ed !important;
+}
+
+.etzan-home .etzan-photo-frame {
+  border-color: rgba(233,189,105,.52) !important;
+  box-shadow: 0 28px 70px rgba(0,0,0,.28) !important;
+}
+
+.etzan-home .etzan-trust {
+  border-color: #dce7df !important;
+  color: #637d7b !important;
+}
+
+.etzan-home .etzan-dark-section,
+.etzan-home .etzan-community {
+  background: linear-gradient(115deg, #061c27, #0b3540 70%, #0d5554) !important;
+  border-color: rgba(205,167,94,.3) !important;
+}
+
+.etzan-home .etzan-service,
+.etzan-home .etzan-course-card,
+.etzan-home .etzan-knowledge-grid > a {
+  border-color: #d8e5df !important;
+  box-shadow: 0 10px 28px rgba(13,48,58,.07) !important;
+}
+
+.etzan-home .etzan-service > span {
+  background: #e1f4ef !important;
+  color: #138c7b !important;
+}
+
+.etzan-home .etzan-course-number,
+.etzan-home .etzan-section-head h2,
+.etzan-home .etzan-course-card h3,
+.etzan-home .etzan-service h3,
+.etzan-home .etzan-knowledge-grid h3 {
+  color: #102d39 !important;
+}
+
+.etzan-home .etzan-footer {
+  background: #03151c !important;
+  border-top: 1px solid rgba(205,167,94,.25) !important;
+}
+
+.etzan-home .etzan-footer .etzan-logo,
+.etzan-home .etzan-footer a {
+  color: #dbe9e4 !important;
+}
+
+.etzan-home .etzan-footer p,
+.etzan-home .etzan-footer small {
+  color: #8ea6a4 !important;
+}
+
+/* Responsive admin navigation and fluid module layouts. */
+@media (max-width: 980px) {
+  .admin-dashboard-shell .sidebar {
+    position: fixed !important;
+    z-index: 30;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    height: 100dvh;
+    transform: translateX(0);
+    transition: transform .22s ease;
+  }
+  .admin-dashboard-shell .sidebar.sidebar-collapsed {
+    width: 276px !important;
+    flex-basis: 276px !important;
+    transform: translateX(105%);
+    padding: 22px 16px 16px !important;
+    border: 0 !important;
+  }
+  .admin-dashboard-shell .topbar {
+    padding-inline: 14px !important;
+  }
+  .admin-dashboard-shell .page-content {
+    padding-inline: 14px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .portal-root:not(.etzan-member-dashboard) .portal-main > .portal-topbar {
+    min-height: 62px !important;
+    gap: 8px !important;
+    padding-inline: 10px !important;
+  }
+  .portal-root:not(.etzan-member-dashboard) .portal-main > .portal-content {
+    padding: 17px 12px 28px !important;
+  }
+  .portal-root:not(.etzan-member-dashboard) .portal-topbar-actions {
+    gap: 7px !important;
+  }
+  .admin-dashboard-shell .topbar {
+    min-height: 62px !important;
+  }
+  .admin-dashboard-shell .page-content {
+    padding: 17px 12px 25px !important;
+  }
+  .admin-dashboard-shell .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+  .admin-dashboard-shell .admin-welcome {
+    min-height: 140px !important;
+    padding: 22px 18px !important;
+    border-radius: 17px !important;
+  }
+  .admin-dashboard-shell .welcome-row {
+    gap: 12px;
+  }
+  .admin-dashboard-shell .topbar-actions {
+    gap: 7px !important;
+  }
+  .admin-dashboard-shell .search-box {
+    width: min(44vw, 220px) !important;
+  }
+  body > main:has(> .portal-card) {
+    padding: 14px !important;
+  }
+  body > main:has(> .portal-card) > .portal-card {
+    padding: 21px 17px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-root *,
+  .admin-dashboard-shell *,
+  .etzan-home * {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
