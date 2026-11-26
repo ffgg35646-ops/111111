@@ -90,7 +90,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
   }
   const canManageSpecialistTracks = isManager || (user?.role === "sub_admin" && user.permissions?.includes("specialist_tracks") === true);
   const watermark = user ? user.name + " · " + user.email + (user.sessionId ? " · " + user.sessionId.slice(-6) : "") : "";
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href: string) => href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
   return (
     <>
@@ -120,8 +120,8 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
         </div>
 
         <nav className="portal-side-nav" aria-label="أقسام المنصة">
-          <Link href="/dashboard" onClick={onClose} className={"portal-side-link portal-dashboard-link" + (isActive("/dashboard") ? " active" : "")} aria-current={isActive("/dashboard") ? "page" : undefined}>
-            <Home size={17}/><span>لوحة العمل</span>
+          <Link href="/" onClick={onClose} className={"portal-side-link portal-dashboard-link" + (isActive("/") ? " active" : "")} aria-current={isActive("/") ? "page" : undefined}>
+            <Home size={17}/><span>الرئيسية</span>
           </Link>
           {user?.role === "trainee" && <Link href="/support" onClick={onClose} className={"portal-side-link" + (isActive("/support") ? " active" : "")}><MessageSquare size={17}/><span>الدعم الفني</span></Link>}
           {user && ["admin", "platform_manager", "support"].includes(user.role) && <Link href="/platform-admin/support" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/support") ? " active" : "")}><MessageSquare size={17}/><span>تذاكر دعم الطلاب</span></Link>}
