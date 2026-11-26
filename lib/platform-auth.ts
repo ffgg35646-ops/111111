@@ -78,7 +78,7 @@ export async function issuePlatformSession(user: PlatformSession) {
     .setSubject(user.userId)
     .setJti(user.sessionId)
     .setIssuedAt()
-    .setExpirationTime(SESSION_SECONDS)
+    .setExpirationTime(`${SESSION_SECONDS}s`)
     .sign(sessionSecret());
 }
 
