@@ -30,7 +30,8 @@ export default function PlatformUsersPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("trainee");
+  const [role, setRole] = useState("admin");
+  const [roleReady, setRoleReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -58,7 +59,14 @@ export default function PlatformUsersPage() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/auth/session", { cache: "no-store" }).then((response) => response.json()).then((data) => { if (active) { const systemAdmin = data.user?.role === "admin"; setIsSystemAdmin(systemAdmin); if (systemAdmin) setRole("admin"); } }).catch(() => {});
+    fetch("/api/auth/session", { cache: "no-store" }).then(async (response) => response.ok ? response.json() : null).then((data) => {
+      if (!active) return;
+      const currentRole = data?.authenticated ? data.user?.role : null;
+      const systemAdmin = currentRole === "admin";
+      setIsSystemAdmin(systemAdmin);
+      setRole(systemAdmin ? "admin" : currentRole === "platform_manager" ? "platform_manager" : "trainee");
+      setRoleReady(true);
+    }).catch(() => { if (active) { setRole("trainee"); setRoleReady(true); } });
     fetch("/api/platform/users", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
@@ -92,7 +100,7 @@ export default function PlatformUsersPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر إنشاء الحساب.");
-      setSuccess("تم إنشاء الحساب. سلّم بيانات الدخول لصاحبه عبر قناة آمنة.");
+      setSuccess("تم إنشاء حساب " + (roles.find(([value]) => value === role)?.[1] || role) + ". سلّم بيانات الدخول لصاحبه عبر قناة آمنة.");
       setName(""); setEmail(""); setPassword("");
       await load();
     } catch (cause) {
@@ -162,8 +170,8 @@ export default function PlatformUsersPage() {
           <label style={{ display: "grid", gap: 5, fontSize: 11 }}>الاسم الكامل<input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8 }}/></label>
           <label style={{ display: "grid", gap: 5, fontSize: 11 }}>البريد الإلكتروني<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8 }}/></label>
           <label style={{ display: "grid", gap: 5, fontSize: 11 }}>كلمة مرور مؤقتة<input required minLength={12} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8 }}/></label>
-          <label style={{ display: "grid", gap: 5, fontSize: 11 }}>الدور<select value={role} onChange={(event) => setRole(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8, background: "#fff" }}>{roles.filter(([value]) => value !== "admin" || isSystemAdmin).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-          <button className="portal-button" type="submit" disabled={saving} style={{ alignSelf: "end", justifyContent: "center" }}><UserPlus size={15}/>{saving ? "جارٍ الإنشاء..." : "إنشاء الحساب"}</button>
+          <label style={{ display: "grid", gap: 5, fontSize: 11 }}>الدور<select value={role} disabled={!roleReady} onChange={(event) => setRole(event.target.value)} style={{ padding: 10, border: "1px solid #dce5e9", borderRadius: 8, background: "#fff" }}>{roles.filter(([value]) => value !== "admin" || isSystemAdmin).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+          <button className="portal-button" type="submit" disabled={saving || !roleReady} style={{ alignSelf: "end", justifyContent: "center" }}><UserPlus size={15}/>{!roleReady ? "جارٍ التحقق من الصلاحية..." : saving ? "جارٍ الإنشاء..." : "إنشاء الحساب"}</button>
         </form>
         <p style={{ margin: "10px 0 0", color: "#8a98a4", fontSize: 11, lineHeight: 1.7 }}>تُنشأ الحسابات بكلمة مرور مؤقتة، ويُطلب من صاحب الحساب تغييرها فور تسجيل الدخول الأول. شارك بيانات الدخول عبر قناة آمنة؛ لا يرسل النظام كلمات المرور بالبريد.</p>
         {error && <p role="alert" style={{ color: "#b64b48", fontSize: 12 }}>{error}</p>}
