@@ -1,45 +1,22 @@
+"use client";
+import {useEffect,useState} from "react";
+import {useRouter} from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, Award, BookOpen, BrainCircuit, FileText, GraduationCap, HeartHandshake, LibraryBig, MessageCircle, ShieldCheck, Sparkles, Users } from "lucide-react";
-
-const destinations = [
-  { href: "/academy", title: "الأكاديمية والدورات", description: "ابدأ رحلة تعلم منظمة عبر برامج ودورات مهنية.", icon: GraduationCap, tone: "gold" },
-  { href: "/specialties", title: "المسارات التخصصية", description: "اكتشف مسارات الخدمة الاجتماعية وعلم النفس والتخصصات الدقيقة.", icon: BookOpen, tone: "teal" },
-  { href: "/simulation", title: "مختبر المحاكاة", description: "تدرّب على مواقف مهنية تفاعلية وراجع أداءك.", icon: BrainCircuit, tone: "violet" },
-  { href: "/books", title: "المكتبة العلمية", description: "مراجع وكتب ومواد معرفية تدعم ممارستك.", icon: LibraryBig, tone: "blue" },
-  { href: "/consultations", title: "الاستشارات", description: "تعرّف على خدمات الاستشارة وطرق الحجز.", icon: HeartHandshake, tone: "rose" },
-  { href: "/assessments", title: "المقاييس والأدوات", description: "استكشف أدوات التقدير والنماذج المهنية.", icon: ShieldCheck, tone: "green" },
-  { href: "/articles", title: "المقالات العلمية", description: "اقرأ محتوى معرفياً مختاراً من مجالات المنصة.", icon: FileText, tone: "orange" },
-  { href: "/community", title: "المجتمع المهني", description: "شارك المعرفة وتواصل مع مجتمع الممارسين.", icon: Users, tone: "cyan" },
-];
-
-export default function DashboardHomePage() {
-  return (
-    <main className="etzan-dashboard-home" dir="rtl">
-      <header className="edh-header">
-        <Link href="/" className="edh-brand"><span className="edh-brand-mark"><Image src="/etzan-symbol.svg" alt="" width={34} height={34} unoptimized /></span><span><b>اتزان</b><small>ETZAN · من المعرفة إلى الممارسة</small></span></Link>
-        <nav className="edh-nav"><Link href="/about">عن المنصة</Link><Link href="/academy">الأكاديمية</Link><Link href="/specialties">المسارات</Link><Link href="/certificates">الشهادات</Link></nav>
-        <div className="edh-actions"><Link href="/login" className="edh-login">دخول الأعضاء</Link><Link href="/register" className="edh-register">إنشاء حساب <ArrowLeft size={15}/></Link></div>
-      </header>
-
-      <section className="edh-hero">
-        <div className="edh-hero-copy">
-          <span className="edh-eyebrow"><i/> بوابتك إلى التطور المهني</span>
-          <h1>المعرفة التي<br/><em>تصنع فرقاً في الممارسة.</em></h1>
-          <p>منصة اتزان تجمع التعلم المتخصص، والتدريب التطبيقي، والمحاكاة المهنية، والأدوات العلمية في مساحة واحدة تساعدك على تطوير خبرتك.</p>
-          <div className="edh-hero-actions"><Link href="/academy" className="edh-primary">استكشف البرامج <ArrowLeft size={17}/></Link><Link href="/about" className="edh-secondary">اكتشف اتزان</Link></div>
-          <div className="edh-trust"><span><ShieldCheck size={16}/> محتوى للتطوير المهني</span><span><Sparkles size={16}/> تعلم تطبيقي متجدد</span></div>
-        </div>
-        <div className="edh-hero-art" aria-hidden="true"><div className="edh-orbit edh-orbit-one"/><div className="edh-orbit edh-orbit-two"/><div className="edh-emblem"><Image src="/etzan-symbol.svg" alt="" width={112} height={112} unoptimized/><span>ETZAN</span><small>LEARN · PRACTICE · GROW</small></div><div className="edh-float edh-float-top"><BrainCircuit size={19}/><span>محاكاة وتطبيق</span></div><div className="edh-float edh-float-bottom"><Award size={19}/><span>مسارات وشهادات</span></div></div>
-      </section>
-
-      <section className="edh-destinations">
-        <div className="edh-section-heading"><div><span>استكشف المنصة</span><h2>مساحتك للتعلم والتطوير</h2><p>اختر المجال الذي تريد البدء منه، وانتقل مباشرة إلى خدمات اتزان.</p></div><Link href="/academy">عرض البرامج <ArrowLeft size={15}/></Link></div>
-        <div className="edh-grid">{destinations.map(({href,title,description,icon:Icon,tone})=><Link href={href} className="edh-card" key={href}><span className={"edh-card-icon "+tone}><Icon size={22}/></span><span className="edh-card-arrow"><ArrowLeft size={17}/></span><h3>{title}</h3><p>{description}</p><b>استكشف القسم <ArrowLeft size={14}/></b></Link>)}</div>
-      </section>
-
-      <section className="edh-bottom"><div><span>اتزان · ETZAN</span><h2>من المعرفة إلى الممارسة</h2><p>بيئة عربية متخصصة للتعلم والتدريب والتطوير المهني المستمر.</p></div><Link href="/register">ابدأ رحلتك <ArrowLeft size={16}/></Link></section>
-      <footer className="edh-footer"><span>© اتزان ETZAN</span><span>المحتوى والمحاكاة لأغراض التدريب والتطوير المهني.</span><Link href="/login">دخول الأعضاء</Link></footer>
-    </main>
-  );
-}
+import {Activity,Award,BookOpen,Brain,CalendarDays,ClipboardCheck,FileText,GraduationCap,HeartHandshake,Library,ShieldCheck,Users,Wallet} from "lucide-react";
+import {PlatformLayout} from "@/components/platform-layout";
+import { TraineeDashboard } from "@/components/trainee-dashboard";
+type User={name:string;email:string;role:string;mustChangePassword?:boolean};
+const labels:Record<string,string>={admin:"مدير النظام",platform_manager:"مدير المنصة",supervisor:"المشرف",trainer:"المدرب",trainee:"المتدرب",consultant:"مقدم الاستشارة",accountant:"المحاسب",support:"فريق الدعم",content_manager:"مسؤول المحتوى",quality_manager:"مسؤول الجودة"};
+const cards:Record<string,{title:string;desc:string;href:string;icon:typeof BookOpen}[]>={
+admin:[{title:"إتاحة المواعيد",desc:"إدارة جداول مقدمي الاستشارات.",href:"/platform-admin/availability",icon:CalendarDays},{title:"إدارة الحسابات",desc:"إنشاء الحسابات وتحديد الأدوار.",href:"/platform-admin/users",icon:Users},{title:"المدفوعات والاسترداد",desc:"سجل معاملات Moyasar وطلبات الاسترداد.",href:"/platform-admin/payments",icon:Wallet},{title:"إدارة المحتوى",desc:"إنشاء المقالات ونشرها.",href:"/platform-admin/content",icon:FileText},{title:"إدارة الشهادات",desc:"إصدار الشهادات وإلغاؤها.",href:"/platform-admin/certificates",icon:Award},{title:"مراجعة المجتمع",desc:"اعتماد المشاركات والبلاغات.",href:"/platform-admin/community",icon:ShieldCheck},{title:"مراجعة التقارير",desc:"تقارير المحاكاة والكفاءات.",href:"/platform-admin/activities",icon:Activity},{title:"إدارة الحضور",desc:"تسجيل حضور الدورات المباشرة والهجينة.",href:"/platform-admin/attendance",icon:CalendarDays}],
+platform_manager:[{title:"المدفوعات والاسترداد",desc:"مراجعة سجل معاملات المنصة.",href:"/platform-admin/payments",icon:Wallet},{title:"إتاحة المواعيد",desc:"إدارة جداول مقدمي الاستشارات.",href:"/platform-admin/availability",icon:CalendarDays},{title:"إدارة المحتوى",desc:"إدارة المقالات العلمية.",href:"/platform-admin/content",icon:FileText},{title:"طلبات المنصة",desc:"مراجعة طلبات التسجيل والاستشارات.",href:"/platform-admin/requests",icon:HeartHandshake},{title:"إدارة الحضور",desc:"اعتماد حضور الفصول المباشرة.",href:"/platform-admin/attendance",icon:CalendarDays},{title:"مراجعة المجتمع",desc:"مراجعة المشاركات المهنية.",href:"/platform-admin/community",icon:ShieldCheck},{title:"البرامج التدريبية",desc:"استعراض الأكاديمية والمسارات.",href:"/academy",icon:GraduationCap}],
+supervisor:[{title:"مساعد اتزان الذكي",desc:"البحث والشرح وإنشاء المسودات المهنية.",href:"/assistant",icon:Brain},{title:"إدارة المحاكاة",desc:"إنشاء الحالات الافتراضية وتخصيص معايير التقييم.",href:"/simulation/manage",icon:Brain},{title:"تقارير الأداء",desc:"مراجعة جلسات المحاكاة.",href:"/platform-admin/activities",icon:Activity},{title:"الإشراف المباشر",desc:"غرف الإشراف والتدريب الجماعي.",href:"/supervision",icon:Users},{title:"مراجعة المجتمع",desc:"مراجعة المشاركات المهنية.",href:"/platform-admin/community",icon:ShieldCheck},{title:"الكفاءات",desc:"متابعة التقدم المهني.",href:"/competencies",icon:ClipboardCheck}],
+trainer:[{title:"مساعد اتزان الذكي",desc:"شرح المحتوى وإنشاء مسودات الاختبارات والسيناريوهات.",href:"/assistant",icon:Brain},{title:"لوحة المدرب المتكاملة",desc:"إدارة الدورات والمتدربين والاختبارات والحضور والنتائج والشهادات وتقارير الأداء.",href:"/trainer",icon:GraduationCap},{title:"إدارة المحاكاة",desc:"إنشاء الحالات الافتراضية وتحرير السيناريوهات ومعايير التقييم.",href:"/simulation/manage",icon:Brain},{title:"مراجعة أداء المتدربين",desc:"مراجعة المقابلات والتقارير وإضافة التقييم الإشرافي.",href:"/platform-admin/activities",icon:Activity},{title:"دوراتي وبرامجي",desc:"الأكاديمية والمسارات التخصصية.",href:"/academy",icon:GraduationCap},{title:"الفصول المباشرة",desc:"تنظيم اللقاءات التدريبية.",href:"/classrooms",icon:CalendarDays},{title:"تسجيل الحضور",desc:"اعتماد حضور المتدربين.",href:"/platform-admin/attendance",icon:ClipboardCheck},{title:"الحالات التدريبية",desc:"مختبر الحالات والمحاكاة.",href:"/cases",icon:Brain},{title:"تقارير الكفاءات",desc:"مراجعة مؤشرات الأداء.",href:"/competencies",icon:Activity}],
+trainee:[{title:"مساعد اتزان الذكي",desc:"البحث في المعرفة وشرح المحتوى.",href:"/assistant",icon:Brain},{title:"الأكاديمية",desc:"الدورات والبرامج والمسارات.",href:"/academy",icon:GraduationCap},{title:"حجز استشارة",desc:"اختر نوع الاستشارة ومقدم الخدمة والموعد المتاح.",href:"/consultations",icon:HeartHandshake},{title:"مواعيدي",desc:"تابع الدفع المسبق ورابط الجلسة وأعد جدولة الموعد.",href:"/my-consultations",icon:CalendarDays},{title:"مختبر المحاكاة",desc:"التدرب على الحالات الافتراضية.",href:"/cases",icon:Brain},{title:"المقاييس",desc:"التعلم على أدوات التقدير.",href:"/assessments",icon:ClipboardCheck},{title:"شهاداتي",desc:"عرض شهادات الإتمام ورموز QR.",href:"/certificates/mine",icon:Award}],
+consultant:[{title:"الاستشارات",desc:"طلبات التواصل والمواعيد.",href:"/consultations",icon:HeartHandshake},{title:"إتاحة المواعيد",desc:"نشر أوقات الاستشارة المتاحة وإدارتها.",href:"/platform-admin/availability",icon:CalendarDays},{title:"الإشراف المهني",desc:"جلسات الإشراف والتنسيق.",href:"/supervision",icon:Users},{title:"الأدوات المهنية",desc:"النماذج ومواد العمل.",href:"/tools",icon:Library}],
+accountant:[{title:"سجل المعاملات",desc:"مراجعة عمليات الدفع والاسترداد.",href:"/platform-admin/payments",icon:Wallet},{title:"العضويات",desc:"عرض الباقات وحالة جاهزية الدفع.",href:"/membership",icon:Award}],
+support:[{title:"تذاكر دعم الطلاب",desc:"استقبال استفسارات الطلاب والرد عليها ومتابعة الحالات.",href:"/platform-admin/support",icon:HeartHandshake},{title:"طلبات المنصة",desc:"مراجعة طلبات التدريب والاستشارات.",href:"/platform-admin/requests",icon:HeartHandshake},{title:"المساعدة والإرشادات",desc:"المحتوى والبرامج المتاحة.",href:"/articles",icon:BookOpen}],
+content_manager:[{title:"إدارة المقالات",desc:"إنشاء المقالات وتحرير حالة النشر.",href:"/platform-admin/content",icon:FileText},{title:"مكتبة المعرفة",desc:"استعراض المحتوى المنشور.",href:"/articles",icon:BookOpen}],
+quality_manager:[{title:"مراجعة المجتمع",desc:"مراجعة المشاركات والبلاغات.",href:"/platform-admin/community",icon:ShieldCheck},{title:"مؤشرات الكفاءة",desc:"استعراض ملفات الكفاءات.",href:"/competencies",icon:Activity},{title:"المقاييس",desc:"مراجعة أدوات التقدير التدريبية.",href:"/assessments",icon:ClipboardCheck}]
+};
+export default function DashboardPage(){const router=useRouter();const [user,setUser]=useState<User|null>(null);const [error,setError]=useState("");useEffect(()=>{fetch("/api/auth/session",{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok||!d.authenticated){router.replace("/login?next=/dashboard");return}if(d.user?.mustChangePassword){router.replace("/account/change-password");return}setUser(d.user);if(d.user?.role==="admin")router.replace("/platform-admin")}).catch(()=>setError("تعذر تحميل بيانات الحساب."))},[router]);if(!user&&!error)return <PlatformLayout title="الرئيسية" description="مرحباً بك في الرئيسية. تابع أقسامك وأنشطتك المهنية من مكان واحد."><div className="portal-grid" aria-busy="true">{[0,1,2,3].map((item)=><section className="portal-card" key={item}><div className="portal-skeleton" style={{width:42,height:42,borderRadius:11,marginBottom:14}}/><div className="portal-skeleton" style={{width:"58%",height:13,marginBottom:10}}/><div className="portal-skeleton" style={{width:"88%",height:9,marginBottom:7}}/><div className="portal-skeleton" style={{width:"72%",height:9}}/></section>)}</div></PlatformLayout>;if(user?.role==="trainee")return <TraineeDashboard name={user.name} email={user.email}/>;const items=user?cards[user.role]||[]:[];return <PlatformLayout title="الرئيسية" description="مرحباً بك في الرئيسية. تابع أقسامك وأنشطتك المهنية من مكان واحد."><section className="portal-card" style={{display:"flex",alignItems:"center",gap:13,marginBottom:16}}><span className="portal-brand-mark"><ShieldCheck size={21}/></span><div><strong>{user?.name}</strong><p style={{margin:4,color:"#84939a",fontSize:10}}>{labels[user?.role||""]||user?.role} · {user?.email}</p></div></section>{error&&<div className="portal-callout">{error}</div>}<div className="portal-grid">{items.map(({title,desc,href,icon:Icon})=><Link href={href} className="portal-card" key={title+"-"+href} style={{textDecoration:"none",color:"inherit"}}><span className="track-icon"><Icon size={19}/></span><h3>{title}</h3><p>{desc}</p><span className="portal-link-button secondary">فتح القسم</span></Link>)}</div><div className="portal-callout" style={{marginTop:16}}>بعض الوظائف المالية والتشغيلية لا تظهر كخدمات نشطة إلا بعد ربط مزوديها الخارجيين واعتماد اختبارات التشغيل.</div></PlatformLayout>}
