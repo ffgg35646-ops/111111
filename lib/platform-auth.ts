@@ -31,8 +31,11 @@ const ADMIN_PREVIEW_DEVICE_ID = "00000000-0000-4000-8000-000000000003";
 const ADMIN_PREVIEW_AGENT_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
 
 function isOpenAdminPreviewEnabled() {
-  // This bypass is deliberately impossible on Vercel Production.
-  return process.env.VERCEL_ENV === "preview" && process.env.ETZAN_ADMIN_PREVIEW_OPEN === "true";
+  // This bypass is deliberately impossible on Vercel Production and requires a separate preview database.
+  const databaseName = (process.env.MONGODB_DATABASE || "clinical_learning").trim().toLowerCase();
+  return process.env.VERCEL_ENV === "preview" &&
+    process.env.ETZAN_ADMIN_PREVIEW_OPEN === "true" &&
+    databaseName.endsWith("_preview");
 }
 
 function createAdminPreviewSession(): PlatformSession {
