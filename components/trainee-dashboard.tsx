@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
+import { HomeHeroSlider } from "@/components/home-hero-slider";
 
 type DashboardData = {
   user: { name: string; email: string };
@@ -57,9 +58,13 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [clinicName, setClinicName] = useState("اتزان");
+  const [heroSlides, setHeroSlides] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
+    fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(brand => { if (active && brand) setClinicName(String(brand.clinicName || "اتزان")); }).catch(() => {});
+    fetch("/api/platform/admin/site-pages?slug=home", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(result => { if (active && Array.isArray(result?.page?.content?.heroSlides)) setHeroSlides(result.page.content.heroSlides.map(String)); }).catch(() => {});
     fetch("/api/trainee/dashboard", { cache: "no-store" })
       .then(async (response) => {
         const result = await response.json();
@@ -74,10 +79,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
   const totalActivities = data?.summary.simulations || 0;
   return <PlatformLayout title="لوحة المتدرب" description="مساحة موحدة لدوراتك ومساراتك واختباراتك وشهاداتك ومدفوعاتك ومواعيدك وتقدمك العملي.">
     <div className="trainee-dashboard">
-    <section className="portal-card trainee-welcome-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
-      <div><span style={{ color: "#168b86", fontSize: 12, fontWeight: 700 }}>مرحباً بك في اتزان</span><h2 style={{ margin: "4px 0" }}>{name}</h2><p style={{ margin: 0, color: "#758493", fontSize: 12 }}>{email}</p></div>
-      <Link className="portal-button" href="/academy">استكشف الدورات <GraduationCap size={15}/></Link>
-    </section>
+    <section className="trainee-hero-banner"><div className="trainee-hero-copy"><span className="trainee-hero-kicker">مساحتك للتعلم والدعم النفسي</span><h2>أهلاً بك في {clinicName}</h2><p>واصل رحلتك، طوّر مهاراتك، واستفد من البرامج والمسارات المهنية في بيئة تعلم آمنة.</p><div><Link className="portal-button" href="/academy">استكشف الدورات <GraduationCap size={15}/></Link><span className="trainee-hero-user">{name}</span></div></div><div className="trainee-hero-media"><HomeHeroSlider images={heroSlides}/></div></section>
 
     {error && <div className="portal-callout" role="alert">{error}</div>}
     {loading && <div className="portal-grid trainee-metrics-grid" aria-busy="true" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12 }}>{[0,1,2,3,4,5].map((item)=><section className="portal-card" key={item}><div className="portal-skeleton" style={{width:38,height:38,borderRadius:11,marginBottom:14}}/><div className="portal-skeleton" style={{width:"58%",height:11,marginBottom:12}}/><div className="portal-skeleton" style={{width:"38%",height:24,marginBottom:10}}/><div className="portal-skeleton" style={{width:"78%",height:9}}/></section>)}</div>}
