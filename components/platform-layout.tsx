@@ -84,7 +84,9 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
   const canEditSite = isManager || user?.role === "sub_admin";
   async function logout() {
     try { await fetch("/api/auth/logout", { method: "POST" }); }
-    finally { router.replace("/login"); router.refresh(); }
+    catch { /* The login route also clears a stale local session on the next request. */ }
+    router.replace("/login");
+    router.refresh();
   }
   const canManageSpecialistTracks = isManager || (user?.role === "sub_admin" && user.permissions?.includes("specialist_tracks") === true);
   const watermark = user ? user.name + " · " + user.email + (user.sessionId ? " · " + user.sessionId.slice(-6) : "") : "";
