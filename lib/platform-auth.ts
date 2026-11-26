@@ -25,6 +25,34 @@ const AUDIENCE = "platform-user-session";
 const SESSION_SECONDS = 60 * 60 * 8;
 const DEVICE_SECONDS = 60 * 60 * 24 * 180;
 
+const ADMIN_PREVIEW_USER_ID = "00000000-0000-4000-8000-000000000001";
+const ADMIN_PREVIEW_SESSION_ID = "00000000-0000-4000-8000-000000000002";
+const ADMIN_PREVIEW_DEVICE_ID = "00000000-0000-4000-8000-000000000003";
+const ADMIN_PREVIEW_AGENT_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
+
+function isOpenAdminPreviewEnabled() {
+  // This bypass is deliberately impossible on Vercel Production.
+  return process.env.VERCEL_ENV === "preview" && process.env.ETZAN_ADMIN_PREVIEW_OPEN === "true";
+}
+
+function createAdminPreviewSession(): PlatformSession {
+  return {
+    userId: ADMIN_PREVIEW_USER_ID,
+    email: "admin-preview@etzan.local",
+    name: "مدير المعاينة",
+    role: "admin",
+    mustChangePassword: false,
+    sessionId: ADMIN_PREVIEW_SESSION_ID,
+    deviceId: ADMIN_PREVIEW_DEVICE_ID,
+    deviceAgentHash: ADMIN_PREVIEW_AGENT_HASH,
+    permissions: ["site_home", "site_about", "site_privacy", "site_owner", "specialist_tracks"],
+  };
+}
+
+function isAdminPreviewSession(session: PlatformSession) {
+  return session.userId === ADMIN_PREVIEW_USER_ID && session.role === "admin";
+}
+
 export function platformDeviceAgentHash(request: NextRequest) {
   const userAgent = request.headers.get("user-agent")?.slice(0, 240) || "unknown";
   return createHash("sha256").update(userAgent).digest("hex");
@@ -83,6 +111,7 @@ export async function issuePlatformSession(user: PlatformSession) {
 }
 
 export async function readPlatformSession(request: NextRequest): Promise<PlatformSession | null> {
+  if (isOpenAdminPreviewEnabled()) return createAdminPreviewSession();
   const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
@@ -112,6 +141,7 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
 }
 
 export async function isPlatformSessionActive(session: PlatformSession) {
+  if (isOpenAdminPreviewEnabled() && isAdminPreviewSession(session)) return true;
   if (!session.sessionId || !session.deviceId) return false;
   try {
     const db = await getClinicalDatabase();
@@ -130,6 +160,7 @@ export async function isPlatformSessionActive(session: PlatformSession) {
 }
 
 export async function requirePlatformRole(request: NextRequest, roles: PlatformRole[]) {
+  if (isOpenAdminPreviewEnabled()) return roles.includes("admin") ? createAdminPreviewSession() : null;
   const session = await readPlatformSession(request);
   if (!session || session.mustChangePassword || !session.sessionId || !session.deviceId) return null;
 
@@ -196,6 +227,7 @@ export const SITE_PAGE_PERMISSIONS = ["site_home", "site_about", "site_privacy",
 export type SitePagePermission = (typeof SITE_PAGE_PERMISSIONS)[number];
 
 export async function requirePlatformPermission(request: NextRequest, permission: SitePagePermission) {
+  if (isOpenAdminPreviewEnabled()) return createAdminPreviewSession();
   const session = await readPlatformSession(request);
   if (!session || session.mustChangePassword || !session.sessionId || !session.deviceId) return null;
   try {
