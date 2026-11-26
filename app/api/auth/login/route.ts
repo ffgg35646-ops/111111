@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     const sessionId = randomUUID();
     const deviceAgentHash = platformDeviceAgentHash(request);
-    const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + 10 * 365 * 24 * 60 * 60 * 1000);
     await sessions.insertOne({
       sessionId, userId: user.userId, deviceId, deviceAgentHash,
       userAgent: request.headers.get("user-agent")?.slice(0, 240) || "",
