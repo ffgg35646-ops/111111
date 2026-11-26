@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, HeartPulse } from "lucide-react";
 
 export const DEFAULT_CLINIC_SLIDES = [
@@ -17,14 +17,16 @@ export const DEFAULT_CLINIC_SLIDES = [
 ];
 
 export function HomeHeroSlider({ images }: { images?: string[] }) {
-  const slides = (images || []).filter((value) => typeof value === "string" && value.trim()).slice(0, 10);
-  const items = slides.length ? slides : DEFAULT_CLINIC_SLIDES;
+  const items = useMemo(() => {
+    const slides = (images || []).filter((value) => typeof value === "string" && value.trim()).slice(0, 10);
+    return slides.length ? slides : DEFAULT_CLINIC_SLIDES;
+  }, [images]);
   const [active, setActive] = useState(0);
   useEffect(() => {
     if (items.length < 2) return;
     const timer = window.setInterval(() => setActive((value) => (value + 1) % items.length), 5500);
     return () => window.clearInterval(timer);
-  }, [items.length]);
+  }, [items]);
   const move = (direction: number) => setActive((value) => (value + direction + items.length) % items.length);
   return <div className="etzan-photo-frame etzan-slider" aria-roledescription="carousel" aria-label="صور العيادة والدعم النفسي">
     {items.map((src, index) => <img key={src + index} src={src} alt={`صورة من العيادة والدعم النفسي ${index + 1}`} className={"etzan-slide-image" + (index === active ? " is-active" : "")} loading={index === 0 ? "eager" : "lazy"}/>)}
