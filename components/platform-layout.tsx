@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string; permissions?: string[] };
+type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string; permissions?: string[] };\ntype SiteBranding = { clinicName: string; logoName: string; logoImage: string };
 type NavigationItem = { href: string; label: string; icon: LucideIcon; roles?: string[]; group: string };
 
 const roleLabels: Record<string, string> = {
@@ -51,7 +51,7 @@ const navigationGroups = ["التعلم والتطوير", "الأدوات وا�
 
 function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<SignedInUser | null>(null);
+  const [user, setUser] = useState<SignedInUser | null>(null);\n  const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
 
   useEffect(() => {
     let active = true;
@@ -137,7 +137,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
         <div className="portal-sidebar-bottom">
           {user && <div className="portal-account-links"><Link href="/account/profile" onClick={onClose}><Users size={15}/> الملف الشخصي</Link><Link href="/account/security" onClick={onClose}><ShieldCheck size={15}/> أمان الحساب</Link><Link href="/account/privacy" onClick={onClose}><LockKeyhole size={15}/> الخصوصية</Link></div>}
-          <div className="portal-sidebar-caption"><span>اتزان | ETZAN</span><small>بيئة تعلم وتطوير مهني</small></div>
+          <div className="portal-sidebar-caption"><span>{branding.clinicName} | {branding.logoName}</span><small>بيئة تعلم وتطوير مهني</small></div>
         </div>
       </aside>
       {user && <div className="etzan-session-watermark" aria-hidden="true"><span>{watermark}</span></div>}
@@ -160,7 +160,7 @@ export function PlatformLayout({ title, eyebrow = "اتزان", description, chi
               <button type="button" className="portal-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? "إغلاق القائمة" : "فتح القائمة"} aria-expanded={sidebarOpen}>
                 {sidebarOpen ? <X size={19}/> : <Menu size={19}/>}
               </button>
-              <div className="portal-breadcrumb"><span>اتزان</span><b>/</b><strong>{title}</strong></div>
+              <div className="portal-breadcrumb"><span>{branding.clinicName}</span><b>/</b><strong>{title}</strong></div>
             </div>
             <div className="portal-topbar-actions"><NotificationBell/><Link href="/" className="portal-home-link"><Home size={16}/> <span>الصفحة الرئيسية</span></Link></div>
           </header>
