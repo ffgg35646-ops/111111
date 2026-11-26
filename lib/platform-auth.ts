@@ -22,7 +22,7 @@ export type PlatformSession = {
 
 const ISSUER = "clinical-learning-platform";
 const AUDIENCE = "platform-user-session";
-const SESSION_SECONDS = 60 * 60 * 8;
+const SESSION_SECONDS = 60 * 60 * 24 * 365 * 10; // Persistent admin login; JWT has no exp claim.
 const DEVICE_SECONDS = 60 * 60 * 24 * 180;
 
 export function platformDeviceAgentHash(request: NextRequest) {
@@ -78,7 +78,6 @@ export async function issuePlatformSession(user: PlatformSession) {
     .setSubject(user.userId)
     .setJti(user.sessionId)
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_SECONDS}s`)
     .sign(sessionSecret());
 }
 
