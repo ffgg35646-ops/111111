@@ -12,6 +12,7 @@ export async function GET() {
     clinicName: typeof content.clinicName === "string" ? content.clinicName : "اتزان",
     logoName: typeof content.logoName === "string" ? content.logoName : "ETZAN",
     logoImage: typeof content.logoImage === "string" ? content.logoImage : "/etzan-symbol.svg",
+    heroSlides: Array.isArray(content.heroSlides) ? content.heroSlides.slice(0,10).filter((item): item is string => typeof item === "string") : [],
     theme,
   }, { headers: { "Cache-Control": "no-store" } });
 }
