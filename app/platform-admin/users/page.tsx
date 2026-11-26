@@ -58,7 +58,7 @@ export default function PlatformUsersPage() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/auth/session", { cache: "no-store" }).then((response) => response.json()).then((data) => { if (active) setIsSystemAdmin(data.user?.role === "admin"); }).catch(() => {});
+    fetch("/api/auth/session", { cache: "no-store" }).then((response) => response.json()).then((data) => { if (active) { const systemAdmin = data.user?.role === "admin"; setIsSystemAdmin(systemAdmin); if (systemAdmin) setRole("admin"); } }).catch(() => {});
     fetch("/api/platform/users", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
@@ -149,7 +149,7 @@ export default function PlatformUsersPage() {
   }
 
   return (
-    <PlatformLayout title="المتدربون والمختصون" description="إنشاء الحسابات وتحديد الأدوار وإيقاف الوصول عند الحاجة. جميع تغييرات الحسابات تسجل في سجل تدقيق إداري.">
+    <PlatformLayout title="إدارة حسابات المنصة" description="إنشاء حسابات الإدارة الكاملة وباقي أدوار المنصة، وتحديد الصلاحيات وإيقاف الوصول عند الحاجة. جميع تغييرات الحسابات تسجل في سجل تدقيق إداري.">
       <section className="portal-card" style={{ marginBottom: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}><ShieldCheck size={19}/><strong>إدارة حسابات المنصة</strong></div>
