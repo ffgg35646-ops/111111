@@ -90,7 +90,7 @@ export default function AdminDashboardPage() {
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok || !data.authenticated || !["admin", "platform_manager"].includes(data.user?.role)) {
-          router.replace("/login?next=/platform-admin");
+          router.replace("/admin/login");
           return;
         }
         if (data.user?.mustChangePassword) {
@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
         }
         if (active) setAuthorized(true);
       })
-      .catch(() => router.replace("/login?next=/platform-admin"))
+      .catch(() => router.replace("/admin/login"))
       .finally(() => { if (active) setChecking(false); });
     return () => { active = false; };
   }, [router]);
