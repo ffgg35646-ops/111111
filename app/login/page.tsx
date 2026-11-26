@@ -27,11 +27,14 @@ export default function LoginPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر تسجيل الدخول.");
       setPassword("");
+      const requestedNext = new URLSearchParams(window.location.search).get("next");
+      const destination = requestedNext && requestedNext.startsWith("/") && !requestedNext.startsWith("//")
+        ? requestedNext
+        : "/dashboard";
       if (data.user?.mustChangePassword) {
-        router.replace("/account/change-password");
+        router.replace("/account/change-password?next=" + encodeURIComponent(destination));
       } else {
-        const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
-        router.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/");
+        router.replace(destination);
       }
       router.refresh();
     } catch (cause) {
