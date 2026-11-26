@@ -104,6 +104,7 @@ export default function AdminDashboardPage() {
           router.replace("/account/change-password");
           return;
         }
+        if (active && data.user?.userId === "00000000-0000-4000-8000-000000000001") setPreviewMode(true);
         if (active) setAuthorized(true);
       })
       .catch(() => router.replace("/login?next=/platform-admin"))
