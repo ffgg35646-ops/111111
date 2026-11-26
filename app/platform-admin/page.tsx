@@ -80,9 +80,12 @@ export default function AdminDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState("");
+  const [clinicName, setClinicName] = useState("اتزان");
+  const [logoName, setLogoName] = useState("ETZAN");
 
   useEffect(() => {
     let active = true;
+    fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(brand => { if (active && brand) { setClinicName(String(brand.clinicName || "اتزان")); setLogoName(String(brand.logoName || "ETZAN")); } }).catch(() => {});
     fetch("/api/auth/session", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
@@ -127,14 +130,14 @@ export default function AdminDashboardPage() {
     return shortcuts.filter((item) => !needle || item.label.toLocaleLowerCase("ar").includes(needle));
   }, [query]);
 
-  if (checking) return <main className="app-shell admin-dashboard-shell" dir="rtl" aria-busy="true"><aside className="sidebar"><div className="brand-block"><div className="brand-copy"><strong>اتزان | ETZAN</strong><span>الإدارة والتشغيل</span></div></div></aside><section className="main-area"><header className="topbar"><div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div></header><div className="page-content"><div className="stats-grid admin-stats-grid">{[0,1,2,3].map((item)=><section className="stat-card" key={item}><div className="portal-skeleton" style={{width:"55%",height:11,marginBottom:18}}/><div className="portal-skeleton" style={{width:"38%",height:27,marginBottom:12}}/><div className="portal-skeleton" style={{width:"72%",height:9}}/></section>)}</div><section className="panel roadmap-panel"><div className="portal-skeleton" style={{width:"34%",height:16,marginBottom:18}}/><div className="portal-skeleton" style={{width:"92%",height:11,marginBottom:10}}/><div className="portal-skeleton" style={{width:"76%",height:11}}/></section></div></section></main>;
+  if (checking) return <main className="app-shell admin-dashboard-shell" dir="rtl" aria-busy="true"><aside className="sidebar"><div className="brand-block"><div className="brand-copy"><strong>{clinicName} | {logoName}</strong><span>الإدارة والتشغيل</span></div></div></aside><section className="main-area"><header className="topbar"><div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div></header><div className="page-content"><div className="stats-grid admin-stats-grid">{[0,1,2,3].map((item)=><section className="stat-card" key={item}><div className="portal-skeleton" style={{width:"55%",height:11,marginBottom:18}}/><div className="portal-skeleton" style={{width:"38%",height:27,marginBottom:12}}/><div className="portal-skeleton" style={{width:"72%",height:9}}/></section>)}</div><section className="panel roadmap-panel"><div className="portal-skeleton" style={{width:"34%",height:16,marginBottom:18}}/><div className="portal-skeleton" style={{width:"92%",height:11,marginBottom:10}}/><div className="portal-skeleton" style={{width:"76%",height:11}}/></section></div></section></main>;
   if (!authorized) return null;
 
   return (
     <main className="app-shell admin-dashboard-shell">
       <aside className={`sidebar ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
         <div className="brand-block">
-          <div className="brand-copy"><strong>اتزان | ETZAN</strong><span>الإدارة والتشغيل</span></div>
+          <div className="brand-copy"><strong>{clinicName} | {logoName}</strong><span>الإدارة والتشغيل</span></div>
           <button className="icon-button sidebar-toggle" onClick={() => setSidebarOpen(false)} aria-label="إخفاء القائمة">×</button>
         </div>
         <div className="workspace-label">القائمة الرئيسية</div>
@@ -217,7 +220,7 @@ export default function AdminDashboardPage() {
             </div>
           </section>
 
-          <footer className="page-footer"><Link href="/platform-admin/reports">التقارير</Link><span>اتزان | ETZAN</span></footer>
+          <footer className="page-footer"><Link href="/platform-admin/reports">التقارير</Link><span>{clinicName} | {logoName}</span></footer>
         </div>
       </section>
     </main>
