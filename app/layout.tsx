@@ -4,6 +4,7 @@ import "./globals.css";
 import "./platform.css";
 import "./etzan.css";
 import "./support.css";
+import "./site-themes.css";
 import { getSitePage } from "@/lib/site-pages";
 
 export async function generateMetadata(): Promise<Metadata> {
