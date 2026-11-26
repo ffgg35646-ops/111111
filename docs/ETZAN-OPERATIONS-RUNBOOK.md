@@ -16,12 +16,17 @@ Set secrets in the hosting provider's encrypted environment settings. Do not com
 | Protected course video and temporary classroom links | `PLATFORM_MEDIA_SECRET` (32+ characters), `ETZAN_VIDEO_ALLOWED_HOSTS` (comma-separated exact HTTPS hostnames) |
 | Database transport | TLS is enabled by default for non-local MongoDB URIs; `MONGODB_TLS=false` is rejected in production. |
 | Email verification and password recovery | `SMTP_EMAIL`, `SMTP_PASSWORD` (Gmail address and Google App Password) |
+| Temporary full admin preview (Preview environment only) | `ETZAN_ADMIN_PREVIEW_OPEN=true`; requires `VERCEL_ENV=preview`, never Production, and a separate preview database |
 
 Use Moyasar test keys first. Configure the webhook in the Moyasar merchant dashboard to point to:
 
 `https://YOUR-ETZAN-DOMAIN/api/payments/moyasar/webhook`
 
 If Moyasar sends a `webhook_verification` event, open `/platform-admin/payments` with an administrator or accountant account and copy the six-digit verification code shown there into the Moyasar dashboard before its 30-minute expiry.\n\nThe payment integration uses server-created Payment Intents. The browser receives only the single-use intent client secret and publishable key; payment success is accepted only after the server fetches and verifies the payment. The refund action is restricted to platform administrators, managers, and accountants.
+
+## Temporary full admin preview (testing only)
+
+Set `ETZAN_ADMIN_PREVIEW_OPEN=true` only in the Vercel **Preview** environment. The bypass is additionally gated by Vercel's `VERCEL_ENV=preview`, so it cannot activate in Production. It provides a synthetic admin identity to the admin UI and role-guarded admin APIs, allowing the full management screens to be tested without the app login. Use a separate, disposable preview MongoDB database: anyone with the Preview deployment URL can perform admin actions against that database. Remove the variable after testing. Do not use real student, consultation, or payment data in this mode.
 
 ## Operational URLs
 
