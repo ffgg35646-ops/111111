@@ -75,6 +75,7 @@ const stats: Stat[] = [
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [checking, setChecking] = useState(true);
   const [query, setQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -86,6 +87,12 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     let active = true;
     fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(brand => { if (active && brand) { setClinicName(String(brand.clinicName || "اتزان")); setLogoName(String(brand.logoName || "ETZAN")); } }).catch(() => {});
+    if (new URLSearchParams(window.location.search).get("preview") === "1") {
+      setPreviewMode(true);
+      setAuthorized(true);
+      setChecking(false);
+      return () => { active = false; };
+    }
     fetch("/api/auth/session", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
@@ -105,7 +112,7 @@ export default function AdminDashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!authorized) return;
+    if (!authorized || previewMode) return;
     let active = true;
     fetch("/api/platform/admin/overview", { cache: "no-store" })
       .then(async (response) => {
@@ -115,7 +122,7 @@ export default function AdminDashboardPage() {
       })
       .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "تعذر تحميل مؤشرات التشغيل."); });
     return () => { active = false; };
-  }, [authorized]);
+  }, [authorized, previewMode]);
 
   const filteredSections = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("ar");
@@ -146,7 +153,7 @@ export default function AdminDashboardPage() {
             <div className="nav-section" key={section.title}>
               <p>{section.title}</p>
               {section.items.map((item) => (
-                <Link key={item.href} href={item.href} className={"nav-item" + (item.href === "/platform-admin" ? " active" : "")}><span>{item.label}</span></Link>
+                <Link key={item.href} href={previewMode ? "/platform-admin?preview=1" : item.href} aria-disabled={previewMode} title={previewMode ? "معاينة فقط — الوحدات الداخلية تحتاج تسجيل الدخول" : undefined} className={"nav-item" + (item.href === "/platform-admin" ? " active" : "")}><span>{item.label}</span></Link>
               ))}
             </div>
           ))}
@@ -161,11 +168,11 @@ export default function AdminDashboardPage() {
             <div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div>
           </div>
           <div className="topbar-actions">
-            <NotificationBell/>
+            {previewMode ? <span className="portal-chip">وضع المعاينة</span> : <NotificationBell/>}
             <label className="search-box">
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن وحدة أو إجراء..." aria-label="البحث في وحدات الإدارة" />
             </label>
-            <Link className="admin-profile" href="/platform-admin/users" style={{ textDecoration: "none", color: "inherit" }}>
+            <Link className="admin-profile" href={previewMode ? "/platform-admin?preview=1" : "/platform-admin/users"} aria-disabled={previewMode} style={{ textDecoration: "none", color: "inherit" }}>
               <div><strong>إدارة الحسابات</strong><span>المستخدمون والأدوار</span></div>
             </Link>
           </div>
@@ -176,13 +183,14 @@ export default function AdminDashboardPage() {
             <div><div className="eyebrow">لوحة التشغيل</div><h1>نظرة عامة</h1><p>مؤشرات من قاعدة البيانات وروابط مباشرة إلى وحدات الإدارة.</p></div>
           </div>
 
+          {previewMode && <div className="portal-callout" role="status"><strong>وضع معاينة بدون تسجيل دخول.</strong> يمكنك استعراض شكل لوحة الإدارة وأقسامها فقط؛ لا يتم تحميل أي بيانات إدارية حقيقية، وجميع إجراءات الإدارة تظل محمية بتسجيل الدخول.</div>}
           {error && <div className="portal-callout" role="alert">{error}</div>}
 
           <div className="stats-grid admin-stats-grid">
             {stats.map((stat) => (
               <article className="stat-card" key={stat.key}>
                 <div className="stat-label">{stat.label}</div>
-                <div className="stat-value">{overview ? Number(overview.totals[stat.key] || 0).toLocaleString("ar-SA") : "—"}</div>
+                <div className="stat-value">{overview ? Number(overview.totals[stat.key] || 0).toLocaleString("ar-SA") : previewMode ? "معاينة" : "—"}</div>
                 <div className="stat-note">{stat.note}</div>
               </article>
             ))}
@@ -191,7 +199,7 @@ export default function AdminDashboardPage() {
           <section className="panel roadmap-panel">
             <div className="panel-heading"><div><h2>الوصول السريع</h2><p>اختر الوحدة التي تريد إدارتها.</p></div></div>
             <div className="quick-grid">
-              {filteredShortcuts.map((item) => <button key={item.href} onClick={() => router.push(item.href)}><strong>{item.label}</strong><small>فتح الوحدة</small></button>)}
+              {filteredShortcuts.map((item) => <button key={item.href} disabled={previewMode} onClick={() => router.push(item.href)} title={previewMode ? "سجّل الدخول لاستخدام الوحدة" : undefined}><strong>{item.label}</strong><small>{previewMode ? "للمعاينة فقط" : "فتح الوحدة"}</small></button>)}
               {filteredShortcuts.length === 0 && <p className="portal-empty">لا توجد وحدات مطابقة للبحث.</p>}
             </div>
           </section>
@@ -208,7 +216,7 @@ export default function AdminDashboardPage() {
                   <p style={{ fontSize: 9, color: "#7b8d94", lineHeight: 1.8, margin: "7px 0 0" }}>{item.detail}</p>
                 </article>
               ))}
-              {!overview && <p className="portal-empty">جارٍ تحميل حالة التكاملات...</p>}
+              {!overview && <p className="portal-empty">{previewMode ? "تظهر حالة التكاملات الفعلية بعد تسجيل الدخول." : "جارٍ تحميل حالة التكاملات..."}</p>}
             </div>
           </section>
 
@@ -216,11 +224,11 @@ export default function AdminDashboardPage() {
             <div className="panel-heading"><div><h2>نواقص تشغيلية معروفة</h2><p>وظائف غير مكتملة في الكود الحالي أو تحتاج تكاملًا واعتمادًا خارجيًا.</p></div></div>
             <div style={{ display: "grid", gap: 8 }}>
               {(overview?.operationalGaps || []).map((gap, index) => <div key={index} style={{ borderBottom: "1px solid #edf1f2", padding: "8px 0", fontSize: 10, color: "#647984", lineHeight: 1.8 }}>{gap}</div>)}
-              {!overview && <p className="portal-empty">جارٍ تحميل قائمة النواقص...</p>}
+              {!overview && <p className="portal-empty">{previewMode ? "قائمة النواقص التشغيلية الفعلية تظهر بعد تسجيل الدخول." : "جارٍ تحميل قائمة النواقص..."}</p>}
             </div>
           </section>
 
-          <footer className="page-footer"><Link href="/platform-admin/reports">التقارير</Link><span>{clinicName} | {logoName}</span></footer>
+          <footer className="page-footer"><Link href={previewMode ? "/platform-admin?preview=1" : "/platform-admin/reports"}>التقارير</Link><span>{clinicName} | {logoName}</span></footer>
         </div>
       </section>
     </main>
