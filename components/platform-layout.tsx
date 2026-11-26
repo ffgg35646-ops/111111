@@ -55,6 +55,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
   useEffect(() => {
     let active = true;
+    fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active && data) setBranding({ clinicName: String(data.clinicName || "اتزان"), logoName: String(data.logoName || "ETZAN"), logoImage: String(data.logoImage || "/etzan-symbol.svg") }); }).catch(() => {});
     fetch("/api/auth/session", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) return;
@@ -94,8 +95,8 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
       <aside className={"portal-sidebar" + (sidebarOpen ? " is-open" : "")} aria-label="القائمة الرئيسية">
         <div className="portal-sidebar-header">
           <Link href="/" className="portal-sidebar-brand" onClick={onClose}>
-            <span className="portal-sidebar-brand-icon"><Scale size={23}/></span>
-            <span><strong>اتزان <small>| ETZAN</small></strong><em>من المعرفة إلى الممارسة</em></span>
+            <span className="portal-sidebar-brand-icon">{branding.logoImage ? <img src={branding.logoImage} alt="" style={{ width: 27, height: 27, objectFit: "contain" }}/> : <Scale size={23}/>}</span>
+            <span><strong>{branding.clinicName} <small>| {branding.logoName}</small></strong><em>من المعرفة إلى الممارسة</em></span>
           </Link>
           <button type="button" className="portal-sidebar-close" onClick={onClose} aria-label="إغلاق القائمة"><X size={18}/></button>
         </div>
@@ -175,7 +176,7 @@ export function PlatformLayout({ title, eyebrow = "اتزان", description, chi
           </div>
 
           <footer className="portal-footer">
-            <span>اتزان | ETZAN</span>
+            <span>{branding.clinicName} | {branding.logoName}</span>
             <span>المحتوى والمحاكاة لأغراض التدريب المهني ولا تحل محل الممارسة المرخصة</span>
           </footer>
         </div>
