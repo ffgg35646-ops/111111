@@ -494,3 +494,26 @@ html[data-theme="emerald-dark"] .portal-card :is(label,small){color:#b3c7bb!impo
   .etzan-member-dashboard .member-dashboard-search:focus-within input{display:block!important}
   .etzan-member-dashboard .member-dashboard-shortcut-grid{grid-template-columns:1fr 1fr!important}
 }
+
+
+/* Keep every role-based member workspace on the same dashboard surface system */
+.etzan-member-dashboard .portal-main .portal-card{
+  border:1px solid rgba(45,212,191,.12)!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(12,44,50,.86),rgba(6,24,29,.96))!important;
+  color:#e9f2ef!important;
+  box-shadow:0 10px 30px -10px rgba(0,0,0,.55)!important;
+  backdrop-filter:blur(12px)!important;
+}
+.etzan-member-dashboard .portal-main .portal-card :is(h2,h3,strong){color:#f2f8f6!important;font-family:'Cairo',sans-serif!important}
+.etzan-member-dashboard .portal-main .portal-card p,
+.etzan-member-dashboard .portal-main .portal-card small{color:#9bb1ae!important}
+.etzan-member-dashboard .portal-main .portal-card:hover{
+  border-color:rgba(245,196,81,.36)!important;
+  box-shadow:0 15px 35px -10px rgba(13,148,136,.22)!important;
+}
+.etzan-member-dashboard .portal-main .portal-grid{gap:14px!important}
+.etzan-member-dashboard .portal-main .portal-callout{
+  border:1px solid rgba(45,212,191,.18)!important;
+  border-radius:14px!important;background:rgba(12,44,50,.65)!important;color:#a2bfba!important;
+}
