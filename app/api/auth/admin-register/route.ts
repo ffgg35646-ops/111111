@@ -38,19 +38,28 @@ export async function POST(request: NextRequest) {
     const db = await getClinicalDatabase();
     const users = db.collection("platform_users");
     await users.createIndex({ email: 1 }, { unique: true });
-    const existingAdmin = await users.findOne({ role: "admin" }, { projection: { _id: 0, userId: 1 } });
-    if (existingAdmin) return NextResponse.json({ error: "تم إنشاء حساب مدير النظام بالفعل. استخدم تسجيل دخول الإدارة أو اطلب من المدير الحالي إنشاء حساب لك." }, { status: 409 });
-
-    const existingAccount = await users.findOne({ email }, { projection: { _id: 0, userId: 1, role: 1, status: 1 } });
     const locks = db.collection("platform_setup_locks");
     await locks.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     const now = new Date();
-    await locks.deleteOne({ _id: SETUP_LOCK_ID, expiresAt: { $lte: now } });
+    const codes = db.collection("platform_email_codes");
+    const expiredLock = await locks.findOne({ _id: SETUP_LOCK_ID, expiresAt: { $lte: now } });
+    if (expiredLock && typeof expiredLock.userId === "string") {
+      await users.deleteOne({ userId: expiredLock.userId, role: "admin", status: "pending_verification", registrationSource: "first_admin_setup" });
+      await codes.deleteMany({ userId: expiredLock.userId, purpose: "verify_admin" });
+      await locks.deleteOne({ _id: SETUP_LOCK_ID, userId: expiredLock.userId });
+    }
 
     let lock = await locks.findOne({ _id: SETUP_LOCK_ID, expiresAt: { $gt: now } });
     if (lock && lock.email !== email) {
       return NextResponse.json({ error: "هناك طلب إعداد مدير أول قيد التأكيد. استخدم البريد الذي بدأ الطلب أو أعد المحاولة بعد انتهاء مهلة الطلب." }, { status: 409 });
     }
+    const existingAdmin = await users.findOne(
+      lock ? { role: "admin", userId: { $ne: lock.userId } } : { role: "admin" },
+      { projection: { _id: 0, userId: 1 } },
+    );
+    if (existingAdmin) return NextResponse.json({ error: "تم إنشاء حساب مدير النظام بالفعل. استخدم تسجيل دخول الإدارة أو اطلب من المدير الحالي إنشاء حساب لك." }, { status: 409 });
+
+    const existingAccount = await users.findOne({ email }, { projection: { _id: 0, userId: 1, role: 1, status: 1 } });
     if (existingAccount && (!lock || existingAccount.userId !== lock.userId || existingAccount.role !== "admin" || existingAccount.status !== "pending_verification")) {
       return NextResponse.json({ error: "هذا البريد مرتبط بحساب موجود بالفعل. استخدم تسجيل الدخول أو بريداً آخر." }, { status: 409 });
     }
@@ -85,7 +94,6 @@ export async function POST(request: NextRequest) {
     );
 
     const code = createEmailCode();
-    const codes = db.collection("platform_email_codes");
     await codes.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     await codes.updateOne(
       { email, purpose: "verify_admin" },
