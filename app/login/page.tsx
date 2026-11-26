@@ -26,14 +26,15 @@ export default function LoginPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر تسجيل الدخول.");
+      if (["admin", "platform_manager"].includes(data.user?.role)) {
+        await fetch("/api/auth/logout", { method: "POST", cache: "no-store" }).catch(() => undefined);
+        throw new Error("هذا حساب إدارة. استخدم صفحة دخول الإدارة المنفصلة.");
+      }
       setPassword("");
       const requestedNext = new URLSearchParams(window.location.search).get("next");
-      const isAdministrator = data.user?.role === "admin" || data.user?.role === "platform_manager";
-      let destination = requestedNext && requestedNext.startsWith("/") && !requestedNext.startsWith("//")
-        ? requestedNext
-        : isAdministrator ? "/platform-admin" : "/dashboard";
-      if (isAdministrator && (destination === "/" || destination === "/dashboard")) destination = "/platform-admin";
-      if (!isAdministrator && (destination === "/platform-admin" || destination.startsWith("/platform-admin/"))) destination = "/dashboard";
+      const destination = requestedNext && requestedNext.startsWith("/") && !requestedNext.startsWith("//")
+        && !requestedNext.startsWith("/platform-admin")
+        ? requestedNext : "/dashboard";
       if (data.user?.mustChangePassword) {
         router.replace("/account/change-password?next=" + encodeURIComponent(destination));
       } else {
@@ -57,10 +58,10 @@ export default function LoginPage() {
         <p style={{ color: "#71808d", fontSize: 13, lineHeight: 1.8 }}>أدخل البريد الإلكتروني وكلمة المرور للدخول إلى حسابك.</p>
         <form onSubmit={submit} style={{ display: "grid", gap: 13, marginTop: 20 }}>
           <label style={{ display: "grid", gap: 6, fontSize: 12 }}>البريد الإلكتروني
-            <input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" style={{ width: "100%", padding: 12, border: "1px solid #dce5e9", borderRadius: 9, background: "#fff" }}/>
+            <input type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" style={{ width: "100%", padding: 12, border: "1px solid #dce5e9", borderRadius: 9, background: "#fff" }}/>
           </label>
           <label style={{ display: "grid", gap: 6, fontSize: 12 }}>كلمة المرور
-            <input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} style={{ width: "100%", padding: 12, border: "1px solid #dce5e9", borderRadius: 9, background: "#fff" }}/>
+            <input type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} style={{ width: "100%", padding: 12, border: "1px solid #dce5e9", borderRadius: 9, background: "#fff" }}/>
           </label>
           {error && <p role="alert" style={{ margin: 0, color: "#b64b48", fontSize: 12 }}>{error}</p>}
           <button className="portal-button" type="submit" disabled={loading} style={{ justifyContent: "center", minHeight: 44 }}>
