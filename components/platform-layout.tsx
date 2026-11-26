@@ -120,7 +120,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
         </div>
 
         <nav className="portal-side-nav" aria-label="أقسام المنصة">
-          <Link href="/" onClick={onClose} className={"portal-side-link portal-dashboard-link" + (isActive("/") ? " active" : "")} aria-current={isActive("/") ? "page" : undefined}>
+          <Link href="/dashboard" onClick={onClose} className={"portal-side-link portal-dashboard-link" + (isActive("/dashboard") ? " active" : "")} aria-current={isActive("/dashboard") ? "page" : undefined}>
             <Home size={17}/><span>الرئيسية</span>
           </Link>
           {user?.role === "trainee" && <Link href="/support" onClick={onClose} className={"portal-side-link" + (isActive("/support") ? " active" : "")}><MessageSquare size={17}/><span>الدعم الفني</span></Link>}
