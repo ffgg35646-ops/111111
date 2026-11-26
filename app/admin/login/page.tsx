@@ -25,18 +25,14 @@ export default function AdminLoginPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر تسجيل الدخول.");
-
       if (!["admin", "platform_manager"].includes(data.user?.role)) {
         await fetch("/api/auth/logout", { method: "POST", cache: "no-store" }).catch(() => undefined);
         throw new Error("هذا الحساب ليس حساب إدارة. استخدم صفحة دخول الطلاب.");
       }
-
       setPassword("");
-      if (data.user?.mustChangePassword) {
-        router.replace("/account/change-password?next=%2Fplatform-admin");
-      } else {
-        router.replace("/platform-admin");
-      }
+      router.replace(data.user?.mustChangePassword
+        ? "/account/change-password?next=%2Fplatform-admin"
+        : "/platform-admin");
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "حدث خطأ أثناء تسجيل دخول الإدارة.");
