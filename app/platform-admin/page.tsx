@@ -87,12 +87,6 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     let active = true;
     fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(brand => { if (active && brand) { setClinicName(String(brand.clinicName || "اتزان")); setLogoName(String(brand.logoName || "ETZAN")); } }).catch(() => {});
-    if (new URLSearchParams(window.location.search).get("preview") === "1") {
-      setPreviewMode(true);
-      setAuthorized(true);
-      setChecking(false);
-      return () => { active = false; };
-    }
     fetch("/api/auth/session", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
