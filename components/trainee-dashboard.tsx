@@ -47,10 +47,12 @@ function SectionHeading({ title, description, href, linkLabel }: { title: string
 
 function Metric({ icon: Icon, label, value, hint }: { icon: LucideIcon; label: string; value: number | string; hint: string }) {
   return <article className="portal-card trainee-metric-card" style={{ padding: 18, minHeight: 126 }}>
-    <span className="track-icon"><Icon size={19}/></span>
-    <div style={{ fontSize: 25, fontWeight: 800, marginTop: 10, lineHeight: 1.2 }}>{value}</div>
-    <strong style={{ display: "block", marginTop: 5 }}>{label}</strong>
-    <small style={{ color: "#7c8a92" }}>{hint}</small>
+    <span className="track-icon"><Icon size={21}/></span>
+    <div className="trainee-metric-copy">
+      <strong className="trainee-metric-value">{value}</strong>
+      <b>{label}</b>
+      <small>{hint}</small>
+    </div>
   </article>;
 }
 
