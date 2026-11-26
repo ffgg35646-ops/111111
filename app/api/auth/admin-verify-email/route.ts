@@ -1,10 +1,17 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getClinicalDatabase } from "@/lib/mongodb";
+import type { Document, ObjectId } from "mongodb";
 import {
   issuePlatformSession, platformDeviceAgentHash, platformDeviceCookieOptions,
   platformSessionCookieOptions, PLATFORM_DEVICE_COOKIE, PLATFORM_SESSION_COOKIE,
 } from "@/lib/platform-auth";
+
+type SetupLockDocument = Document & { _id: ObjectId; setupKey: string; email: string; userId: string; expiresAt: Date };
+type EmailCodeDocument = Document & { _id: ObjectId; email: string; userId: string; purpose: string; expiresAt: Date; attempts?: number; codeHash: string };
+type AdminUserDocument = Document & { _id: ObjectId; userId: string; email: string; name?: string; role: string; status: string; emailVerified: boolean };
+type PlatformSessionDocument = Document & { sessionId: string; userId: string; deviceId: string; deviceAgentHash: string; userAgent: string; status: string; createdAt: Date; lastSeenAt: Date; expiresAt: Date; ipAddressStored: boolean };
+type PlatformAuditLogDocument = Document & { action: string; actorUserId: string; actorEmail: string; targetUserId: string; targetEmail: string; targetRole: string; createdAt: Date };
 
 export const runtime = "nodejs";
 const SETUP_LOCK_ID = "first-system-admin";
@@ -29,9 +36,9 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const now = new Date();
-    const locks = db.collection<any>("platform_setup_locks");
-    const codes = db.collection<any>("platform_email_codes");
-    const users = db.collection<any>("platform_users");
+    const locks = db.collection<SetupLockDocument>("platform_setup_locks");
+    const codes = db.collection<EmailCodeDocument>("platform_email_codes");
+    const users = db.collection<AdminUserDocument>("platform_users");
     const lock = await locks.findOne({ setupKey: SETUP_LOCK_ID, email, expiresAt: { $gt: now } });
     if (!lock || typeof lock.userId !== "string") {
       return NextResponse.json({ error: "انتهت مهلة إعداد المدير. ابدأ إنشاء الحساب من جديد." }, { status: 410 });
@@ -72,7 +79,7 @@ export async function POST(request: NextRequest) {
     const sessionId = randomUUID();
     const deviceAgentHash = platformDeviceAgentHash(request);
     const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    const sessions = db.collection<any>("platform_sessions");
+    const sessions = db.collection<PlatformSessionDocument>("platform_sessions");
     await sessions.createIndex({ sessionId: 1 }, { unique: true });
     await sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     await sessions.createIndex({ userId: 1, status: 1, expiresAt: 1 });
@@ -87,7 +94,7 @@ export async function POST(request: NextRequest) {
       sessionId, deviceId, deviceAgentHash, mustChangePassword: false,
     };
     const token = await issuePlatformSession(user);
-    await db.collection<any>("platform_audit_logs").insertOne({
+    await db.collection<PlatformAuditLogDocument>("platform_audit_logs").insertOne({
       action: "first_system_admin_registered", actorUserId: user.userId, actorEmail: email,
       targetUserId: user.userId, targetEmail: email, targetRole: "admin", createdAt: now,
     }).catch((error) => console.warn("Unable to record first admin registration", error));
