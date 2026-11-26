@@ -28,9 +28,12 @@ export default function LoginPage() {
       if (!response.ok) throw new Error(data.error || "تعذر تسجيل الدخول.");
       setPassword("");
       const requestedNext = new URLSearchParams(window.location.search).get("next");
-      const destination = requestedNext && requestedNext.startsWith("/") && !requestedNext.startsWith("//")
+      const isAdministrator = data.user?.role === "admin" || data.user?.role === "platform_manager";
+      let destination = requestedNext && requestedNext.startsWith("/") && !requestedNext.startsWith("//")
         ? requestedNext
-        : "/dashboard";
+        : isAdministrator ? "/platform-admin" : "/dashboard";
+      if (isAdministrator && (destination === "/" || destination === "/dashboard")) destination = "/platform-admin";
+      if (!isAdministrator && (destination === "/platform-admin" || destination.startsWith("/platform-admin/"))) destination = "/dashboard";
       if (data.user?.mustChangePassword) {
         router.replace("/account/change-password?next=" + encodeURIComponent(destination));
       } else {
@@ -64,7 +67,7 @@ export default function LoginPage() {
             <LockKeyhole size={16}/>{loading ? "جارٍ التحقق..." : "دخول آمن"}
           </button>
         </form>
-        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 18, fontSize: 12 }}><Link href="/forgot-password" style={{ color: "#167f79" }}>نسيت كلمة المرور؟</Link><Link href="/register" style={{ color: "#167f79" }}>إنشاء حساب جديد</Link></div><Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 18, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 18, fontSize: 12 }}><Link href="/forgot-password" style={{ color: "#167f79" }}>نسيت كلمة المرور؟</Link><Link href="/register" style={{ color: "#167f79" }}>إنشاء حساب طالب</Link></div><Link href="/admin/login" style={{ display: "inline-flex", marginTop: 14, color: "#167f79", fontSize: 12 }}>دخول الإدارة</Link><Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 18, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
         <small style={{ display: "block", marginTop: 20, color: "#9aa6ae", lineHeight: 1.7 }}>الجلسة محمية بملف ارتباط HttpOnly وتنتهي تلقائياً بعد 8 ساعات.</small>
       </section>
     </main>
