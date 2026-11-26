@@ -63,8 +63,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
 
   useEffect(() => {
     let active = true;
-    fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(brand => { if (active && brand) setClinicName(String(brand.clinicName || "اتزان")); }).catch(() => {});
-    fetch("/api/platform/admin/site-pages?slug=home", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(result => { if (active && Array.isArray(result?.page?.content?.heroSlides)) setHeroSlides(result.page.content.heroSlides.map(String)); }).catch(() => {});
+    fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(brand => { if (active && brand) { setClinicName(String(brand.clinicName || "اتزان")); if (Array.isArray(brand.heroSlides)) setHeroSlides(brand.heroSlides.map(String)); } }).catch(() => {});
     fetch("/api/trainee/dashboard", { cache: "no-store" })
       .then(async (response) => {
         const result = await response.json();
