@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       { $set: { status: "replaced", replacedAt: now, closedAt: now } },
     );
     const activeDevices = await sessions.distinct("deviceId", {
-      userId: user.userId, status: "active", expiresAt: { $gt: now },
+      userId: user.userId, status: "active",
     }) as string[];
     if (!activeDevices.includes(deviceId) && activeDevices.length >= maxDevices()) {
       await recordSecurityEvent(db, {
@@ -133,17 +133,16 @@ export async function POST(request: NextRequest) {
 
     const sessionId = randomUUID();
     const deviceAgentHash = platformDeviceAgentHash(request);
-    const expiresAt = new Date(now.getTime() + 10 * 365 * 24 * 60 * 60 * 1000);
     await sessions.insertOne({
       sessionId, userId: user.userId, deviceId, deviceAgentHash,
       userAgent: request.headers.get("user-agent")?.slice(0, 240) || "",
-      status: "active", createdAt: now, lastSeenAt: now, expiresAt, ipAddressStored: false,
+      status: "active", createdAt: now, lastSeenAt: now, ipAddressStored: false,
     });
 
     const token = await issuePlatformSession({ ...user, sessionId, deviceId, deviceAgentHash });
     const response = NextResponse.json({
       success: true,
-      user: { ...user, sessionId, sessionExpiresAt: expiresAt },
+      user: { ...user, sessionId },
       security: { maxDevices: maxDevices(), activeDevices: activeDevices.length + (activeDevices.includes(deviceId) ? 0 : 1) },
     }, { headers: { "Cache-Control": "no-store" } });
     response.cookies.set(PLATFORM_SESSION_COOKIE, token, platformSessionCookieOptions());
