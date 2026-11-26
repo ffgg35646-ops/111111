@@ -33,26 +33,8 @@ export default function AdminLoginPage() {
         throw new Error("هذا الحساب ليس حساب إدارة. استخدم صفحة دخول الطلاب.");
       }
 
-      // Confirm that the browser received and can use the new session cookies
-      // before navigating to the server-verified admin dashboard.
-      const sessionResponse = await fetch("/api/auth/session", {
-        cache: "no-store",
-        credentials: "same-origin",
-      });
-      const sessionData = await sessionResponse.json().catch(() => ({}));
-      if (
-        !sessionResponse.ok ||
-        !sessionData.authenticated ||
-        !["admin", "platform_manager"].includes(sessionData.user?.role)
-      ) {
-        throw new Error(
-          sessionData.error ||
-          "تم قبول بيانات الدخول، لكن جلسة الإدارة لم تُعتمد. تأكد من إعداد PLATFORM_SESSION_SECRET واتصال قاعدة البيانات ثم أعد المحاولة."
-        );
-      }
-
       setPassword("");
-      const destination = sessionData.user?.mustChangePassword
+      const destination = data.user?.mustChangePassword
         ? "/account/change-password?next=%2Fplatform-admin"
         : "/platform-admin";
 
@@ -86,7 +68,7 @@ export default function AdminLoginPage() {
           </label>
           {error && <p className="etzan-auth-error" role="alert">{error}</p>}
           <button className="portal-button etzan-auth-submit" type="submit" disabled={loading}>
-            <LockKeyhole size={17}/>{loading ? "جارٍ التحقق من الحساب والجلسة..." : "دخول لوحة الإدارة"}
+            <LockKeyhole size={17}/>{loading ? "جارٍ تسجيل الدخول..." : "دخول لوحة الإدارة"}
           </button>
         </form>
         <div className="etzan-auth-links">
