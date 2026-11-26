@@ -52,7 +52,7 @@ export default function LoginPage() {
       <section className="portal-card" style={{ width: "min(100%, 440px)", padding: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
           <span className="portal-brand-mark"><ShieldCheck size={22}/></span>
-          <div><strong style={{ display: "block", fontSize: 18 }}>تسجيل الدخول</strong><small style={{ color: "#788894" }}>منصة التدريب والمحاكاة السريرية</small></div>
+          <div><strong style={{ display: "block", fontSize: 18 }}>تسجيل دخول الطلاب</strong><small style={{ color: "#788894" }}>منصة التدريب والمحاكاة السريرية</small></div>
         </div>
         <p style={{ color: "#71808d", fontSize: 13, lineHeight: 1.8 }}>أدخل البريد الإلكتروني وكلمة المرور للدخول إلى حسابك.</p>
         <form onSubmit={submit} style={{ display: "grid", gap: 13, marginTop: 20 }}>
@@ -64,11 +64,14 @@ export default function LoginPage() {
           </label>
           {error && <p role="alert" style={{ margin: 0, color: "#b64b48", fontSize: 12 }}>{error}</p>}
           <button className="portal-button" type="submit" disabled={loading} style={{ justifyContent: "center", minHeight: 44 }}>
-            <LockKeyhole size={16}/>{loading ? "جارٍ التحقق..." : "دخول آمن"}
+            <LockKeyhole size={16}/>{loading ? "جارٍ التحقق..." : "دخول"}
           </button>
         </form>
-        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 18, fontSize: 12 }}><Link href="/forgot-password" style={{ color: "#167f79" }}>نسيت كلمة المرور؟</Link><Link href="/register" style={{ color: "#167f79" }}>إنشاء حساب طالب</Link></div><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginTop: 12, fontSize: 12 }}><Link href="/admin/login" style={{ color: "#e9bd69" }}>دخول الإدارة</Link><Link href="/admin/register" style={{ color: "#e9bd69", fontWeight: 700 }}>إنشاء حساب مدير النظام</Link></div><Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 18, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
-        <small style={{ display: "block", marginTop: 20, color: "#9aa6ae", lineHeight: 1.7 }}>الجلسة محمية بملف ارتباط HttpOnly وتنتهي تلقائياً بعد 8 ساعات.</small>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 18, fontSize: 12 }}>
+          <Link href="/forgot-password" style={{ color: "#167f79" }}>نسيت كلمة المرور؟</Link>
+          <Link href="/register" style={{ color: "#167f79" }}>إنشاء حساب طالب</Link>
+        </div>
+        <Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 18, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
       </section>
     </main>
   );
