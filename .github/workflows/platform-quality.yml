@@ -12,6 +12,7 @@ on:
       - feature/etzan-gap-completion-20261123
       - feature/etzan-professional-community
       - feature/etzan-ai-final
+      - preview/admin-full-access-no-login
   pull_request:
     branches:
       - main
