@@ -15,6 +15,7 @@ Set secrets in the hosting provider's encrypted environment settings. Do not com
 | Avatar | `NEXT_PUBLIC_SAUDI_DOCTOR_AVATAR_MODEL_URL` (public GLB asset URL only) |
 | Protected course video and temporary classroom links | `PLATFORM_MEDIA_SECRET` (32+ characters), `ETZAN_VIDEO_ALLOWED_HOSTS` (comma-separated exact HTTPS hostnames) |
 | Database transport | TLS is enabled by default for non-local MongoDB URIs; `MONGODB_TLS=false` is rejected in production. |
+| Email verification and password recovery | `SMTP_EMAIL`, `SMTP_PASSWORD` (Gmail address and Google App Password) |
 
 Use Moyasar test keys first. Configure the webhook in the Moyasar merchant dashboard to point to:
 
@@ -94,7 +95,7 @@ Review the applicable PDPL, its Implementing Regulation and Personal Data Transf
 - Apple Pay activation/domain verification and recurring subscriptions are not complete.
 - No licensed psychometric instrument content is bundled; upload only material with explicit digital-use rights.
 - Digital book files, physical inventory, fulfillment/shipping, and protected streaming/CDN delivery require an approved storage/content provider and catalog setup.
-- Email/SMS reminders and verification require an email/SMS provider and credentials.
+- Gmail email delivery for account verification and password recovery requires `SMTP_EMAIL` and a Google App Password in `SMTP_PASSWORD`; SMS reminders still require a separate SMS provider.
 - Native VR headset packaging and device certification have not been completed.
 - Legal review and security penetration testing are required before production clinical data is collected.
 
