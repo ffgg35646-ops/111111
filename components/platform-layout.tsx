@@ -11,7 +11,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string; permissions?: string[] };\ntype SiteBranding = { clinicName: string; logoName: string; logoImage: string };
+type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string; permissions?: string[] };
+type SiteBranding = { clinicName: string; logoName: string; logoImage: string };
 type NavigationItem = { href: string; label: string; icon: LucideIcon; roles?: string[]; group: string };
 
 const roleLabels: Record<string, string> = {
@@ -51,7 +52,8 @@ const navigationGroups = ["التعلم والتطوير", "الأدوات وا�
 
 function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<SignedInUser | null>(null);\n  const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
+  const [user, setUser] = useState<SignedInUser | null>(null);
+  const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
 
   useEffect(() => {
     let active = true;
