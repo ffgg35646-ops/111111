@@ -80,17 +80,31 @@ export default function AdminDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState("");
+  const [authError, setAuthError] = useState("");
   const [clinicName, setClinicName] = useState("اتزان");
   const [logoName, setLogoName] = useState("ETZAN");
 
   useEffect(() => {
     let active = true;
     fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(brand => { if (active && brand) { setClinicName(String(brand.clinicName || "اتزان")); setLogoName(String(brand.logoName || "ETZAN")); } }).catch(() => {});
-    fetch("/api/auth/session", { cache: "no-store" })
+    fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" })
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok || !data.authenticated || !["admin", "platform_manager"].includes(data.user?.role)) {
-          router.replace("/admin/login");
+        if (!response.ok || !data.authenticated) {
+          const reasons: Record<string, string> = {
+            missing_cookie: "المتصفح لم يرسل ملف جلسة الإدارة إلى لوحة التحكم.",
+            session_secret_missing: "إعداد PLATFORM_SESSION_SECRET غير موجود في بيئة الإنتاج.",
+            signature_mismatch: "توقيع الجلسة لا يطابق PLATFORM_SESSION_SECRET الحالي. يجب تثبيت نفس القيمة في بيئة Production.",
+            token_expired: "انتهت صلاحية جلسة الإدارة. سجّل الدخول مرة أخرى.",
+            invalid_claims: "بيانات جلسة الإدارة غير مكتملة أو غير صالحة.",
+            invalid_token: "ملف الجلسة موجود لكن توقيعه أو صلاحيته غير صالحين.",
+            session_not_active: "الجلسة غير نشطة.",
+          };
+          if (active) setAuthError(reasons[data.reason] || `فشل التحقق من الجلسة (HTTP ${response.status}).`);
+          return;
+        }
+        if (!["admin", "platform_manager"].includes(data.user?.role)) {
+          if (active) setAuthError("تم تسجيل الدخول، لكن هذا الحساب لا يحمل دور مدير النظام أو مدير المنصة.");
           return;
         }
         if (data.user?.mustChangePassword) {
@@ -99,7 +113,7 @@ export default function AdminDashboardPage() {
         }
         if (active) setAuthorized(true);
       })
-      .catch(() => router.replace("/admin/login"))
+      .catch(() => { if (active) setAuthError("تعذر الاتصال بخدمة التحقق من جلسة الإدارة. أعد تحميل الصفحة."); })
       .finally(() => { if (active) setChecking(false); });
     return () => { active = false; };
   }, [router]);
@@ -131,7 +145,22 @@ export default function AdminDashboardPage() {
   }, [query]);
 
   if (checking) return <main className="app-shell admin-dashboard-shell" dir="rtl" aria-busy="true"><aside className="sidebar"><div className="brand-block"><div className="brand-copy"><strong>{clinicName} | {logoName}</strong><span>الإدارة والتشغيل</span></div></div></aside><section className="main-area"><header className="topbar"><div className="breadcrumb"><strong>الإدارة والتشغيل</strong></div></header><div className="page-content"><div className="stats-grid admin-stats-grid">{[0,1,2,3].map((item)=><section className="stat-card" key={item}><div className="portal-skeleton" style={{width:"55%",height:11,marginBottom:18}}/><div className="portal-skeleton" style={{width:"38%",height:27,marginBottom:12}}/><div className="portal-skeleton" style={{width:"72%",height:9}}/></section>)}</div><section className="panel roadmap-panel"><div className="portal-skeleton" style={{width:"34%",height:16,marginBottom:18}}/><div className="portal-skeleton" style={{width:"92%",height:11,marginBottom:10}}/><div className="portal-skeleton" style={{width:"76%",height:11}}/></section></div></section></main>;
-  if (!authorized) return null;
+  if (!authorized) return (
+    <main className="etzan-auth-page" dir="rtl">
+      <section className="portal-card etzan-auth-card">
+        <div className="etzan-auth-brand"><span className="portal-brand-mark">!</span><div><strong>اتزان | ETZAN</strong><small>فحص جلسة الإدارة</small></div></div>
+        <div className="etzan-auth-heading">
+          <h1>تعذر اعتماد جلسة الإدارة</h1>
+          <p className="etzan-auth-error" role="alert">{authError || "لم يتم اعتماد جلسة مدير النظام."}</p>
+          <p>لم يتم تحويلك تلقائياً حتى لا تختفي رسالة الخطأ. بعد معالجة السبب يمكنك إعادة المحاولة.</p>
+        </div>
+        <div className="etzan-auth-links">
+          <Link href="/admin/login">العودة إلى تسجيل دخول الإدارة</Link>
+          <button type="button" className="portal-button" onClick={() => window.location.reload()}>إعادة فحص الجلسة</button>
+        </div>
+      </section>
+    </main>
+  );
 
   return (
     <main className="app-shell admin-dashboard-shell">

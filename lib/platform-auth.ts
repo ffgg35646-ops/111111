@@ -82,11 +82,30 @@ export async function issuePlatformSession(user: PlatformSession) {
     .sign(sessionSecret());
 }
 
-export async function readPlatformSession(request: NextRequest): Promise<PlatformSession | null> {
+export type PlatformSessionReadReason =
+  | "missing_cookie"
+  | "session_secret_missing"
+  | "token_expired"
+  | "signature_mismatch"
+  | "invalid_claims"
+  | "invalid_token";
+
+export async function inspectPlatformSession(request: NextRequest): Promise<{
+  session: PlatformSession | null;
+  reason: PlatformSessionReadReason | null;
+}> {
   const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
-  if (!token) return null;
+  if (!token) return { session: null, reason: "missing_cookie" };
+
+  let secret: Uint8Array;
   try {
-    const { payload } = await jwtVerify(token, sessionSecret(), { algorithms: ["HS256"], issuer: ISSUER, audience: AUDIENCE });
+    secret = sessionSecret();
+  } catch {
+    return { session: null, reason: "session_secret_missing" };
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"], issuer: ISSUER, audience: AUDIENCE });
     const role = payload.role;
     if (
       typeof payload.sub !== "string" || typeof payload.jti !== "string" ||
@@ -95,18 +114,34 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
       !/^[0-9a-f]{64}$/i.test(payload.deviceAgentHash) ||
       typeof payload.email !== "string" || typeof payload.name !== "string" ||
       typeof role !== "string" || !PLATFORM_ROLES.includes(role as PlatformRole)
-    ) return null;
+    ) return { session: null, reason: "invalid_claims" };
+
     return {
-      userId: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      role: role as PlatformRole,
-      mustChangePassword: payload.mustChangePassword === true,
-      sessionId: payload.jti,
-      deviceId: payload.deviceId,
-      deviceAgentHash: payload.deviceAgentHash,
+      session: {
+        userId: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        role: role as PlatformRole,
+        mustChangePassword: payload.mustChangePassword === true,
+        sessionId: payload.jti,
+        deviceId: payload.deviceId,
+        deviceAgentHash: payload.deviceAgentHash,
+      },
+      reason: null,
     };
-  } catch { return null; }
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error
+      ? (error as { code?: unknown }).code
+      : undefined;
+    if (code === "ERR_JWT_EXPIRED") return { session: null, reason: "token_expired" };
+    if (code === "ERR_JWS_SIGNATURE_VERIFICATION_FAILED") return { session: null, reason: "signature_mismatch" };
+    return { session: null, reason: "invalid_token" };
+  }
+}
+
+export async function readPlatformSession(request: NextRequest): Promise<PlatformSession | null> {
+  const result = await inspectPlatformSession(request);
+  return result.session;
 }
 
 export async function isPlatformSessionActive(session: PlatformSession) {

@@ -33,6 +33,26 @@ export default function AdminLoginPage() {
         throw new Error("هذا الحساب ليس حساب إدارة. استخدم صفحة دخول الطلاب.");
       }
 
+      const sessionResponse = await fetch("/api/auth/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const sessionData = await sessionResponse.json();
+      if (!sessionResponse.ok || !sessionData.authenticated) {
+        const reasons: Record<string, string> = {
+          missing_cookie: "تم قبول كلمة المرور، لكن المتصفح لم يستلم ملف جلسة الإدارة. افحص إعدادات الكوكيز والنطاق.",
+          session_secret_missing: "تم قبول كلمة المرور، لكن PLATFORM_SESSION_SECRET غير مضبوط في بيئة الإنتاج.",
+          signature_mismatch: "تم قبول كلمة المرور، لكن سر الجلسة لا يطابق السر المستخدم للتحقق. يجب تثبيت PLATFORM_SESSION_SECRET نفسه في Production وعدم تغييره بين النشرات.",
+          token_expired: "انتهت صلاحية الجلسة فور إنشائها. راجع وقت الخادم وإعدادات الجلسة.",
+          invalid_claims: "تم إنشاء الجلسة لكن بياناتها الداخلية غير مكتملة أو غير صالحة.",
+          invalid_token: "وصل ملف الجلسة، لكن تعذّر التحقق من توقيعه أو صلاحيته.",
+        };
+        throw new Error(reasons[sessionData.reason] || `كلمة المرور صحيحة لكن فشل اعتماد الجلسة (HTTP ${sessionResponse.status}).`);
+      }
+      if (!["admin", "platform_manager"].includes(sessionData.user?.role)) {
+        throw new Error("الجلسة صحيحة، لكن الدور المحفوظ فيها ليس مدير النظام أو مدير المنصة.");
+      }
+
       setPassword("");
       const destination = data.user?.mustChangePassword
         ? "/account/change-password?next=%2Fplatform-admin"
