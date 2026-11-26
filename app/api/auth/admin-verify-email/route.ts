@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   const data = body as Record<string, unknown>;
   const email = typeof data.email === "string" ? data.email.trim().toLowerCase().slice(0, 180) : "";
   const code = typeof data.code === "string" ? data.code.trim() : "";
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || !/^\\d{6}$/.test(code)) {
+  if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+[.][A-Z]{2,}$/i.test(email) || !/^[0-9]{6}$/.test(code)) {
     return NextResponse.json({ error: "أدخل بريداً إلكترونياً صحيحاً ورمزاً من 6 أرقام." }, { status: 400 });
   }
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const db = await getClinicalDatabase();
     const now = new Date();
     const lock = await db.collection("platform_setup_locks").findOne({
-      _id: SETUP_LOCK_ID, email, expiresAt: { $gt: now },
+      setupKey: SETUP_LOCK_ID, email, expiresAt: { $gt: now },
     });
     if (!lock || typeof lock.userId !== "string") {
       return NextResponse.json({ error: "انتهت مهلة إعداد المدير. ابدأ إنشاء الحساب من جديد." }, { status: 410 });
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     if (!activeAccount) return NextResponse.json({ error: "تعذر تفعيل حساب المدير. أعد المحاولة." }, { status: 409 });
 
     await codes.deleteMany({ email });
-    await db.collection("platform_setup_locks").deleteOne({ _id: SETUP_LOCK_ID, userId: lock.userId });
+    await db.collection("platform_setup_locks").deleteOne({ setupKey: SETUP_LOCK_ID, userId: lock.userId });
 
     const deviceId = randomUUID();
     const sessionId = randomUUID();
