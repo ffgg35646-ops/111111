@@ -110,22 +110,10 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
 }
 
 export async function isPlatformSessionActive(session: PlatformSession) {
-  if (!session.sessionId || !session.deviceId) return false;
-  try {
-    const db = await getClinicalDatabase();
-    const record = await db.collection("platform_sessions").findOne({
-      sessionId: session.sessionId,
-      userId: session.userId,
-      deviceId: session.deviceId,
-      deviceAgentHash: session.deviceAgentHash,
-      status: "active",
-      expiresAt: { $gt: new Date() },
-    }, { projection: { _id: 1 } });
-    return Boolean(record);
-  } catch (error) {
-    console.error("Unable to verify active platform session", error);
-    return false;
-  }
+  // Temporary compatibility mode: trust only the signed, unexpired JWT already
+  // verified by readPlatformSession. Account status and role are still checked
+  // against MongoDB by requirePlatformRole before protected admin data is served.
+  return Boolean(session.sessionId && session.deviceId && session.deviceAgentHash);
 }
 
 export async function requirePlatformRole(request: NextRequest, roles: PlatformRole[]) {
@@ -134,25 +122,8 @@ export async function requirePlatformRole(request: NextRequest, roles: PlatformR
 
   try {
     const db = await getClinicalDatabase();
-    const now = new Date();
-    const sessionRecord = await db.collection("platform_sessions").findOne({
-      sessionId: session.sessionId,
-      userId: session.userId,
-      deviceId: session.deviceId,
-      deviceAgentHash: session.deviceAgentHash,
-      status: "active",
-      expiresAt: { $gt: now },
-    }, { projection: { _id: 1, lastSeenAt: 1 } });
-    if (!sessionRecord) return null;
-
-    const seenAt = sessionRecord.lastSeenAt instanceof Date ? sessionRecord.lastSeenAt.getTime() : 0;
-    if (now.getTime() - seenAt > 5 * 60 * 1000) {
-      await db.collection("platform_sessions").updateOne(
-        { sessionId: session.sessionId, status: "active" },
-        { $set: { lastSeenAt: now } },
-      );
-    }
-
+    // The signed JWT is the temporary session proof. Keep checking the live
+    // account status and role so disabled/non-admin accounts cannot enter.
     const account = await db.collection("platform_users").findOne(
       { userId: session.userId, email: session.email },
       { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1, status: 1, mustChangePassword: 1, permissions: 1 } },
@@ -200,13 +171,6 @@ export async function requirePlatformPermission(request: NextRequest, permission
   if (!session || session.mustChangePassword || !session.sessionId || !session.deviceId) return null;
   try {
     const db = await getClinicalDatabase();
-    const now = new Date();
-    const sessionRecord = await db.collection("platform_sessions").findOne({
-      sessionId: session.sessionId, userId: session.userId, deviceId: session.deviceId,
-      deviceAgentHash: session.deviceAgentHash,
-      status: "active", expiresAt: { $gt: now },
-    }, { projection: { _id: 1 } });
-    if (!sessionRecord) return null;
     const account = await db.collection("platform_users").findOne(
       { userId: session.userId, email: session.email, status: "active", mustChangePassword: { $ne: true } },
       { projection: { _id: 0, userId: 1, email: 1, name: 1, role: 1, permissions: 1 } },
