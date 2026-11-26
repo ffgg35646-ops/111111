@@ -150,6 +150,8 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
 export function PlatformLayout({ title, eyebrow = "اتزان", description, children }: { title: string; eyebrow?: string; description: string; children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
+  useEffect(() => { fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (data) setBranding({clinicName:String(data.clinicName||"اتزان"),logoName:String(data.logoName||"ETZAN"),logoImage:String(data.logoImage||"/etzan-symbol.svg")}); }).catch(() => {}); }, []);
 
   const closeSidebar = () => setSidebarOpen(false);
 
