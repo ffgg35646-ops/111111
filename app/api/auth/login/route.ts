@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
     );
     const activeDevices = await sessions.distinct("deviceId", {
       userId: user.userId, status: "active",
+      $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }],
     }) as string[];
     if (!activeDevices.includes(deviceId) && activeDevices.length >= maxDevices()) {
       await recordSecurityEvent(db, {
