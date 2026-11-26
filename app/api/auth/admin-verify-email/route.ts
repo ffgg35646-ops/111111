@@ -29,14 +29,14 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getClinicalDatabase();
     const now = new Date();
-    const lock = await db.collection("platform_setup_locks").findOne({
-      setupKey: SETUP_LOCK_ID, email, expiresAt: { $gt: now },
-    });
+    const locks = db.collection<any>("platform_setup_locks");
+    const codes = db.collection<any>("platform_email_codes");
+    const users = db.collection<any>("platform_users");
+    const lock = await locks.findOne({ setupKey: SETUP_LOCK_ID, email, expiresAt: { $gt: now } });
     if (!lock || typeof lock.userId !== "string") {
       return NextResponse.json({ error: "انتهت مهلة إعداد المدير. ابدأ إنشاء الحساب من جديد." }, { status: 410 });
     }
 
-    const codes = db.collection("platform_email_codes");
     const record = await codes.findOne({ email, userId: lock.userId, purpose: "verify_admin", expiresAt: { $gt: now } });
     if (!record || Number(record.attempts || 0) >= 5) {
       return NextResponse.json({ error: "رمز التأكيد غير صالح أو انتهت صلاحيته." }, { status: 400 });
@@ -46,11 +46,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "رمز التأكيد غير صحيح." }, { status: 400 });
     }
 
-    const users = db.collection("platform_users");
     const otherAdmin = await users.findOne({ role: "admin", userId: { $ne: lock.userId } }, { projection: { _id: 0, userId: 1 } });
     if (otherAdmin) {
       await codes.deleteMany({ email, purpose: "verify_admin" });
-      await db.collection("platform_setup_locks").deleteOne({ setupKey: SETUP_LOCK_ID, userId: lock.userId });
+      await locks.deleteOne({ setupKey: SETUP_LOCK_ID, userId: lock.userId });
       return NextResponse.json({ error: "تم إعداد مدير النظام بالفعل. لا يمكن إنشاء مدير أول آخر من التسجيل العام." }, { status: 409 });
     }
 
@@ -69,13 +68,13 @@ export async function POST(request: NextRequest) {
     if (!activeAccount) return NextResponse.json({ error: "تعذر تفعيل حساب المدير. أعد المحاولة." }, { status: 409 });
 
     await codes.deleteMany({ email });
-    await db.collection("platform_setup_locks").deleteOne({ setupKey: SETUP_LOCK_ID, userId: lock.userId });
+    await locks.deleteOne({ setupKey: SETUP_LOCK_ID, userId: lock.userId });
 
     const deviceId = randomUUID();
     const sessionId = randomUUID();
     const deviceAgentHash = platformDeviceAgentHash(request);
     const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    const sessions = db.collection("platform_sessions");
+    const sessions = db.collection<any>("platform_sessions");
     await sessions.createIndex({ sessionId: 1 }, { unique: true });
     await sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     await sessions.createIndex({ userId: 1, status: 1, expiresAt: 1 });
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
       sessionId, deviceId, deviceAgentHash, mustChangePassword: false,
     };
     const token = await issuePlatformSession(user);
-    await db.collection("platform_audit_logs").insertOne({
+    await db.collection<any>("platform_audit_logs").insertOne({
       action: "first_system_admin_registered", actorUserId: user.userId, actorEmail: email, targetUserId: user.userId, targetEmail: email, targetRole: "admin", createdAt: now,
     }).catch((error) => console.warn("Unable to record first admin registration", error));
 
