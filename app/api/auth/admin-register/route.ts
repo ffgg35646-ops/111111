@@ -6,7 +6,7 @@ import { createEmailCode, sendPlatformCode } from "@/lib/platform-email";
 
 export const runtime = "nodejs";
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
-const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+[.][A-Z]{2,}$/i;
 const codeHash = (email: string, code: string) => createHash("sha256").update(email + ":" + code + ":" + (process.env.PLATFORM_SESSION_SECRET || "")).digest("hex");
 const SETUP_LOCK_ID = "first-system-admin";
 const SETUP_WINDOW_MS = 15 * 60 * 1000;
@@ -38,13 +38,19 @@ export async function POST(request: NextRequest) {
     const db = await getClinicalDatabase();
     const users = db.collection("platform_users");
     await users.createIndex({ email: 1 }, { unique: true });
+
     const locks = db.collection("platform_setup_locks");
-    await locks.createIndex({ setupKey: 1 }, { unique: true });\n    await locks.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    await locks.createIndex({ setupKey: 1 }, { unique: true });
+    await locks.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     const now = new Date();
     const codes = db.collection("platform_email_codes");
+
     const expiredLock = await locks.findOne({ setupKey: SETUP_LOCK_ID, expiresAt: { $lte: now } });
     if (expiredLock && typeof expiredLock.userId === "string") {
-      await users.deleteOne({ userId: expiredLock.userId, role: "admin", status: "pending_verification", registrationSource: "first_admin_setup" });
+      await users.deleteOne({
+        userId: expiredLock.userId, role: "admin", status: "pending_verification",
+        registrationSource: "first_admin_setup",
+      });
       await codes.deleteMany({ userId: expiredLock.userId, purpose: "verify_admin" });
       await locks.deleteOne({ setupKey: SETUP_LOCK_ID, userId: expiredLock.userId });
     }
@@ -53,6 +59,7 @@ export async function POST(request: NextRequest) {
     if (lock && lock.email !== email) {
       return NextResponse.json({ error: "هناك طلب إعداد مدير أول قيد التأكيد. استخدم البريد الذي بدأ الطلب أو أعد المحاولة بعد انتهاء مهلة الطلب." }, { status: 409 });
     }
+
     const existingAdmin = await users.findOne(
       lock ? { role: "admin", userId: { $ne: lock.userId } } : { role: "admin" },
       { projection: { _id: 0, userId: 1 } },
@@ -71,13 +78,16 @@ export async function POST(request: NextRequest) {
           setupKey: SETUP_LOCK_ID, email, userId, purpose: "first_system_admin",
           createdAt: now, expiresAt: new Date(now.getTime() + SETUP_WINDOW_MS),
         });
-        lock = await locks.findOne({ setupKey: SETUP_LOCK_ID, userId, expiresAt: { $gt: now } });\n        if (!lock) return NextResponse.json({ error: "تعذر بدء إعداد المدير. أعد المحاولة." }, { status: 409 });
+        lock = await locks.findOne({ setupKey: SETUP_LOCK_ID, userId, expiresAt: { $gt: now } });
       } catch {
         return NextResponse.json({ error: "بدأ طلب إعداد أول مدير للتو. أعد المحاولة بعد لحظات." }, { status: 409 });
       }
     }
+    if (!lock || typeof lock.userId !== "string") {
+      return NextResponse.json({ error: "تعذر تثبيت طلب إعداد المدير. أعد المحاولة." }, { status: 409 });
+    }
 
-    if (!lock || typeof lock.userId !== "string") return NextResponse.json({ error: "تعذر تثبيت طلب إعداد المدير. أعد المحاولة." }, { status: 409 });\n    const userId = String(lock.userId);
+    const userId = lock.userId;
     const passwordParts = createPasswordHash(password).split("$");
     await users.updateOne(
       { userId },
