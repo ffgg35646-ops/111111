@@ -99,3 +99,17 @@ html[data-theme="emerald-dark"] .admin-dashboard-shell .admin-welcome .eyebrow{c
 /* Preserve semantic error and destructive states rather than recoloring them as primary actions. */
 html[data-theme] :is(.portal-button.danger,.community-admin-danger,.certificate-error,.trainer-alert){background:#fff1ef!important;color:#a6534a!important;border-color:#f0d9d5!important}
 html[data-theme="emerald-dark"] :is(.portal-button.danger,.community-admin-danger,.certificate-error,.trainer-alert){background:#452923!important;color:#ffb9ad!important;border-color:#74463d!important}
+
+/* Bridge the original application design tokens into the selected identity. */
+html[data-theme]{
+  --canvas:var(--ui-bg);--ink:var(--ui-ink);--muted:var(--ui-muted);--line:var(--ui-line);--white:var(--ui-surface);
+  --teal:var(--ui-accent);--teal-soft:var(--ui-soft);--blue:var(--ui-accent);--blue-soft:var(--ui-soft);
+  --violet:var(--ui-accent);--violet-soft:var(--ui-soft);--amber:var(--ui-accent);--amber-soft:var(--ui-soft);
+}
+html[data-theme] body>main:not(.etzan-home):not(.portal-root){background:var(--ui-bg)!important;color:var(--ui-ink)!important}
+html[data-theme] body>main:not(.etzan-home):not(.portal-root) :is(h1,h2,h3,strong,label){color:var(--ui-ink)!important}
+html[data-theme] body>main:not(.etzan-home):not(.portal-root) p:not([role="alert"]):not([role="status"]){color:var(--ui-muted)!important}
+html[data-theme] body>main:not(.etzan-home):not(.portal-root) a{color:var(--ui-accent)!important}
+html[data-theme] .portal-card :is(label,small){color:var(--ui-muted)!important}
+html[data-theme="emerald-dark"] body>main:not(.etzan-home):not(.portal-root) :is(h1,h2,h3,strong,label){color:#edf4ee!important}
+html[data-theme="emerald-dark"] .portal-card :is(label,small){color:#b3c7bb!important}
