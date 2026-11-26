@@ -93,8 +93,6 @@ export async function readPlatformSession(request: NextRequest): Promise<Platfor
       typeof payload.deviceId !== "string" || typeof payload.deviceAgentHash !== "string" ||
       !/^[0-9a-f-]{36}$/i.test(payload.jti) || !/^[0-9a-f-]{36}$/i.test(payload.deviceId) ||
       !/^[0-9a-f]{64}$/i.test(payload.deviceAgentHash) ||
-      request.cookies.get(PLATFORM_DEVICE_COOKIE)?.value !== payload.deviceId ||
-      payload.deviceAgentHash !== platformDeviceAgentHash(request) ||
       typeof payload.email !== "string" || typeof payload.name !== "string" ||
       typeof role !== "string" || !PLATFORM_ROLES.includes(role as PlatformRole)
     ) return null;
@@ -119,6 +117,7 @@ export async function isPlatformSessionActive(session: PlatformSession) {
       sessionId: session.sessionId,
       userId: session.userId,
       deviceId: session.deviceId,
+      deviceAgentHash: session.deviceAgentHash,
       status: "active",
       expiresAt: { $gt: new Date() },
     }, { projection: { _id: 1 } });
@@ -140,6 +139,7 @@ export async function requirePlatformRole(request: NextRequest, roles: PlatformR
       sessionId: session.sessionId,
       userId: session.userId,
       deviceId: session.deviceId,
+      deviceAgentHash: session.deviceAgentHash,
       status: "active",
       expiresAt: { $gt: now },
     }, { projection: { _id: 1, lastSeenAt: 1 } });
@@ -203,6 +203,7 @@ export async function requirePlatformPermission(request: NextRequest, permission
     const now = new Date();
     const sessionRecord = await db.collection("platform_sessions").findOne({
       sessionId: session.sessionId, userId: session.userId, deviceId: session.deviceId,
+      deviceAgentHash: session.deviceAgentHash,
       status: "active", expiresAt: { $gt: now },
     }, { projection: { _id: 1 } });
     if (!sessionRecord) return null;
