@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { NotificationBell } from "@/components/notification-bell";
 import {
   Activity, Award, BookOpen, Brain, CalendarDays, ClipboardCheck,
   FileText, GraduationCap, HeartHandshake, Home, Library, LockKeyhole,
-  Menu, MessageSquare, Scale, ShieldCheck, Sparkles, Users, X,
+  LogOut, Menu, MessageSquare, Scale, ShieldCheck, Sparkles, Users, X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -52,6 +52,7 @@ const navigationGroups = ["التعلم والتطوير", "الأدوات وا�
 
 function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<SignedInUser | null>(null);
   const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
 
@@ -81,6 +82,10 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
   const isManager = user?.role === "admin" || user?.role === "platform_manager";
   const canEditSite = isManager || user?.role === "sub_admin";
+  async function logout() {
+    try { await fetch("/api/auth/logout", { method: "POST" }); }
+    finally { router.replace("/login"); router.refresh(); }
+  }
   const canManageSpecialistTracks = isManager || (user?.role === "sub_admin" && user.permissions?.includes("specialist_tracks") === true);
   const watermark = user ? user.name + " · " + user.email + (user.sessionId ? " · " + user.sessionId.slice(-6) : "") : "";
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -140,6 +145,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
         <div className="portal-sidebar-bottom">
           {user && <div className="portal-account-links"><Link href="/account/profile" onClick={onClose}><Users size={15}/> الملف الشخصي</Link><Link href="/account/security" onClick={onClose}><ShieldCheck size={15}/> أمان الحساب</Link><Link href="/account/privacy" onClick={onClose}><LockKeyhole size={15}/> الخصوصية</Link></div>}
+          {user && pathname === "/dashboard" && <button type="button" className="portal-logout-button" onClick={() => void logout()}><LogOut size={15}/> تسجيل الخروج</button>}
           <div className="portal-sidebar-caption"><span>{branding.clinicName} | {branding.logoName}</span><small>بيئة تعلم وتطوير مهني</small></div>
         </div>
       </aside>
@@ -148,7 +154,8 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
   );
 }
 
-export function PlatformLayout({ title, eyebrow = "اتزان", description, children }: { title: string; eyebrow?: string; description: string; children: ReactNode }) {
+export function PlatformLayout({ title, eyebrow = "اتزان", description, children, headerContent }: { title: string; eyebrow?: string; description: string; children: ReactNode; headerContent?: ReactNode }) {
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
   useEffect(() => { fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (data) setBranding({clinicName:String(data.clinicName||"اتزان"),logoName:String(data.logoName||"ETZAN"),logoImage:String(data.logoImage||"/etzan-symbol.svg")}); }).catch(() => {}); }, []);
@@ -156,7 +163,7 @@ export function PlatformLayout({ title, eyebrow = "اتزان", description, chi
   const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <main className="portal-root" dir="rtl">
+    <main className={"portal-root" + (pathname === "/dashboard" ? " etzan-member-dashboard" : "")} dir="rtl">
       <div className={"portal-shell" + (sidebarOpen ? " portal-shell-open" : "")}>
         <PlatformChrome sidebarOpen={sidebarOpen} onClose={closeSidebar}/>
         <div className="portal-main">
@@ -167,7 +174,7 @@ export function PlatformLayout({ title, eyebrow = "اتزان", description, chi
               </button>
               <div className="portal-breadcrumb"><span>{branding.clinicName}</span><b>/</b><strong>{title}</strong></div>
             </div>
-            <div className="portal-topbar-actions"><NotificationBell/><Link href="/" className="portal-home-link"><Home size={16}/> <span>الصفحة الرئيسية</span></Link></div>
+            <div className="portal-topbar-actions">{headerContent}<NotificationBell/><Link href="/" className="portal-home-link"><Home size={16}/> <span>الصفحة الرئيسية</span></Link></div>
           </header>
 
           <div className="portal-content">
