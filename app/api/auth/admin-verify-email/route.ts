@@ -53,9 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "تم إعداد مدير النظام بالفعل. لا يمكن إنشاء مدير أول آخر من التسجيل العام." }, { status: 409 });
     }
 
-    const account = await users.findOne({
-      userId: lock.userId, email, role: "admin", status: "pending_verification", emailVerified: false,
-    });
+    const account = await users.findOne({ userId: lock.userId, email, role: "admin", status: "pending_verification", emailVerified: false });
     if (!account || typeof account.name !== "string") {
       return NextResponse.json({ error: "طلب إنشاء حساب المدير غير موجود أو انتهت صلاحيته." }, { status: 404 });
     }
@@ -90,7 +88,8 @@ export async function POST(request: NextRequest) {
     };
     const token = await issuePlatformSession(user);
     await db.collection<any>("platform_audit_logs").insertOne({
-      action: "first_system_admin_registered", actorUserId: user.userId, actorEmail: email, targetUserId: user.userId, targetEmail: email, targetRole: "admin", createdAt: now,
+      action: "first_system_admin_registered", actorUserId: user.userId, actorEmail: email,
+      targetUserId: user.userId, targetEmail: email, targetRole: "admin", createdAt: now,
     }).catch((error) => console.warn("Unable to record first admin registration", error));
 
     const response = NextResponse.json({
