@@ -67,7 +67,7 @@ export default function LoginPage() {
             <LockKeyhole size={16}/>{loading ? "جارٍ التحقق..." : "دخول آمن"}
           </button>
         </form>
-        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 18, fontSize: 12 }}><Link href="/forgot-password" style={{ color: "#167f79" }}>نسيت كلمة المرور؟</Link><Link href="/register" style={{ color: "#167f79" }}>إنشاء حساب طالب</Link></div><Link href="/admin/login" style={{ display: "inline-flex", marginTop: 14, color: "#167f79", fontSize: 12 }}>دخول الإدارة</Link><Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 18, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 18, fontSize: 12 }}><Link href="/forgot-password" style={{ color: "#167f79" }}>نسيت كلمة المرور؟</Link><Link href="/register" style={{ color: "#167f79" }}>إنشاء حساب طالب</Link></div><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginTop: 12, fontSize: 12 }}><Link href="/admin/login" style={{ color: "#e9bd69" }}>دخول الإدارة</Link><Link href="/admin/register" style={{ color: "#e9bd69", fontWeight: 700 }}>إنشاء حساب مدير النظام</Link></div><Link href="/" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 18, color: "#167f79", fontSize: 12 }}><ArrowRight size={14}/> العودة إلى المنصة</Link>
         <small style={{ display: "block", marginTop: 20, color: "#9aa6ae", lineHeight: 1.7 }}>الجلسة محمية بملف ارتباط HttpOnly وتنتهي تلقائياً بعد 8 ساعات.</small>
       </section>
     </main>
