@@ -3,22 +3,22 @@
 html[data-theme="blue-light"]{
   --ui-bg:#f1f6fc;--ui-surface:#ffffff;--ui-surface-2:#f7faff;--ui-ink:#17324d;--ui-muted:#6d8297;--ui-line:#d9e6f1;
   --ui-accent:#176fc1;--ui-accent-strong:#0d559b;--ui-soft:#e5f1fc;--ui-sidebar:#142d49;--ui-sidebar-ink:#edf5ff;--ui-sidebar-muted:#a9c1d8;
-  --ui-hero:linear-gradient(120deg,#123252,#176fc1);--ui-shadow:0 14px 34px #1b497510;--ui-sidebar-hover:#ffffff12;--ui-sidebar-active:#176fc133;--ui-sidebar-active-border:#176fc166;
+  --ui-hero:linear-gradient(120deg,#123252,#176fc1);--ui-shadow:0 14px 34px #1b497510;--ui-sidebar-hover:#ffffff12;--ui-sidebar-stroke:#ffffff2b;--ui-sidebar-active:#176fc133;--ui-sidebar-active-border:#176fc166;
 }
 html[data-theme="emerald-dark"]{
   --ui-bg:#0b1d18;--ui-surface:#142c23;--ui-surface-2:#19372c;--ui-ink:#edf4ee;--ui-muted:#b3c7bb;--ui-line:#315345;
   --ui-accent:#d7b66a;--ui-accent-strong:#efd18b;--ui-soft:#24483a;--ui-sidebar:#071711;--ui-sidebar-ink:#f1f6ef;--ui-sidebar-muted:#a6c3b1;
-  --ui-hero:linear-gradient(120deg,#09241b,#1e5943);--ui-shadow:0 16px 38px #0005;--ui-sidebar-hover:#ffffff10;--ui-sidebar-active:#d7b66a2b;--ui-sidebar-active-border:#d7b66a77;
+  --ui-hero:linear-gradient(120deg,#09241b,#1e5943);--ui-shadow:0 16px 38px #0005;--ui-sidebar-hover:#ffffff10;--ui-sidebar-stroke:#d7b66a33;--ui-sidebar-active:#d7b66a2b;--ui-sidebar-active-border:#d7b66a77;
 }
 html[data-theme="teal-light"]{
   --ui-bg:#edf8f5;--ui-surface:#ffffff;--ui-surface-2:#f5fcf9;--ui-ink:#123d3b;--ui-muted:#688985;--ui-line:#d3e9e2;
   --ui-accent:#078879;--ui-accent-strong:#06695f;--ui-soft:#ddf3ec;--ui-sidebar:#104c48;--ui-sidebar-ink:#f0fffa;--ui-sidebar-muted:#a9d8cc;
-  --ui-hero:linear-gradient(120deg,#0c5650,#0a9785);--ui-shadow:0 14px 34px #0b655012;--ui-sidebar-hover:#ffffff12;--ui-sidebar-active:#07887933;--ui-sidebar-active-border:#07887977;
+  --ui-hero:linear-gradient(120deg,#0c5650,#0a9785);--ui-shadow:0 14px 34px #0b655012;--ui-sidebar-hover:#ffffff12;--ui-sidebar-stroke:#ffffff2b;--ui-sidebar-active:#07887933;--ui-sidebar-active-border:#07887977;
 }
 html[data-theme="purple-hybrid"]{
   --ui-bg:#f4f0fa;--ui-surface:#ffffff;--ui-surface-2:#faf7ff;--ui-ink:#30234d;--ui-muted:#817391;--ui-line:#e3d9ef;
   --ui-accent:#7547bd;--ui-accent-strong:#5b329b;--ui-soft:#eee5f8;--ui-sidebar:#281d3d;--ui-sidebar-ink:#f7f1ff;--ui-sidebar-muted:#c7b4e2;
-  --ui-hero:linear-gradient(120deg,#2a1d42,#7547bd);--ui-shadow:0 14px 34px #39215d14;--ui-sidebar-hover:#ffffff12;--ui-sidebar-active:#7547bd38;--ui-sidebar-active-border:#7547bd80;
+  --ui-hero:linear-gradient(120deg,#2a1d42,#7547bd);--ui-shadow:0 14px 34px #39215d14;--ui-sidebar-hover:#ffffff12;--ui-sidebar-stroke:#ffffff2b;--ui-sidebar-active:#7547bd38;--ui-sidebar-active-border:#7547bd80;
 }
 
 /* Global page canvas and typography */
@@ -52,11 +52,11 @@ html[data-theme] .portal-sidebar-backdrop.is-visible{background:#071b25a8!import
 html[data-theme] .admin-dashboard-shell{background:var(--ui-bg)!important;color:var(--ui-ink)!important}
 html[data-theme] .admin-dashboard-shell .main-area{background:var(--ui-bg)!important}
 html[data-theme] .admin-dashboard-shell .sidebar{background:var(--ui-sidebar)!important;color:var(--ui-sidebar-ink)!important;border-color:var(--ui-line)!important;box-shadow:var(--ui-shadow)!important}
-html[data-theme] .admin-dashboard-shell :is(.brand-block,.brand-block strong,.brand-block span,.workspace-label,.nav-section>p,.nav-item,.sidebar-toggle){color:var(--ui-sidebar-ink)!important;border-color:color-mix(in srgb,var(--ui-sidebar-ink) 17%,transparent)!important}
+html[data-theme] .admin-dashboard-shell :is(.brand-block,.brand-block strong,.brand-block span,.workspace-label,.nav-section>p,.nav-item,.sidebar-toggle){color:var(--ui-sidebar-ink)!important;border-color:var(--ui-sidebar-stroke)!important}
 html[data-theme] .admin-dashboard-shell .brand-mark{background:var(--ui-soft)!important;color:var(--ui-accent)!important}
 html[data-theme] .admin-dashboard-shell .nav-section>p,.admin-dashboard-shell .workspace-label{color:var(--ui-sidebar-muted)!important}
 html[data-theme] .admin-dashboard-shell .nav-item{background:transparent!important}
-html[data-theme] .admin-dashboard-shell .nav-item:hover{background:color-mix(in srgb,var(--ui-sidebar-ink) 10%,transparent)!important;color:var(--ui-sidebar-ink)!important}
+html[data-theme] .admin-dashboard-shell .nav-item:hover{background:var(--ui-sidebar-hover)!important;color:var(--ui-sidebar-ink)!important}
 html[data-theme] .admin-dashboard-shell .nav-item.active{background:var(--ui-sidebar-active)!important;border-color:var(--ui-sidebar-active-border)!important;color:var(--ui-sidebar-ink)!important;box-shadow:inset -3px 0 var(--ui-accent)!important}
 html[data-theme] .admin-dashboard-shell .topbar{background:var(--ui-surface)!important;border-color:var(--ui-line)!important;box-shadow:var(--ui-shadow)!important}
 html[data-theme] .admin-dashboard-shell :is(.breadcrumb strong,.admin-profile strong,.icon-button){color:var(--ui-ink)!important}
@@ -64,7 +64,7 @@ html[data-theme] .admin-dashboard-shell :is(.admin-profile,.search-box){border-c
 html[data-theme] .admin-dashboard-shell .search-box input{background:transparent!important;color:var(--ui-ink)!important}
 html[data-theme] .admin-dashboard-shell .admin-welcome{background:var(--ui-hero)!important;border-color:var(--ui-line)!important;box-shadow:var(--ui-shadow)!important}
 html[data-theme] .admin-dashboard-shell .admin-welcome :is(.eyebrow,h1,p){color:#fff!important}
-html[data-theme] .admin-dashboard-shell .admin-welcome .eyebrow{color:color-mix(in srgb,var(--ui-accent-strong) 25%,#fff)!important}
+html[data-theme] .admin-dashboard-shell .admin-welcome .eyebrow{color:#eaf3ff!important}
 html[data-theme] .admin-dashboard-shell :is(.stat-card,.roadmap-panel,.panel){background:var(--ui-surface)!important;border-color:var(--ui-line)!important;color:var(--ui-ink)!important;box-shadow:var(--ui-shadow)!important}
 html[data-theme] .admin-dashboard-shell :is(.stat-label,.stat-note,.panel-heading p,.page-footer){color:var(--ui-muted)!important}
 html[data-theme] .admin-dashboard-shell :is(.stat-value,.panel-heading h2,.quick-grid button strong){color:var(--ui-ink)!important}
