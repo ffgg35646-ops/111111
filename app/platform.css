@@ -489,3 +489,15 @@ body{width:100%;max-width:100%;overflow-x:clip}
 @media(max-width:380px){
  .trainee-dashboard>.trainee-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* Shared administrator/member workspace accent follows the clinic's selected theme */
+html[data-theme="blue-light"]{--portal-accent:#0878df;--portal-accent-soft:#e8f3ff}
+html[data-theme="emerald-dark"]{--portal-accent:#d5ae58;--portal-accent-soft:#25483e}
+html[data-theme="teal-light"]{--portal-accent:#078879;--portal-accent-soft:#e4f6f1}
+html[data-theme="purple-hybrid"]{--portal-accent:#7547bd;--portal-accent-soft:#f0e9fb}
+html[data-theme] .portal-sidebar-brand-icon{background:var(--portal-accent)!important;color:#fff!important}
+html[data-theme] .portal-side-link.active{background:var(--portal-accent-soft)!important;color:var(--portal-accent)!important;border-color:color-mix(in srgb,var(--portal-accent) 25%,transparent)!important}
+html[data-theme] .portal-button:not(.secondary){background:var(--portal-accent)!important;border-color:var(--portal-accent)!important}
+html[data-theme] .portal-link-button:not(.secondary){color:var(--portal-accent)!important}
+html[data-theme] .portal-side-link:hover{color:var(--portal-accent)!important}
