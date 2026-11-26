@@ -7,7 +7,7 @@ const PAGE_PERMISSION: Record<string, typeof SITE_PAGE_PERMISSIONS[number]> = {
   home: "site_home", about: "site_about", privacy: "site_privacy",
 };
 const fields: Record<string, string[]> = {
-  home: ["heroTitle","heroAccent","heroDescription","aboutTitle","aboutDescription","ownerTitle","ownerName","ownerBio","featuredCourseIds"],
+  home: ["heroTitle","heroAccent","heroDescription","aboutTitle","aboutDescription","ownerTitle","ownerName","ownerBio","featuredCourseIds","clinicName","logoName","logoImage","theme","heroSlides"],
   about: ["title","intro","mission","vision","goals","ownerTitle","ownerName","ownerBio","ownerCredentials"],
   privacy: ["title","intro","sections"],
 };
@@ -41,9 +41,9 @@ export async function PUT(request: NextRequest) {
   const content:Record<string,unknown>={};
   for(const field of fields[slug]){
     const value=source[field];
-    if(field==="sections")content[field]=Array.isArray(value)?value.slice(0,20).map((item)=>{const row=item&&typeof item==="object"?item as Record<string,unknown>:{};return {heading:clean(row.heading,120),body:clean(row.body,5000)};}):[];
+    if(field==="heroSlides")content[field]=Array.isArray(value)?value.slice(0,10).map((item)=>clean(item,1_250_000)).filter((item)=>item.startsWith("https://")||item.startsWith("data:image/")):[];\n    else if(field==="theme")content[field]=["blue-light","emerald-dark","teal-light","purple-hybrid"].includes(String(value))?String(value):"blue-light";\n    else if(field==="logoImage")content[field]=clean(value,1_250_000).startsWith("data:image/")||clean(value,1_250_000).startsWith("https://")?clean(value,1_250_000):"";\n    else if(field==="sections")content[field]=Array.isArray(value)?value.slice(0,20).map((item)=>{const row=item&&typeof item==="object"?item as Record<string,unknown>:{};return {heading:clean(row.heading,120),body:clean(row.body,5000)};}):[];
     else if(field==="featuredCourseIds")content[field]=clean(value,1000).split(",").map(x=>x.trim()).filter(Boolean).slice(0,12);
-    else content[field]=clean(value,field==="ownerBio"||field==="goals"||field==="mission"||field==="vision"||field==="intro"?5000:field==="heroDescription"?1500:300);
+    else content[field]=clean(value,field==="ownerBio"||field==="goals"||field==="mission"||field==="vision"||field==="intro"?5000:field==="heroDescription"?1500:field==="clinicName"||field==="logoName"?120:300);
   }
   try{
     const db=await getClinicalDatabase();const now=new Date();
