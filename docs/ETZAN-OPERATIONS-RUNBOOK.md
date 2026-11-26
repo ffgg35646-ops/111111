@@ -26,7 +26,7 @@ If Moyasar sends a `webhook_verification` event, open `/platform-admin/payments`
 
 ## Temporary full admin preview (testing only)
 
-Set `ETZAN_ADMIN_PREVIEW_OPEN=true` only in the Vercel **Preview** environment. The bypass is additionally gated by Vercel's `VERCEL_ENV=preview`, so it cannot activate in Production. It provides a synthetic admin identity to the admin UI and role-guarded admin APIs, allowing the full management screens to be tested without the app login. Use a separate, disposable preview MongoDB database: anyone with the Preview deployment URL can perform admin actions against that database. Remove the variable after testing. Do not use real student, consultation, or payment data in this mode.
+Set `ETZAN_ADMIN_PREVIEW_OPEN=true` only in the Vercel **Preview** environment and set `MONGODB_DATABASE=clinical_learning_preview` (the database name must end in `_preview`). The bypass is gated by Vercel's `VERCEL_ENV=preview` and the separate database-name requirement, so it cannot activate in Production or against the default `clinical_learning` database. It provides a synthetic admin identity to the admin UI and role-guarded admin APIs, allowing the full management screens to be tested without the app login. Anyone with the Preview deployment URL can perform admin actions against that preview database. Remove the flag after testing. Do not use real student, consultation, or payment data in this mode.
 
 ## Operational URLs
 
