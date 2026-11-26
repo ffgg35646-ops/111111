@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 type SignedInUser = { name: string; email: string; role: string; sessionId?: string; avatarDataUrl?: string; permissions?: string[] };
+type SiteBranding = { clinicName: string; logoName: string; logoImage: string };
 type NavigationItem = { href: string; label: string; icon: LucideIcon; roles?: string[]; group: string };
 
 const roleLabels: Record<string, string> = {
@@ -52,9 +53,11 @@ const navigationGroups = ["التعلم والتطوير", "الأدوات وا�
 function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const [user, setUser] = useState<SignedInUser | null>(null);
+  const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
 
   useEffect(() => {
     let active = true;
+    fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active && data) setBranding({ clinicName: String(data.clinicName || "اتزان"), logoName: String(data.logoName || "ETZAN"), logoImage: String(data.logoImage || "/etzan-symbol.svg") }); }).catch(() => {});
     fetch("/api/auth/session", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) return;
@@ -94,8 +97,8 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
       <aside className={"portal-sidebar" + (sidebarOpen ? " is-open" : "")} aria-label="القائمة الرئيسية">
         <div className="portal-sidebar-header">
           <Link href="/" className="portal-sidebar-brand" onClick={onClose}>
-            <span className="portal-sidebar-brand-icon"><Scale size={23}/></span>
-            <span><strong>اتزان <small>| ETZAN</small></strong><em>من المعرفة إلى الممارسة</em></span>
+            <span className="portal-sidebar-brand-icon">{branding.logoImage ? <img src={branding.logoImage} alt="" style={{ width: 27, height: 27, objectFit: "contain" }}/> : <Scale size={23}/>}</span>
+            <span><strong>{branding.clinicName} <small>| {branding.logoName}</small></strong><em>من المعرفة إلى الممارسة</em></span>
           </Link>
           <button type="button" className="portal-sidebar-close" onClick={onClose} aria-label="إغلاق القائمة"><X size={18}/></button>
         </div>
@@ -137,7 +140,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
         <div className="portal-sidebar-bottom">
           {user && <div className="portal-account-links"><Link href="/account/profile" onClick={onClose}><Users size={15}/> الملف الشخصي</Link><Link href="/account/security" onClick={onClose}><ShieldCheck size={15}/> أمان الحساب</Link><Link href="/account/privacy" onClick={onClose}><LockKeyhole size={15}/> الخصوصية</Link></div>}
-          <div className="portal-sidebar-caption"><span>اتزان | ETZAN</span><small>بيئة تعلم وتطوير مهني</small></div>
+          <div className="portal-sidebar-caption"><span>{branding.clinicName} | {branding.logoName}</span><small>بيئة تعلم وتطوير مهني</small></div>
         </div>
       </aside>
       {user && <div className="etzan-session-watermark" aria-hidden="true"><span>{watermark}</span></div>}
@@ -147,6 +150,8 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
 
 export function PlatformLayout({ title, eyebrow = "اتزان", description, children }: { title: string; eyebrow?: string; description: string; children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [branding, setBranding] = useState<SiteBranding>({clinicName:"اتزان",logoName:"ETZAN",logoImage:"/etzan-symbol.svg"});
+  useEffect(() => { fetch("/api/site-branding", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (data) setBranding({clinicName:String(data.clinicName||"اتزان"),logoName:String(data.logoName||"ETZAN"),logoImage:String(data.logoImage||"/etzan-symbol.svg")}); }).catch(() => {}); }, []);
 
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -160,7 +165,7 @@ export function PlatformLayout({ title, eyebrow = "اتزان", description, chi
               <button type="button" className="portal-menu-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? "إغلاق القائمة" : "فتح القائمة"} aria-expanded={sidebarOpen}>
                 {sidebarOpen ? <X size={19}/> : <Menu size={19}/>}
               </button>
-              <div className="portal-breadcrumb"><span>اتزان</span><b>/</b><strong>{title}</strong></div>
+              <div className="portal-breadcrumb"><span>{branding.clinicName}</span><b>/</b><strong>{title}</strong></div>
             </div>
             <div className="portal-topbar-actions"><NotificationBell/><Link href="/" className="portal-home-link"><Home size={16}/> <span>الصفحة الرئيسية</span></Link></div>
           </header>
@@ -175,7 +180,7 @@ export function PlatformLayout({ title, eyebrow = "اتزان", description, chi
           </div>
 
           <footer className="portal-footer">
-            <span>اتزان | ETZAN</span>
+            <span>{branding.clinicName} | {branding.logoName}</span>
             <span>المحتوى والمحاكاة لأغراض التدريب المهني ولا تحل محل الممارسة المرخصة</span>
           </footer>
         </div>

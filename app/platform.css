@@ -489,3 +489,38 @@ body{width:100%;max-width:100%;overflow-x:clip}
 @media(max-width:380px){
  .trainee-dashboard>.trainee-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* Shared administrator/member workspace accent follows the clinic's selected theme */
+html[data-theme="blue-light"]{--portal-accent:#0878df;--portal-accent-soft:#e8f3ff}
+html[data-theme="emerald-dark"]{--portal-accent:#d5ae58;--portal-accent-soft:#25483e}
+html[data-theme="teal-light"]{--portal-accent:#078879;--portal-accent-soft:#e4f6f1}
+html[data-theme="purple-hybrid"]{--portal-accent:#7547bd;--portal-accent-soft:#f0e9fb}
+html[data-theme] .portal-sidebar-brand-icon{background:var(--portal-accent)!important;color:#fff!important}
+html[data-theme] .portal-side-link.active{background:var(--portal-accent-soft)!important;color:var(--portal-accent)!important;border-color:color-mix(in srgb,var(--portal-accent) 25%,transparent)!important}
+html[data-theme] .portal-button:not(.secondary){background:var(--portal-accent)!important;border-color:var(--portal-accent)!important}
+html[data-theme] .portal-link-button:not(.secondary){color:var(--portal-accent)!important}
+html[data-theme] .portal-side-link:hover{color:var(--portal-accent)!important}
+
+
+/* Approved learner dashboard hero */
+.trainee-hero-banner{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center;min-height:300px;margin:0 0 18px;padding:22px;border:1px solid #b9dcfa;border-radius:22px;background:linear-gradient(112deg,#f8fcff 0%,#e8f4ff 52%,#d9edff 100%);box-shadow:0 14px 36px #1d5b9410;overflow:hidden}
+.trainee-hero-copy{padding:12px 18px}.trainee-hero-kicker{display:inline-flex;padding:7px 11px;border-radius:30px;background:#dcefff;color:#0878df;font-size:10px;font-weight:800}
+.trainee-hero-copy h2{margin:15px 0 9px;color:#123a70;font-size:clamp(22px,3vw,34px);font-weight:900}
+.trainee-hero-copy p{max-width:490px;color:#5f7892;font-size:12px;line-height:2}
+.trainee-hero-copy>div{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin-top:18px}
+.trainee-hero-user{font-size:11px;color:#60788e;font-weight:700}
+.trainee-hero-media{min-width:0}.trainee-hero-media .etzan-slider{height:245px;border-radius:16px;border:5px solid #fff;box-shadow:0 15px 35px #173c5c1c}
+.trainee-hero-media .etzan-photo-caption{font-size:9px;padding:9px 11px}.trainee-hero-media .etzan-slider-dots{bottom:60px}
+html[data-theme="emerald-dark"] .trainee-hero-banner{background:linear-gradient(115deg,#102b25,#17483b);border-color:#376d5d}
+html[data-theme="emerald-dark"] .trainee-hero-copy h2{color:#f3f7f0}
+html[data-theme="emerald-dark"] .trainee-hero-copy p,.trainee-hero-user{color:#c1d5cb}
+html[data-theme="emerald-dark"] .trainee-hero-kicker{background:#285343;color:#e5c779}
+html[data-theme="teal-light"] .trainee-hero-banner{background:linear-gradient(115deg,#f7fffd,#e1f7f1);border-color:#b7e7dc}
+html[data-theme="teal-light"] .trainee-hero-kicker{background:#d7f3eb;color:#087f73}
+html[data-theme="teal-light"] .trainee-hero-copy h2{color:#075b59}
+html[data-theme="purple-hybrid"] .trainee-hero-banner{background:linear-gradient(115deg,#fbf8ff,#eee6fb);border-color:#d9c8f2}
+html[data-theme="purple-hybrid"] .trainee-hero-kicker{background:#e9ddfb;color:#7042b8}
+html[data-theme="purple-hybrid"] .trainee-hero-copy h2{color:#2c2054}
+@media(max-width:850px){.trainee-hero-banner{grid-template-columns:1fr}.trainee-hero-media .etzan-slider{height:240px}}
+@media(max-width:600px){.trainee-hero-banner{padding:13px;border-radius:16px;gap:10px}.trainee-hero-copy{padding:8px}.trainee-hero-copy h2{font-size:23px}.trainee-hero-media .etzan-slider{height:205px}}
