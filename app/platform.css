@@ -555,3 +555,78 @@ html[data-theme="emerald-dark"] :is(h1,h2,h3,h4,.portal-heading h1,.portal-secti
 html[data-theme="emerald-dark"] :is(p,.muted,.portal-heading p,.portal-section-title p,.breadcrumb){color:#b0c5ba}
 html[data-theme="emerald-dark"] .etzan-nav nav a,html[data-theme="emerald-dark"] .etzan-login{color:#d8e5dd}
 html[data-theme="emerald-dark"] .etzan-home{background:#0d211c}
+
+
+/* ETZAN trainee home — dark teal and gold dashboard reference */
+.etzan-member-dashboard{--member-bg:#03141b;--member-side:#04202a;--member-card:#07222b;--member-line:#12414c;--member-teal:#1bd1c0;--member-gold:#f5a623;--member-text:#f1f8f9;--member-muted:#8db0b6;background:var(--member-bg)!important;color:var(--member-text)!important}
+.etzan-member-dashboard .portal-shell{grid-template-columns:264px minmax(0,1fr);background:var(--member-bg)!important}
+.etzan-member-dashboard .portal-sidebar{background:linear-gradient(180deg,#05242e,#031a22)!important;border-inline-end:1px solid var(--member-line);box-shadow:none}
+.etzan-member-dashboard .portal-main{background:var(--member-bg)!important}
+.etzan-member-dashboard .portal-main>.portal-topbar{min-height:70px;background:#031b24f2!important;border-bottom:1px solid var(--member-line);color:var(--member-text);backdrop-filter:blur(14px)}
+.etzan-member-dashboard .portal-breadcrumb{color:#8db0b6}
+.etzan-member-dashboard .portal-breadcrumb strong{color:var(--member-text)}
+.etzan-member-dashboard .portal-home-link{background:#072a35;border-color:var(--member-line);color:#d7e9e9}
+.etzan-member-dashboard .portal-home-link:hover{background:#0a3540;border-color:var(--member-teal);color:#fff}
+.etzan-member-dashboard .portal-menu-toggle{background:#072a35;border-color:var(--member-line);color:var(--member-teal)}
+.etzan-member-dashboard .portal-main>.portal-content{max-width:1600px;padding:20px clamp(16px,2.2vw,32px) 38px}
+.etzan-member-dashboard .portal-heading{display:none}
+.etzan-member-dashboard .portal-footer{border-color:var(--member-line);color:#75969c}
+.etzan-member-dashboard .trainee-dashboard{gap:0}
+.etzan-member-dashboard .trainee-hero-banner{position:relative;grid-template-columns:1.1fr .9fr;min-height:285px;margin:0 0 16px;padding:20px 25px;border:1px solid #17505a!important;border-radius:20px;background:linear-gradient(100deg,#052a33 0%,#073c44 50%,#06353b 100%)!important;box-shadow:inset 0 0 60px #1bd1c012,0 14px 34px #0002;isolation:isolate}
+.etzan-member-dashboard .trainee-hero-banner:before{position:absolute;inset:0;z-index:-1;background:radial-gradient(380px 260px at 15% 55%,#1bd1c038,transparent 70%);content:""}
+.etzan-member-dashboard .trainee-hero-copy{padding:10px clamp(8px,2vw,25px)}
+.etzan-member-dashboard .trainee-hero-kicker{padding:6px 11px;border:1px solid #1bd1c044;border-radius:30px;background:#0c55534d!important;color:#a5eee2!important;font-size:10px}
+.etzan-member-dashboard .trainee-hero-copy h2{margin:12px 0;color:#f1f8f9!important;font-size:clamp(25px,3vw,39px);line-height:1.5}
+.etzan-member-dashboard .trainee-hero-copy p{max-width:510px;color:#c5dddf!important;font-size:12px;line-height:2}
+.etzan-member-dashboard .trainee-hero-copy>div{margin-top:17px}
+.etzan-member-dashboard .trainee-hero-copy .portal-button{min-height:42px;padding:10px 20px;border:0;border-radius:11px;background:linear-gradient(180deg,#ffb83d,#f08a12)!important;color:#2a1700!important;box-shadow:0 6px 20px #f5a62340;font-size:12px}
+.etzan-member-dashboard .trainee-hero-user{color:#b4d0d1!important;font-size:10px}
+.etzan-member-dashboard .trainee-hero-media .etzan-slider{height:230px;border:1px solid #36717a;border-radius:16px;box-shadow:0 14px 34px #00151b66}
+.etzan-member-dashboard .trainee-hero-media .etzan-photo-caption{color:#f1f8f9;background:linear-gradient(0deg,#031a22dd,transparent);font-size:10px}
+.etzan-member-dashboard .trainee-hero-media .etzan-slider-dots{bottom:48px}
+.etzan-member-dashboard .trainee-metrics-grid.etzan-home-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;margin:0 0 24px}
+.etzan-member-dashboard .trainee-metric-card{display:flex;align-items:center;gap:14px;min-height:100px!important;padding:14px 18px!important;border:1px solid var(--member-line)!important;border-radius:16px!important;background:linear-gradient(135deg,#07242e,#0a3540)!important;box-shadow:inset 0 0 22px #1bd1c00a}
+.etzan-member-dashboard .trainee-metric-card .track-icon{width:47px;height:47px;display:grid;place-items:center;flex:0 0 47px;border:1px solid #1bd1c044;border-radius:14px;background:#0d4a4d;color:var(--member-teal)}
+.etzan-member-dashboard .trainee-metric-card>div:nth-child(2){margin:0!important;color:#f1f8f9!important;font-size:27px!important;line-height:1.1}
+.etzan-member-dashboard .trainee-metric-card>strong{display:block;margin:3px 0 0!important;color:#d7e9e9!important;font-size:11px}
+.etzan-member-dashboard .trainee-metric-card>small{display:block;color:#9bbbc0!important;font-size:9px}
+.etzan-member-dashboard .member-dashboard-shortcuts{margin:0 0 25px}
+.etzan-member-dashboard .member-dashboard-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 13px}
+.etzan-member-dashboard .member-dashboard-section-heading h2{margin:0;color:#f1f8f9;font-size:19px;font-weight:800}
+.etzan-member-dashboard .member-dashboard-section-heading p{margin:4px 0 0;color:#8db0b6;font-size:10px}
+.etzan-member-dashboard .member-dashboard-section-heading>a{display:inline-flex;align-items:center;gap:6px;color:#d8e9e9;text-decoration:none;font-size:10px}
+.etzan-member-dashboard .member-dashboard-shortcut-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.etzan-member-dashboard .member-dashboard-shortcut{--shortcut:#f5a623;display:flex;min-width:0;min-height:178px;flex-direction:column;align-items:center;justify-content:center;padding:17px 12px 14px;border:1px solid color-mix(in srgb,var(--shortcut) 55%,transparent);border-radius:15px;background:linear-gradient(180deg,color-mix(in srgb,var(--shortcut) 14%,#071f27),#061a21);box-shadow:inset 0 0 24px color-mix(in srgb,var(--shortcut) 10%,transparent);color:#f1f8f9;text-align:center;text-decoration:none;transition:transform .2s,box-shadow .2s}
+.etzan-member-dashboard .member-dashboard-shortcut:hover{transform:translateY(-3px);box-shadow:0 0 22px color-mix(in srgb,var(--shortcut) 30%,transparent)}
+.etzan-member-dashboard .member-dashboard-shortcut>span{display:grid;width:48px;height:48px;place-items:center;margin-bottom:9px;border-radius:14px;background:color-mix(in srgb,var(--shortcut) 14%,#071f27);color:var(--shortcut)}
+.etzan-member-dashboard .member-dashboard-shortcut h3{margin:0 0 5px;color:#f1f8f9;font-size:13px}
+.etzan-member-dashboard .member-dashboard-shortcut p{margin:0 0 12px;color:#a9c4c9;font-size:10px;line-height:1.7}
+.etzan-member-dashboard .member-dashboard-shortcut>b{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border:1px solid var(--member-line);border-radius:8px;background:#082632;color:#eaf4f4;font-size:9px}
+.etzan-member-dashboard .member-dashboard-shortcut.accent-gold{--shortcut:#f5a623}
+.etzan-member-dashboard .member-dashboard-shortcut.accent-teal{--shortcut:#2ee6a6}
+.etzan-member-dashboard .member-dashboard-shortcut.accent-violet{--shortcut:#a07bff}
+.etzan-member-dashboard .member-dashboard-shortcut.accent-blue{--shortcut:#3d8bff}
+.etzan-member-dashboard .trainee-dashboard .portal-section-title{margin:0 0 13px}
+.etzan-member-dashboard .trainee-dashboard .portal-section-title h2{color:#f1f8f9;font-size:17px}
+.etzan-member-dashboard .trainee-dashboard .portal-section-title p{color:#8db0b6;font-size:10px}
+.etzan-member-dashboard .trainee-dashboard .portal-card{height:100%;border:1px solid var(--member-line)!important;border-radius:14px!important;background:linear-gradient(145deg,#07242e,#061c25)!important;color:#f1f8f9;box-shadow:inset 0 0 20px #1bd1c008}
+.etzan-member-dashboard .trainee-dashboard .portal-card h3{color:#f1f8f9}
+.etzan-member-dashboard .trainee-dashboard .portal-card p,.etzan-member-dashboard .trainee-dashboard .portal-card small{color:#9bbbc0!important}
+.etzan-member-dashboard .trainee-dashboard .portal-card .portal-chip{background:#0d3a42;color:#a8d4d0}
+.etzan-member-dashboard .trainee-dashboard .portal-card .portal-link-button.secondary{border-color:#1b4a53;background:#082b35;color:#bde5df}
+.etzan-member-dashboard .trainee-dashboard .portal-empty{border:1px dashed #24525b;border-radius:12px;background:#07232c;color:#9bbbc0}
+.etzan-member-dashboard .member-dashboard-search{display:flex;align-items:center;gap:10px;width:min(440px,42vw);height:42px;padding:0 15px;border:1px solid #16434d;border-radius:999px;background:#06222c;color:#a8c9cd}
+.etzan-member-dashboard .member-dashboard-search:focus-within{border-color:#1bd1c0}
+.etzan-member-dashboard .member-dashboard-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f1f8f9;font:inherit;font-size:11px}
+.etzan-member-dashboard .member-dashboard-search input::placeholder{color:#a6c3c8}
+.etzan-member-dashboard .member-dashboard-search button{border:0;background:transparent;color:#9bc4c5;font-size:18px}
+.etzan-member-dashboard .portal-callout{border-color:#6d5130;background:#302515;color:#f1d6a2}
+.etzan-member-dashboard .portal-skeleton{background:linear-gradient(90deg,#0a3039,#12414c,#0a3039)}
+@media(max-width:1100px){.etzan-member-dashboard .member-dashboard-shortcut-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.etzan-member-dashboard .trainee-metrics-grid.etzan-home-stats{gap:10px!important}}
+@media(max-width:850px){.etzan-member-dashboard .portal-shell{grid-template-columns:minmax(0,1fr)}.etzan-member-dashboard .trainee-hero-banner{grid-template-columns:1fr}.etzan-member-dashboard .trainee-hero-media .etzan-slider{height:225px}}
+@media(max-width:640px){.etzan-member-dashboard .portal-main>.portal-topbar{min-height:62px;padding:8px 13px;gap:8px}.etzan-member-dashboard .portal-topbar-actions{gap:8px}.etzan-member-dashboard .portal-home-link span{display:none}.etzan-member-dashboard .member-dashboard-search{width:min(52vw,270px);height:38px;padding:0 10px}.etzan-member-dashboard .portal-main>.portal-content{padding:14px 13px 28px}.etzan-member-dashboard .trainee-hero-banner{padding:13px;gap:9px}.etzan-member-dashboard .trainee-hero-copy{padding:7px}.etzan-member-dashboard .trainee-hero-copy h2{font-size:25px}.etzan-member-dashboard .trainee-hero-copy p{font-size:11px}.etzan-member-dashboard .trainee-hero-media .etzan-slider{height:190px}.etzan-member-dashboard .trainee-metrics-grid.etzan-home-stats{grid-template-columns:1fr!important;gap:9px!important}.etzan-member-dashboard .trainee-metric-card{min-height:83px!important;padding:11px 13px!important}.etzan-member-dashboard .member-dashboard-shortcut-grid{gap:9px}.etzan-member-dashboard .member-dashboard-shortcut{min-height:155px;padding:13px 8px}.etzan-member-dashboard .member-dashboard-shortcut h3{font-size:11px}.etzan-member-dashboard .member-dashboard-shortcut p{font-size:9px}.etzan-member-dashboard .trainee-dashboard .portal-grid:not(.trainee-metrics-grid){grid-template-columns:1fr!important}}
+
+.etzan-member-dashboard .trainee-metric-card .trainee-metric-copy{display:flex;min-width:0;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center}
+.etzan-member-dashboard .trainee-metric-card .trainee-metric-value{margin:0;color:#f1f8f9;font-size:27px;font-weight:800;line-height:1.15}
+.etzan-member-dashboard .trainee-metric-card .trainee-metric-copy>b{color:#d7e9e9;font-size:11px;font-weight:700}
+.etzan-member-dashboard .trainee-metric-card .trainee-metric-copy>small{color:#9bbbc0;font-size:9px}
