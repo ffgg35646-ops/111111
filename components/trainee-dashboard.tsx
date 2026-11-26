@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Activity, ArrowUpLeft, Award, BookOpen, Brain, CalendarDays,
-  ClipboardCheck, GraduationCap, PlayCircle, TrendingUp, Video,
+  ClipboardCheck, GraduationCap, PlayCircle, Search, TrendingUp, Video,
   type LucideIcon,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
@@ -60,6 +60,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
   const [loading, setLoading] = useState(true);
   const [clinicName, setClinicName] = useState("اتزان");
   const [heroSlides, setHeroSlides] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -76,7 +77,27 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
   }, []);
 
   const totalActivities = data?.summary.simulations || 0;
-  return <PlatformLayout title="لوحة المتدرب" description="مساحة موحدة لدوراتك ومساراتك واختباراتك وشهاداتك ومدفوعاتك ومواعيدك وتقدمك العملي.">
+  const normalizedSearch = searchTerm.trim().toLocaleLowerCase("ar");
+  const filteredCourses = (data?.courses || []).filter((course) =>
+    !normalizedSearch || (course.title + " " + course.trackTitle).toLocaleLowerCase("ar").includes(normalizedSearch)
+  );
+  const filteredTracks = (data?.tracks || []).filter((track) =>
+    !normalizedSearch || (track.title + " " + track.summary).toLocaleLowerCase("ar").includes(normalizedSearch)
+  );
+  const dashboardSearch = (
+    <label className="member-dashboard-search">
+      <Search size={16} aria-hidden="true"/>
+      <input
+        type="search"
+        value={searchTerm}
+        onChange={(event) => setSearchTerm(event.target.value)}
+        placeholder="ابحث في الدورات والمسارات..."
+        aria-label="ابحث في الدورات والمسارات"
+      />
+      {searchTerm && <button type="button" onClick={() => setSearchTerm("")} aria-label="مسح البحث">×</button>}
+    </label>
+  );
+  return <PlatformLayout title="لوحة المتدرب" description="مساحة موحدة لدوراتك ومساراتك واختباراتك وشهاداتك ومدفوعاتك ومواعيدك وتقدمك العملي." headerContent={dashboardSearch}>
     <div className="trainee-dashboard">
     <section className="trainee-hero-banner"><div className="trainee-hero-copy"><span className="trainee-hero-kicker">مساحتك للتعلم والدعم النفسي</span><h2>أهلاً بك في {clinicName}</h2><p>واصل رحلتك، طوّر مهاراتك، واستفد من البرامج والمسارات المهنية في بيئة تعلم آمنة.</p><div><Link className="portal-button" href="/academy">استكشف الدورات <GraduationCap size={15}/></Link><span className="trainee-hero-user">{name}</span></div></div><div className="trainee-hero-media"><HomeHeroSlider images={heroSlides}/></div></section>
 
@@ -92,10 +113,31 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
         <Metric icon={Brain} label="المحاكاة" value={totalActivities} hint="جلسات تدريب مسجلة"/>
       </div>
 
+      <section className="member-dashboard-shortcuts" aria-label="أقسام الأكاديمية">
+        <div className="member-dashboard-section-heading">
+          <div><h2>أقسام الأكاديمية</h2><p>انتقل مباشرة إلى المساحة التي تريدها.</p></div>
+          <span>اكتشف المزيد <ArrowUpLeft size={14}/></span>
+        </div>
+        <div className="member-dashboard-shortcut-grid">
+          <Link href="/academy" className="member-dashboard-shortcut accent-gold">
+            <span><BookOpen size={21}/></span><h3>الدورات التدريبية</h3><p>تعلم في أي وقت وتابع تقدمك</p><b>دخول القسم <ArrowUpLeft size={14}/></b>
+          </Link>
+          <Link href="/specialties" className="member-dashboard-shortcut accent-teal">
+            <span><GraduationCap size={21}/></span><h3>المسارات المهنية</h3><p>استكشف التخصصات والمسارات</p><b>دخول القسم <ArrowUpLeft size={14}/></b>
+          </Link>
+          <Link href="/cases" className="member-dashboard-shortcut accent-violet">
+            <span><Brain size={21}/></span><h3>المختبرات العملية</h3><p>تدرب على الحالات والمهارات</p><b>دخول القسم <ArrowUpLeft size={14}/></b>
+          </Link>
+          <Link href="/certificates/mine" className="member-dashboard-shortcut accent-blue">
+            <span><Award size={21}/></span><h3>الشهادات</h3><p>راجع إنجازاتك وشهاداتك</p><b>دخول القسم <ArrowUpLeft size={14}/></b>
+          </Link>
+        </div>
+      </section>
+
       <section style={{ marginTop: 24 }}>
         <SectionHeading title="دوراتي" description="الدورات التي تقدمت للالتحاق بها وحالة التسجيل والتقدم." href="/academy" linkLabel="كتالوج الدورات"/>
         <div className="portal-grid">
-          {data.courses.map((course) => <article className="portal-card trainee-course-card" key={course.id}>
+          {filteredCourses.map((course) => <article className="portal-card trainee-course-card" key={course.id}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}><span className="portal-chip">{course.trackTitle}</span><span className="portal-chip">{course.paid ? "ملتحق" : stateLabel[course.status] || "قيد الإجراء"}</span></div>
             <h3>{course.title}</h3>
             <p>{course.mode === "recorded" ? "تعلم ذاتي مسجل" : course.mode === "hybrid" ? "تعلم مباشر ومسجل" : "تعلم مباشر"}</p>
@@ -103,14 +145,14 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
             <small style={{ color: "#758493" }}>{course.completedLessons} من {course.totalLessons} وحدة · {course.progressPercent}%</small>
             <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}><Link className="portal-button" href={"/academy/" + course.id}>{course.paid ? "متابعة التعلم" : "تفاصيل الدورة"}</Link>{!course.paid && <span className="portal-chip">{stateLabel[course.paymentStatus] || "بانتظار اعتماد الالتحاق"}</span>}</div>
           </article>)}
-          {!data.courses.length && <div className="portal-empty">لم تسجل في دورة بعد. استعرض الأكاديمية واختر دورة للبدء.</div>}
+          {!filteredCourses.length && <div className="portal-empty">{normalizedSearch ? "لا توجد دورات تطابق عبارة البحث." : "لم تسجل في دورة بعد. استعرض الأكاديمية واختر دورة للبدء."}</div>}
         </div>
       </section>
 
       <section style={{ marginTop: 24 }}>
         <SectionHeading title="المسارات التخصصية" description="المجالات المهنية المتاحة، مع تمييز المسارات التي بدأت فيها." href="/specialties" linkLabel="كل المسارات"/>
         <div className="portal-grid">
-          {data.tracks.map((track) => <article className="portal-card trainee-track-card" key={track.id}>
+          {filteredTracks.map((track) => <article className="portal-card trainee-track-card" key={track.id}>
             <span className="track-icon"><GraduationCap size={18}/></span><h3>{track.title}</h3><p>{track.summary}</p>
             <small style={{ color: "#758493" }}>{track.enrolledCount ? "بدأت هذا المسار في " + track.enrolledCount + " دورة" : "لم تبدأ هذا المسار بعد"}</small>
             <div style={{ marginTop: 12 }}><Link className="portal-link-button secondary" href={"/academy?track=" + encodeURIComponent(track.id)}>استعراض دورات المسار</Link></div>
