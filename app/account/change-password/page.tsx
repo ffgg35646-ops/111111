@@ -48,7 +48,7 @@ export default function ChangePasswordPage() {
       if (!response.ok) throw new Error(data.error || "تعذر تحديث كلمة المرور.");
       setSuccess("تم تحديث كلمة المرور. جارٍ فتح المنصة...");
       setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-      window.setTimeout(() => router.replace("/"), 700);
+      window.setTimeout(() => router.replace("/dashboard"), 700);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر تحديث كلمة المرور.");
     } finally {
