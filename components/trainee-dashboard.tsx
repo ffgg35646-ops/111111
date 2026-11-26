@@ -99,24 +99,21 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
   );
   return <PlatformLayout title="لوحة المتدرب" description="مساحة موحدة لدوراتك ومساراتك واختباراتك وشهاداتك ومدفوعاتك ومواعيدك وتقدمك العملي." headerContent={dashboardSearch}>
     <div className="trainee-dashboard">
-    <section className="trainee-hero-banner"><div className="trainee-hero-copy"><span className="trainee-hero-kicker">مساحتك للتعلم والدعم النفسي</span><h2>أهلاً بك في {clinicName}</h2><p>واصل رحلتك، طوّر مهاراتك، واستفد من البرامج والمسارات المهنية في بيئة تعلم آمنة.</p><div><Link className="portal-button" href="/academy">استكشف الدورات <GraduationCap size={15}/></Link><span className="trainee-hero-user">{name}</span></div></div><div className="trainee-hero-media"><HomeHeroSlider images={heroSlides}/></div></section>
+    <section className="trainee-hero-banner"><div className="trainee-hero-copy"><span className="trainee-hero-kicker">من المعرفة إلى الممارسة</span><h2>ابدأ رحلتك التعليمية<br/>مع {clinicName}</h2><p>طوّر مهاراتك واكتشف مسارك نحو مستقبل أفضل، وتابع تقدمك في بيئة تعلم مهنية متكاملة.</p><div><Link className="portal-button" href="/specialties">استكشف المسارات <GraduationCap size={16}/></Link><span className="trainee-hero-user">مرحباً، {name}</span></div></div><div className="trainee-hero-media"><HomeHeroSlider images={heroSlides}/></div></section>
 
     {error && <div className="portal-callout" role="alert">{error}</div>}
     {loading && <div className="portal-grid trainee-metrics-grid" aria-busy="true" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12 }}>{[0,1,2,3,4,5].map((item)=><section className="portal-card" key={item}><div className="portal-skeleton" style={{width:38,height:38,borderRadius:11,marginBottom:14}}/><div className="portal-skeleton" style={{width:"58%",height:11,marginBottom:12}}/><div className="portal-skeleton" style={{width:"38%",height:24,marginBottom:10}}/><div className="portal-skeleton" style={{width:"78%",height:9}}/></section>)}</div>}
     {data && <>
-      <div className="portal-grid trainee-metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12 }}>
-        <Metric icon={BookOpen} label="دوراتي النشطة" value={data.summary.enrolledCourses} hint={"منها " + data.summary.completedCourses + " مكتملة"}/>
-        <Metric icon={TrendingUp} label="تقدم التعلم" value={data.summary.progressPercent + "%"} hint={data.summary.completedLessons + " من " + data.summary.totalLessons + " وحدة"}/>
-        <Metric icon={Award} label="الشهادات السارية" value={data.summary.certificates} hint="شهادات إتمام موثقة"/>
-        <Metric icon={CalendarDays} label="المواعيد القادمة" value={data.summary.upcomingAppointments} hint="استشارات وفصول مباشرة"/>
-        <Metric icon={ClipboardCheck} label="الاختبارات" value={data.summary.assessmentAttempts} hint="محاولات محفوظة"/>
-        <Metric icon={Brain} label="المحاكاة" value={totalActivities} hint="جلسات تدريب مسجلة"/>
+      <div className="portal-grid trainee-metrics-grid etzan-home-stats" style={{ gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 }}>
+        <Metric icon={GraduationCap} label="مسار تدريبي" value={data.tracks.length} hint="المسارات المتاحة لك في المنصة"/>
+        <Metric icon={PlayCircle} label="دورة تدريبية" value={data.summary.enrolledCourses} hint={data.summary.completedCourses + " دورة مكتملة"}/>
+        <Metric icon={Award} label="نسبة الإنجاز" value={data.summary.progressPercent + "%"} hint={data.summary.completedLessons + " من " + data.summary.totalLessons + " وحدة مكتملة"}/>
       </div>
 
       <section className="member-dashboard-shortcuts" aria-label="أقسام الأكاديمية">
         <div className="member-dashboard-section-heading">
-          <div><h2>أقسام الأكاديمية</h2><p>انتقل مباشرة إلى المساحة التي تريدها.</p></div>
-          <span>اكتشف المزيد <ArrowUpLeft size={14}/></span>
+          <div><h2>أقسام الأكاديمية</h2><p>اكتشف مساحات التعلم والتطبيق والتطوير المهني.</p></div>
+          <Link href="/academy">عرض الكل <ArrowUpLeft size={14}/></Link>
         </div>
         <div className="member-dashboard-shortcut-grid">
           <Link href="/academy" className="member-dashboard-shortcut accent-gold">
