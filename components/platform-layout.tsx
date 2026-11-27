@@ -124,6 +124,7 @@ function PlatformChrome({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClos
             <Home size={17}/><span>الرئيسية</span>
           </Link>
           {user?.role === "trainee" && <Link href="/support" onClick={onClose} className={"portal-side-link" + (isActive("/support") ? " active" : "")}><MessageSquare size={17}/><span>الدعم الفني</span></Link>}
+          {user?.role === "trainee" && <Link href="/my-books" onClick={onClose} className={"portal-side-link" + (isActive("/my-books") ? " active" : "")}><Library size={17}/><span>كتبي</span></Link>}
           {user && ["admin", "platform_manager", "support"].includes(user.role) && <Link href="/platform-admin/support" onClick={onClose} className={"portal-side-link" + (isActive("/platform-admin/support") ? " active" : "")}><MessageSquare size={17}/><span>تذاكر دعم الطلاب</span></Link>}
 
           {navigationGroups.map((group) => {

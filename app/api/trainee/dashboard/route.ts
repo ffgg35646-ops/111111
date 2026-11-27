@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       const lessonCount = staticCourse?.lessons.length ?? (Array.isArray(customCourse?.lessons) ? customCourse.lessons.length : 0);
       const progress = progressByCourse.get(courseId);
       const completedLessons = Array.isArray(progress?.completedLessons) ? progress.completedLessons.length : 0;
-      const paid = registration.status === "approved" && (registration.paymentStatus === "paid" || registration.kind === "classroom_registration");
+      const paid = registration.status === "approved" && (registration.paymentStatus === "paid" || registration.paymentStatus === "coupon_redeemed" || registration.kind === "classroom_registration");
       return [{
         id: courseId,
         title,
@@ -84,6 +84,22 @@ export async function GET(request: NextRequest) {
         ...(registration.kind === "classroom_registration" && registration.status === "approved" && registration.zoomMeeting ? { zoomMeeting: registration.zoomMeeting } : {}),
       }];
     }).sort((a, b) => Number(b.paid) - Number(a.paid));
+
+    const coursePriceRows = enrolledCourses.length
+      ? await db.collection("etzan_course_prices").find(
+          { courseId: { $in: enrolledCourses.map((course) => course.id) }, active: true },
+          { projection: { _id: 0, courseId: 1, price: 1, currency: 1 } },
+        ).toArray()
+      : [];
+    const coursePriceById = new Map(coursePriceRows.map((row) => [String(row.courseId), row]));
+    const enrolledCoursesWithPrices = enrolledCourses.map((course) => {
+      const configuredPrice = coursePriceById.get(course.id);
+      return {
+        ...course,
+        price: typeof configuredPrice?.price === "number" ? configuredPrice.price : null,
+        currency: typeof configuredPrice?.currency === "string" ? configuredPrice.currency : "SAR",
+      };
+    });
 
     const paidCourseIds = enrolledCourses.filter((course) => course.paid).map((course) => course.id);
     const [sessions] = await Promise.all([
@@ -181,7 +197,7 @@ export async function GET(request: NextRequest) {
         simulations: activities.length,
         assessmentAttempts: allAssessmentAttempts.length,
       },
-      courses: enrolledCourses,
+      courses: enrolledCoursesWithPrices,
       tracks: learningTracks.map((track) => ({
         id: track.id,
         title: track.title,

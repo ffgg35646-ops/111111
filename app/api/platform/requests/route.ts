@@ -4,6 +4,7 @@ import { getClinicalDatabase } from "@/lib/mongodb";
 import { requirePlatformRole } from "@/lib/platform-auth";
 import { courses } from "@/lib/platform-catalog";
 import { calculateCommercePrice } from "@/lib/platform-commerce";
+import { finalizePaidBookInventory } from "@/lib/book-orders";
 import { sendConsultationNotice } from "@/lib/consultation-notifications";
 
 export const runtime = "nodejs";
@@ -92,11 +93,18 @@ export async function POST(request: NextRequest) {
     if (learner.email.toLowerCase() !== email) return NextResponse.json({ error: "استخدم البريد الإلكتروني نفسه المسجل في حساب المتدرب حتى يُفتح محتوى الدورة بعد الدفع." }, { status: 403 });
   }
 
+  let bookBuyer: Awaited<ReturnType<typeof requirePlatformRole>> = null;
+  if (kind === "book_order") {
+    bookBuyer = await requirePlatformRole(request, ["trainee"]);
+    if (!bookBuyer) return NextResponse.json({ error: "سجّل الدخول بحساب طالب لإتمام شراء الكتب." }, { status: 401 });
+    if (bookBuyer.email.toLowerCase() !== email) return NextResponse.json({ error: "يجب إتمام شراء الكتاب بالبريد الإلكتروني المسجل في حساب الطالب." }, { status: 403 });
+  }
+
   const record: Record<string, unknown> = {
     requestId: randomUUID(),
     kind,
-    name,
-    email,
+    name: bookBuyer?.name || name,
+    email: bookBuyer?.email.toLowerCase() || email,
     phone,
     status: "pending_review",
     createdAt: new Date(),
@@ -104,6 +112,7 @@ export async function POST(request: NextRequest) {
     schemaVersion: 1,
     couponCode: cleanText(data.couponCode, 40).toUpperCase().replace(/[^A-Z0-9_-]/g, ""),
   };
+  if (bookBuyer) record.userId = bookBuyer.userId;
 
   if (kind === "course_enrollment" || kind === "classroom_registration") {
     const courseId = cleanText(data.courseId, 80);
@@ -210,12 +219,13 @@ export async function POST(request: NextRequest) {
     if (Number(record.expectedAmount) <= 0 || Number(record.expectedAmount) > 10000000) return NextResponse.json({error:"إجمالي قيمة طلب الكتب يجب أن يكون أكبر من صفر ولا يتجاوز 10,000,000 ريال."},{status:400});
     let breakdown;
     try {
-      breakdown = await calculateCommercePrice(db, Number(record.expectedAmount), "book", String(record.couponCode || ""));
+      breakdown = await calculateCommercePrice(db, Number(record.expectedAmount), "book", String(record.couponCode || ""), true);
     } catch (error) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "تعذر حساب إجمالي الكتب." }, { status: 400 });
     }
-    record.status = "awaiting_payment";
-    record.paymentStatus = "payment_due";
+    const fullyCoveredByCoupon = breakdown.totalAmount === 0 && Boolean(breakdown.couponCode);
+    record.status = fullyCoveredByCoupon ? "approved" : "awaiting_payment";
+    record.paymentStatus = fullyCoveredByCoupon ? "coupon_redeemed" : "payment_due";
     record.quotedAmount = breakdown.totalAmount;
     record.subtotalAmount = breakdown.subtotalAmount;
     record.discountAmount = breakdown.discountAmount;
@@ -224,11 +234,31 @@ export async function POST(request: NextRequest) {
     record.pricesIncludeVat = breakdown.pricesIncludeVat;
     record.couponCode = breakdown.couponCode || "";
     record.currency = "SAR";
-    record.deliveryRegion = cleanText(data.deliveryRegion, 80);
+    record.deliveryRegion = cleanText(data.governorate ?? data.deliveryRegion, 80);
+    record.deliveryCity = cleanText(data.city, 80);
+    record.deliveryAddress = cleanText(data.deliveryAddress ?? data.address, 250);
+    record.deliveryRecipient = cleanText(data.recipientName ?? data.deliveryRecipient, 100);
+    record.deliveryPhone = cleanText(data.deliveryPhone ?? phone, 40);
     record.orderNote = cleanText(data.orderNote, 300);
+    if (enriched.some((item) => item.productType === "physical")) {
+      if (String(record.deliveryRecipient).length < 2 || String(record.deliveryPhone).length < 7 ||
+          String(record.deliveryRegion).length < 2 || String(record.deliveryCity).length < 2 ||
+          String(record.deliveryAddress).length < 6) {
+        return NextResponse.json({ error: "أكمل اسم المستلم والهاتف والمحافظة والمدينة والعنوان لتوصيل الكتاب الورقي." }, { status: 400 });
+      }
+      record.phone = record.deliveryPhone;
+    }
+    if (fullyCoveredByCoupon) {
+      const now = new Date();
+      record.paymentProvider = "coupon";
+      record.couponRedeemedAt = now;
+      record.couponConsumedAt = now;
+      record.approvedAt = now;
+    }
   }
 
   let reservedSlotId = "";
+  let claimedFreeBookCoupon = "";
   const reservedBooks: {bookId:string;quantity:number}[] = [];
   try {
     const db = await getClinicalDatabase();
@@ -260,12 +290,41 @@ export async function POST(request: NextRequest) {
       record.providerName = slot.providerName;
       record.durationMinutes = slot.durationMinutes;
     }
+    if (kind === "book_order" && record.paymentStatus === "coupon_redeemed" && typeof record.couponCode === "string" && record.couponCode) {
+      const now = new Date();
+      const couponFilter = {
+        code: record.couponCode,
+        active: true,
+        $and: [
+          { $or: [{ startsAt: { $exists: false } }, { startsAt: { $lte: now } }] },
+          { $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }] },
+          { $or: [{ maxUses: { $exists: false } }, { maxUses: null }, { $expr: { $lt: [{ $ifNull: ["$usedCount", 0] }, "$maxUses"] } }] },
+          { $or: [{ appliesTo: "all" }, { appliesTo: "book" }] },
+        ],
+      };
+      const claimed = await db.collection("etzan_coupons").updateOne(
+        couponFilter,
+        { $inc: { usedCount: 1 }, $set: { updatedAt: now } },
+      );
+      if (claimed.modifiedCount !== 1) {
+        for (const item of reservedBooks) await db.collection("etzan_books").updateOne({bookId:item.bookId},{$inc:{stock:item.quantity,reserved:-item.quantity}});
+        return NextResponse.json({ error: "لم يعد كود الخصم متاحاً أو انتهت مرات استخدامه. حدّث الطلب وحاول مجدداً." }, { status: 409 });
+      }
+      claimedFreeBookCoupon = record.couponCode;
+    }
+
     let result;
     try { result = await db.collection("platform_requests").insertOne(record); }
     catch (error) {
+      if (claimedFreeBookCoupon) {
+        await db.collection("etzan_coupons").updateOne({ code: claimedFreeBookCoupon, usedCount: { $gt: 0 } }, { $inc: { usedCount: -1 } });
+      }
       if (reservedSlotId) await db.collection("platform_consultant_slots").updateOne({ slotId: reservedSlotId, reservationId: record.requestId, status: "reserved" }, { $set: { status: "open" }, $unset: { reservationId: "", reservedUntil: "" } });
       for (const item of reservedBooks) await db.collection("etzan_books").updateOne({bookId:item.bookId},{$inc:{stock:item.quantity,reserved:-item.quantity}});
       throw error;
+    }
+    if (kind === "book_order" && record.paymentStatus === "coupon_redeemed") {
+      await finalizePaidBookInventory(db, String(record.requestId));
     }
     if (kind === "consultation") {
       const manageUrl = new URL("/my-consultations", request.nextUrl.origin);

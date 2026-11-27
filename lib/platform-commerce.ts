@@ -22,6 +22,7 @@ export async function calculateCommercePrice(
   subtotalInput: number,
   scope: CommerceScope,
   couponInput = "",
+  allowZeroTotal = false,
 ): Promise<PriceBreakdown> {
   const subtotalAmount = money(subtotalInput);
   if (!Number.isFinite(subtotalAmount) || subtotalAmount <= 0 || subtotalAmount > 10000000) {
@@ -38,7 +39,7 @@ export async function calculateCommercePrice(
       $and: [
         { $or: [{ startsAt: { $exists: false } }, { startsAt: { $lte: now } }] },
         { $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }] },
-        { $or: [{ maxUses: { $exists: false } }, { $expr: { $lt: ["$usedCount", "$maxUses"] } }] },
+        { $or: [{ maxUses: { $exists: false } }, { maxUses: null }, { $expr: { $lt: [{ $ifNull: ["$usedCount", 0] }, "$maxUses"] } }] },
         { $or: [{ appliesTo: "all" }, { appliesTo: scope }] },
       ],
     });
@@ -69,7 +70,7 @@ export async function calculateCommercePrice(
     ? money(pricesIncludeVat ? taxable * vatRateBps / (10000 + vatRateBps) : taxable * vatRateBps / 10000)
     : 0;
   const totalAmount = money(pricesIncludeVat ? taxable : taxable + taxAmount);
-  if (totalAmount < 1) throw new Error("يجب ألا يقل إجمالي الطلب بعد الخصم والضريبة عن ريال واحد.");
+  if (allowZeroTotal ? totalAmount > 0 && totalAmount < 1 : totalAmount < 1) throw new Error("يجب ألا يقل إجمالي الطلب بعد الخصم والضريبة عن ريال واحد، إلا عند تغطيته بالكامل بكود الخصم.");
   return {
     subtotalAmount,
     discountAmount,

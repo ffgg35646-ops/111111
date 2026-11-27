@@ -20,7 +20,7 @@ type DashboardData = {
   courses: Array<{
     id: string; title: string; trackId: string; trackTitle: string; mode: string; status: string;
     paymentStatus: string; paid: boolean; completedLessons: number; totalLessons: number;
-    progressPercent: number; updatedAt?: string | null;
+    progressPercent: number; price: number | null; currency: string; updatedAt?: string | null;
   }>;
   tracks: Array<{ id: string; title: string; summary: string; enrolledCount: number }>;
   certificates: Array<{ serial: string; courseTitle: string; issuedAt: string; status: string }>;
@@ -133,7 +133,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
         </div>
       </section>
 
-      <section style={{ marginTop: 24 }}>
+      <section id="my-courses" style={{ marginTop: 24 }}>
         <SectionHeading title="دوراتي" description="الدورات التي تقدمت للالتحاق بها وحالة التسجيل والتقدم." href="/academy" linkLabel="كتالوج الدورات"/>
         <div className="portal-grid">
           {filteredCourses.map((course) => <article className="portal-card trainee-course-card" key={course.id}>
@@ -142,7 +142,17 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
             <p>{course.mode === "recorded" ? "تعلم ذاتي مسجل" : course.mode === "hybrid" ? "تعلم مباشر ومسجل" : "تعلم مباشر"}</p>
             <div style={{ height: 8, background: "#edf1f3", borderRadius: 20, overflow: "hidden", margin: "12px 0 7px" }}><div style={{ width: course.progressPercent + "%", height: "100%", background: "#168b86", borderRadius: 20 }}/></div>
             <small style={{ color: "#758493" }}>{course.completedLessons} من {course.totalLessons} وحدة · {course.progressPercent}%</small>
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}><Link className="portal-button" href={"/academy/" + course.id}>{course.paid ? "متابعة التعلم" : "تفاصيل الدورة"}</Link>{!course.paid && <span className="portal-chip">{stateLabel[course.paymentStatus] || "بانتظار اعتماد الالتحاق"}</span>}</div>
+            <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+              <Link className="portal-button" href={"/academy/" + course.id + "/details?source=account"}>تفاصيل الكورس</Link>
+              {course.paid ? (
+                <Link className="portal-button secondary" href={"/academy/" + course.id}>ابدأ التعلم</Link>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+                  <strong style={{ color: "#147f76", fontSize: 12 }}>{course.price !== null ? new Intl.NumberFormat("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(course.price) + " " + (course.currency || "SAR") : "يحدد بعد مراجعة الطلب"}</strong>
+                  <Link className="portal-button secondary" href={"/academy/" + course.id + "/request"}>اشترك الآن</Link>
+                </div>
+              )}
+            </div>
           </article>)}
           {!filteredCourses.length && <div className="portal-empty">{normalizedSearch ? "لا توجد دورات تطابق عبارة البحث." : "لم تسجل في دورة بعد. استعرض الأكاديمية واختر دورة للبدء."}</div>}
         </div>

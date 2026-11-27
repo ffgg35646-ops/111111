@@ -9,7 +9,7 @@ type RequestRecord = {
   requestId: string; kind: string; name: string; email: string; phone?: string; status: string;
   courseTitle?: string; serviceId?: string; preferredAt?: string; requestNote?: string;
   durationMinutes?: number; attendees?: number; roomPurpose?: string;
-  items?: { bookId: string; quantity: number; title?: string; productType?: string; unitPrice?: number }[]; deliveryRegion?: string; orderNote?: string; expectedAmount?: number;
+  items?: { bookId: string; quantity: number; title?: string; productType?: string; unitPrice?: number }[]; deliveryRegion?: string; deliveryCity?: string; deliveryAddress?: string; deliveryRecipient?: string; deliveryPhone?: string; orderNote?: string; expectedAmount?: number;
   adminNote?: string; quotedAmount?: number; currency?: string; paymentStatus?: string; paymentId?: string; cancellationRequestedAt?: string; cancellationRefundStatus?: string; rescheduledAt?: string;
   zoomMeeting?: { joinUrl?: string; startTime?: string }; createdAt?: string;
 };
@@ -126,7 +126,7 @@ export default function PlatformRequestManagementPage() {
       {requests.map(item=><article className="portal-card" key={item.requestId} style={{padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",alignItems:"center"}}>
           <div><span className="portal-chip">{kindNames[item.kind]||item.kind}</span><h3 style={{margin:"9px 0 4px"}}>{item.name}</h3><small style={{color:"#71808d"}}>{item.email}{item.phone?" · "+item.phone:""}</small></div>
-          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"?"تم الدفع والاعتماد":item.status==="awaiting_payment"?"بانتظار الدفع":item.status==="rejected"?"مرفوض":item.status==="cancellation_requested"?"طلب إلغاء بانتظار الاسترداد":item.status==="cancelled"?"ملغي":item.status==="refunded"?"مسترد":item.status==="completed"?"مكتمل":item.status==="provisioning"?"جارٍ تجهيز الاجتماع":"بانتظار المراجعة"}</strong>
+          <strong style={{fontSize:12,color:item.status==="pending_review"?"#a36d2c":item.status==="approved"?"#287b61":"#b64b48"}}>{item.status==="pending_review"?"قيد المراجعة":item.status==="approved"&&item.paymentStatus==="coupon_redeemed"?"تم التفعيل بكود خصم":item.status==="approved"?"تم الدفع والاعتماد":item.status==="awaiting_payment"?"بانتظار الدفع":item.status==="rejected"?"مرفوض":item.status==="cancellation_requested"?"طلب إلغاء بانتظار الاسترداد":item.status==="cancelled"?"ملغي":item.status==="refunded"?"مسترد":item.status==="completed"?"مكتمل":item.status==="provisioning"?"جارٍ تجهيز الاجتماع":"بانتظار المراجعة"}</strong>
         </div>
         <div style={{display:"grid",gap:5,fontSize:12,color:"#536a75",marginTop:12}}>
           {item.courseTitle&&<div>الدورة: {item.courseTitle}</div>}
@@ -135,7 +135,11 @@ export default function PlatformRequestManagementPage() {
           {item.durationMinutes&&<div>المدة: {item.durationMinutes} دقيقة · الحضور: {item.attendees||"—"}</div>}
           {item.roomPurpose&&<div>الغرض: {item.roomPurpose}</div>}
           {item.items&&<div>الكتب: {item.items.map(row=>(row.title||bookNames[row.bookId]||row.bookId)+" × "+row.quantity).join("، ")}</div>}
-          {item.deliveryRegion&&<div>منطقة التسليم: {item.deliveryRegion}</div>}
+          {item.deliveryRecipient&&<div>اسم المستلم: {item.deliveryRecipient}</div>}
+          {item.deliveryPhone&&<div>هاتف التوصيل: {item.deliveryPhone}</div>}
+          {item.deliveryRegion&&<div>المحافظة: {item.deliveryRegion}</div>}
+          {item.deliveryCity&&<div>المدينة: {item.deliveryCity}</div>}
+          {item.deliveryAddress&&<div>العنوان بالتفصيل: {item.deliveryAddress}</div>}
           {item.requestNote&&<div>ملاحظات: {item.requestNote}</div>}
           {item.orderNote&&<div>ملاحظة الطلب: {item.orderNote}</div>}
           {(item.quotedAmount||item.expectedAmount)&&<div>الإجمالي: {item.quotedAmount||item.expectedAmount} {item.currency||"SAR"} · حالة الدفع: {item.paymentStatus==="payment_due"?"بانتظار الدفع":item.paymentStatus||"غير محدد"}</div>}
