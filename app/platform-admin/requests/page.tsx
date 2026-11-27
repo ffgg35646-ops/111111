@@ -9,7 +9,7 @@ type RequestRecord = {
   requestId: string; kind: string; name: string; email: string; phone?: string; status: string;
   courseTitle?: string; serviceId?: string; preferredAt?: string; requestNote?: string;
   durationMinutes?: number; attendees?: number; roomPurpose?: string;
-  items?: { bookId: string; quantity: number; title?: string; productType?: string; unitPrice?: number }[]; deliveryRegion?: string; orderNote?: string; expectedAmount?: number;
+  items?: { bookId: string; quantity: number; title?: string; productType?: string; unitPrice?: number }[]; deliveryRegion?: string; deliveryCity?: string; deliveryAddress?: string; deliveryRecipient?: string; deliveryPhone?: string; orderNote?: string; expectedAmount?: number;
   adminNote?: string; quotedAmount?: number; currency?: string; paymentStatus?: string; paymentId?: string; cancellationRequestedAt?: string; cancellationRefundStatus?: string; rescheduledAt?: string;
   zoomMeeting?: { joinUrl?: string; startTime?: string }; createdAt?: string;
 };
@@ -135,7 +135,11 @@ export default function PlatformRequestManagementPage() {
           {item.durationMinutes&&<div>المدة: {item.durationMinutes} دقيقة · الحضور: {item.attendees||"—"}</div>}
           {item.roomPurpose&&<div>الغرض: {item.roomPurpose}</div>}
           {item.items&&<div>الكتب: {item.items.map(row=>(row.title||bookNames[row.bookId]||row.bookId)+" × "+row.quantity).join("، ")}</div>}
-          {item.deliveryRegion&&<div>منطقة التسليم: {item.deliveryRegion}</div>}
+          {item.deliveryRecipient&&<div>اسم المستلم: {item.deliveryRecipient}</div>}
+          {item.deliveryPhone&&<div>هاتف التوصيل: {item.deliveryPhone}</div>}
+          {item.deliveryRegion&&<div>المحافظة: {item.deliveryRegion}</div>}
+          {item.deliveryCity&&<div>المدينة: {item.deliveryCity}</div>}
+          {item.deliveryAddress&&<div>العنوان بالتفصيل: {item.deliveryAddress}</div>}
           {item.requestNote&&<div>ملاحظات: {item.requestNote}</div>}
           {item.orderNote&&<div>ملاحظة الطلب: {item.orderNote}</div>}
           {(item.quotedAmount||item.expectedAmount)&&<div>الإجمالي: {item.quotedAmount||item.expectedAmount} {item.currency||"SAR"} · حالة الدفع: {item.paymentStatus==="payment_due"?"بانتظار الدفع":item.paymentStatus||"غير محدد"}</div>}
