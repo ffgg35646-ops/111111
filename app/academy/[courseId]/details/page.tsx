@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import {
-  ArrowLeft, BookOpen, ChevronDown, LockKeyhole, PlayCircle,
+  ArrowLeft, ChevronDown, LockKeyhole, PlayCircle,
   ShieldCheck, Video, GraduationCap,
 } from "lucide-react";
 import { courses, learningTracks } from "@/lib/platform-catalog";
@@ -59,6 +59,7 @@ function CourseDetailsContent() {
   const [selectedLesson, setSelectedLesson] = useState("");
   const [contentOpen, setContentOpen] = useState(true);
   const [branding, setBranding] = useState({ clinicName: "اتزان", logoName: "ETZAN", logoImage: "/etzan-symbol.svg" });
+  const [trackNames, setTrackNames] = useState<Record<string, string>>(() => Object.fromEntries(learningTracks.map((item) => [item.id, item.title])));
 
   const course: CourseDetails | null = staticCourse
     ? {
@@ -117,6 +118,26 @@ function CourseDetailsContent() {
 
   useEffect(() => {
     let active = true;
+    fetch("/api/specialist-tracks", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !Array.isArray(data.tracks)) return [];
+        return data.tracks as Array<{ id: string; title: string }>;
+      })
+      .then((rows) => {
+        if (active) {
+          setTrackNames((current) => ({
+            ...current,
+            ...Object.fromEntries(rows.map((item) => [String(item.id), String(item.title)])),
+          }));
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     fetch("/api/site-branding", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
@@ -135,7 +156,7 @@ function CourseDetailsContent() {
   const activePrice = prices.find((item) => item.courseId === courseId && item.active === true && typeof item.price === "number");
   const amount = activePrice && typeof activePrice.price === "number" ? activePrice.price : null;
   const currency = activePrice?.currency || "SAR";
-  const trackTitle = course ? learningTracks.find((item) => item.id === course.trackId)?.title || course.category : "";
+  const trackTitle = course ? trackNames[course.trackId] || course.category : "";
   const requestPath = "/academy/" + encodeURIComponent(courseId) + "/request";
   const joinHref = accountEntry ? requestPath : "/login?next=" + encodeURIComponent(requestPath);
   const loading = !staticCourse && loadedCourseId !== courseId;
