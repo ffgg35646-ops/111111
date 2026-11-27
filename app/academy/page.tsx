@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Brain, ClipboardList, Clock3, GraduationCap, PlayCircle, Video } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
-import PlatformRequestForm from "@/components/platform-request-form";
 import { courses, learningTracks, type Course } from "@/lib/platform-catalog";
 
 const modeLabels={recorded:"مسجلة",live:"مباشرة",hybrid:"مباشرة ومسجلة"};
@@ -19,14 +18,12 @@ function AcademyWorkspace() {
   const [track,setTrack]=useState(() => requestedTrack || "all");
   const [mode,setMode]=useState("all");
   const [contentType,setContentType]=useState<"all"|"course"|"program">("all");
-  const [selectedCourse,setSelectedCourse]=useState<string|null>(()=>params.get("course"));
   const [coursePrices,setCoursePrices]=useState<Record<string,number>>({});
   const [publishedCourses,setPublishedCourses]=useState<PublishedCourse[]>([]);
   useEffect(()=>{let active=true;fetch("/api/specialist-tracks",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active&&Array.isArray(data.tracks)){const rows=data.tracks.map((item:{id:string;title:string;summary:string;accent?:string;skills?:string[]})=>({id:item.id,title:item.title,summary:item.summary,accent:item.accent||"teal",skills:Array.isArray(item.skills)?item.skills:[]}));setAvailableTracks(rows);if(requestedTrack&&rows.some((item:{id:string})=>item.id===requestedTrack))setTrack(requestedTrack);else if(requestedTrack)setTrack("all");}}).catch(error=>console.error("ETZAN specialist track catalog unavailable",error));return()=>{active=false}},[requestedTrack]);
   useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));fetch("/api/academy/courses",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const rows=Array.isArray(data.courses)?data.courses:[];setPublishedCourses(rows);}}).catch(error=>console.error("Published ETZAN courses unavailable",error));return()=>{active=false}},[]);
   const allCourses=useMemo<AcademyCourse[]>(()=>[...courses.map(item=>({...item,contentType:"course" as const})),...publishedCourses.map(item=>({...item,contentType:item.contentType==="program"?"program" as const:"course" as const,lessons:item.lessons.map(lesson=>lesson.title)}))],[publishedCourses]);
   const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)&&(contentType==="all"||(course.contentType||"course")===contentType)),[allCourses,track,mode,contentType]);
-  const chosen=allCourses.find(course=>course.id===selectedCourse);
 
   return <PlatformLayout title="الأكاديمية والمسارات التدريبية" description="برامج منظمة في الخدمة الاجتماعية وعلم النفس وCBT والإرشاد الأسري والاضطرابات النمائية والتوحد والقياس النفسي والممارسة الإكلينيكية والتطوير المهني.">
     <div className="portal-callout">اختر دورة لفتح وحداتها التعليمية والأنشطة القصيرة واختبار الفهم. تسجيلات الفيديو تظهر عند إضافة رابط التسجيل المعتمد لكل دورة، أما الفصول المباشرة فتُنسق عبر Zoom بعد اعتماد طلب الالتحاق.</div>
@@ -35,7 +32,7 @@ function AcademyWorkspace() {
       {availableTracks.map(item=><article className="portal-card track-card" key={item.id}>
         <span className="track-icon"><GraduationCap size={18}/></span><h3>{item.title}</h3><p>{item.summary}</p>
         <div className="portal-chip-row">{item.skills.map(skill=><span className="portal-chip" key={skill}>{skill}</span>)}</div>
-        <button className="portal-button secondary" onClick={()=>{setTrack(item.id);setSelectedCourse(null);}}>عرض دورات المسار</button>
+        <button className="portal-button secondary" onClick={()=>setTrack(item.id)>عرض دورات المسار</button>
       </article>)}
     </div>
 
@@ -61,19 +58,12 @@ function AcademyWorkspace() {
           <Link className="portal-button" href={"/academy/"+course.id+"/details"}>تفاصيل الكورس</Link>
           <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>
             <strong style={{fontSize:12,color:"#147f76"}}>{typeof coursePrices[course.id]==="number"?coursePrices[course.id].toFixed(2)+" SAR":"يحدد بعد مراجعة الطلب"}</strong>
-            <button className="portal-button secondary" onClick={()=>setSelectedCourse(course.id)}>اشترك الآن</button>
+            <Link className="portal-button secondary" href={"/login?next="+encodeURIComponent("/academy/"+course.id+"/request")}>اشترك الآن</Link>
           </div>
         </div>
       </article>)}
     </div>
-    {chosen&&<section className="course-detail-panel">
-      <div className="course-detail-head"><div><span className="portal-chip">{chosen.category}</span><h2>{chosen.title}</h2><p>{chosen.summary}</p>{typeof coursePrices[chosen.id]==="number"&&<strong>{coursePrices[chosen.id].toFixed(2)} SAR · السعر المعتمد للدورة</strong>}</div><button onClick={()=>setSelectedCourse(null)} aria-label="إغلاق التفاصيل">×</button></div>
-      <div className="course-detail-columns">
-        <div><strong>نواتج التعلم</strong><ul>{chosen.outcomes.map(x=><li key={x}>{x}</li>)}</ul></div>
-        <div><strong>الخطة التعليمية</strong><ol>{chosen.lessons.map(x=><li key={x}>{x}</li>)}</ol></div>
-      </div>
-      <PlatformRequestForm key={chosen.id} kind={chosen.mode==="recorded"?"course_enrollment":"classroom_registration"} title="طلب الالتحاق بالدورة" description="أدخل بيانات التواصل ليُراجع فريق التدريب طلبك." initialData={{courseId:chosen.id}} fields={chosen.mode==="recorded"?[]:[{name:"preferredAt",label:"الموعد المناسب للفصل المباشر",type:"datetime-local" as const,required:true},{name:"requestNote",label:"ملاحظات تنظيمية (اختياري)",type:"textarea" as const,placeholder:"ملاحظات تتعلق بالحضور فقط."}]}/>
-    </section>}
+
     <div className="portal-section-title"><div><h2>مختبر التطبيق العملي</h2><p>طبّق مهارات المقابلة وصياغة الحالة داخل غرفة افتراضية</p></div></div>
     <div className="portal-grid">
       <article className="portal-card"><Brain size={20} color="#188579"/><h3>محاكاة دراسة الحالة</h3><p>حالات اجتماعية ونفسية ونمائية افتراضية مع قرارات متدرجة وتغذية راجعة.</p><Link className="portal-link-button" href="/cases"><PlayCircle size={14}/> فتح الحالات</Link></article>
