@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { BookOpen, Clock3, CreditCard, GraduationCap, HelpCircle, LockKeyhole, Tag } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 import { courses } from "@/lib/platform-catalog";
@@ -42,6 +42,7 @@ const formatMoney = (amount: number, currency: string) =>
 
 export default function CourseOrderDetailsPage() {
   const params = useParams<{ courseId: string }>();
+  const router = useRouter();
   const courseId = String(params.courseId || "");
   const staticCourse = courses.find((item) => item.id === courseId);
   const [dynamicCourse, setDynamicCourse] = useState<CourseDetails | null>(null);
@@ -49,6 +50,13 @@ export default function CourseOrderDetailsPage() {
   const [courseError, setCourseError] = useState<{ id: string; message: string } | null>(null);
   const [prices, setPrices] = useState<CoursePrice[]>([]);
   const [couponCode, setCouponCode] = useState("");
+  const [orderId, setOrderId] = useState("");
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
+  const autoOrderStarted = useRef("");
 
   const course: CourseDetails | null = staticCourse
     ? {
@@ -92,6 +100,38 @@ export default function CourseOrderDetailsPage() {
   }, [courseId, staticCourse]);
 
   useEffect(() => {
+    if (!course?.id || autoOrderStarted.current === courseId) return;
+    autoOrderStarted.current = courseId;
+    let active = true;
+    setOrderLoading(true);
+    setOrderError("");
+    fetch("/api/platform/requests/course-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ courseId }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر حفظ طلب الكورس.");
+        return data as { requestId?: string; alreadyEnrolled?: boolean };
+      })
+      .then((data) => {
+        if (!active) return;
+        if (data.alreadyEnrolled) {
+          router.replace("/dashboard#my-courses");
+          return;
+        }
+        setOrderId(String(data.requestId || ""));
+      })
+      .catch((cause) => {
+        if (active) setOrderError(cause instanceof Error ? cause.message : "تعذر حفظ طلب الكورس.");
+      })
+      .finally(() => { if (active) setOrderLoading(false); });
+    return () => { active = false; };
+  }, [courseId, course?.id, router]);
+
+  useEffect(() => {
     let active = true;
     fetch("/api/platform/commerce/course-prices", { cache: "no-store" })
       .then(async (response) => {
@@ -105,6 +145,30 @@ export default function CourseOrderDetailsPage() {
   }, []);
 
   const activePrice = prices.find((item) => item.courseId === courseId && item.active === true && typeof item.price === "number");
+
+  async function redeemCourseCoupon() {
+    if (!orderId || !couponCode.trim() || couponBusy) return;
+    setCouponBusy(true);
+    setCouponError("");
+    setCouponMessage("");
+    try {
+      const response = await fetch("/api/platform/requests/course-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ requestId: orderId, courseId, couponCode }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر تفعيل كود الخصم.");
+      setCouponMessage("تم تفعيل الكورس بنجاح. جارٍ نقلك إلى كورساتي.");
+      router.push("/dashboard#my-courses");
+      router.refresh();
+    } catch (cause) {
+      setCouponError(cause instanceof Error ? cause.message : "تعذر تفعيل كود الخصم.");
+    } finally {
+      setCouponBusy(false);
+    }
+  }
   const amount = activePrice && typeof activePrice.price === "number" ? activePrice.price : null;
   const currency = activePrice?.currency || "SAR";
   const lessonCount = course?.lessons.length || 0;
@@ -180,7 +244,15 @@ export default function CourseOrderDetailsPage() {
                   placeholder="أدخل كود الخصم هنا"
                   aria-label="كود الخصم"
                 />
-                <small>سيتم تطبيق الكود عند استكمال آلية الاشتراك والدفع.</small>
+                <small>الكود الصحيح المخصص لتفعيل دورة كاملة يُستخدم مرة واحدة، وبعد تفعيله تظهر الدورة في «دوراتي» وتُفتح فيديوهاتها.</small>
+                <button className="course-order-coupon-button" type="button" onClick={() => void redeemCourseCoupon()} disabled={!orderId || orderLoading || couponBusy || !couponCode.trim()}>
+                  {couponBusy ? "جارٍ التحقق من الكود..." : "تفعيل كود الخصم"}
+                </button>
+                {orderLoading && <small role="status">جارٍ حفظ طلب الكورس في صفحة الطلبات...</small>}
+                {orderId && <small role="status">تم حفظ الطلب تلقائيًا. رقم الطلب: <b dir="ltr">{orderId}</b></small>}
+                {orderError && <small role="alert" className="course-order-error">{orderError}</small>}
+                {couponError && <small role="alert" className="course-order-error">{couponError}</small>}
+                {couponMessage && <small role="status">{couponMessage}</small>}
               </div>
 
               <button className="course-order-pay-button" type="button" disabled>
@@ -234,7 +306,10 @@ export default function CourseOrderDetailsPage() {
         .course-order-coupon h3 svg{color:#2b9cc5}
         .course-order-coupon input{width:100%;padding:11px 12px;border:1px solid #e2e8f0;border-radius:8px;font:inherit;font-size:11px;background:#fff;color:#334155;outline:none}
         .course-order-coupon input:focus{border-color:#7fc4d9}
-        .course-order-coupon small{display:block;margin-top:8px;color:#94a3b8;font-size:9px;line-height:1.7}
+        .course-order-coupon small{display:block;margin-top:8px;color:#64748b;font-size:10px;line-height:1.7}
+        .course-order-coupon-button{display:block;width:100%;margin-top:12px;border:0;border-radius:8px;background:#177f91;color:#fff;padding:11px 12px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+        .course-order-coupon-button:disabled{opacity:.5;cursor:not-allowed}
+        .course-order-error{color:#b4534b!important}
         .course-order-pay-button{display:block;width:100%;border:0;border-radius:8px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:13px;font:inherit;font-size:14px;font-weight:700;margin-bottom:8px;opacity:.55;cursor:not-allowed}
         .course-order-pending-note{text-align:center;font-size:9px;color:#94a3b8;margin:0 0 15px}
         .course-order-help{border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;padding:13px;text-align:center;margin-bottom:13px}

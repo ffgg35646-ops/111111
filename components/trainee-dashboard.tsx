@@ -133,7 +133,7 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
         </div>
       </section>
 
-      <section style={{ marginTop: 24 }}>
+      <section id="my-courses" style={{ marginTop: 24 }}>
         <SectionHeading title="دوراتي" description="الدورات التي تقدمت للالتحاق بها وحالة التسجيل والتقدم." href="/academy" linkLabel="كتالوج الدورات"/>
         <div className="portal-grid">
           {filteredCourses.map((course) => <article className="portal-card trainee-course-card" key={course.id}>

@@ -6,7 +6,7 @@ export function approvedCourseEnrollmentFilter(courseId: string, email?: string)
     ...(email ? { email: email.toLowerCase() } : {}),
     status: "approved",
     $or: [
-      { kind: "course_enrollment", paymentStatus: "paid" },
+      { kind: "course_enrollment", paymentStatus: { $in: ["paid", "coupon_redeemed"] } },
       { kind: "classroom_registration" },
     ],
   };

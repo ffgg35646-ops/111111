@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       const lessonCount = staticCourse?.lessons.length ?? (Array.isArray(customCourse?.lessons) ? customCourse.lessons.length : 0);
       const progress = progressByCourse.get(courseId);
       const completedLessons = Array.isArray(progress?.completedLessons) ? progress.completedLessons.length : 0;
-      const paid = registration.status === "approved" && (registration.paymentStatus === "paid" || registration.kind === "classroom_registration");
+      const paid = registration.status === "approved" && (registration.paymentStatus === "paid" || registration.paymentStatus === "coupon_redeemed" || registration.kind === "classroom_registration");
       return [{
         id: courseId,
         title,
