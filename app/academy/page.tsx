@@ -58,7 +58,7 @@ function AcademyWorkspace() {
         <h3>{course.title}</h3><p>{course.summary}</p>
         <div className="course-meta"><span><Clock3 size={13}/>{course.duration}</span><span><BookOpen size={13}/>{course.lessons.length} دروس</span></div>
         <div className="course-card-actions" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginTop:14}}>
-          <Link className="portal-button" href={"/academy/"+course.id}>تفاصيل الكورس</Link>
+          <Link className="portal-button" href={"/academy/"+course.id+"/details"}>تفاصيل الكورس</Link>
           <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>
             <strong style={{fontSize:12,color:"#147f76"}}>{typeof coursePrices[course.id]==="number"?coursePrices[course.id].toFixed(2)+" SAR":"يحدد بعد مراجعة الطلب"}</strong>
             <button className="portal-button secondary" onClick={()=>setSelectedCourse(course.id)}>اشترك الآن</button>
