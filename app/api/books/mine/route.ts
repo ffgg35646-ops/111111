@@ -17,10 +17,7 @@ export async function GET(request: NextRequest) {
         kind: "book_order",
         status: "approved",
         paymentStatus: { $in: ["paid", "coupon_redeemed"] },
-        $or: [
-          { userId: learner.userId },
-          { userId: { $exists: false }, email: learner.email.toLowerCase() },
-        ],
+        userId: learner.userId,
       },
       {
         projection: {
