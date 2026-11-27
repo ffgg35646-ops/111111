@@ -26,24 +26,31 @@ type Book = {
 export default function BookDetailsPage() {
   const params = useParams<{ bookId: string }>();
   const [book, setBook] = useState<Book | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedBookId, setLoadedBookId] = useState("");
   const [error, setError] = useState("");
+  const loading = loadedBookId !== params.bookId;
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError("");
     fetch("/api/books/" + encodeURIComponent(params.bookId), { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "تعذر تحميل تفاصيل الكتاب.");
         return data.book as Book;
       })
-      .then((item) => { if (active) setBook(item); })
-      .catch((cause) => {
-        if (active) setError(cause instanceof Error ? cause.message : "تعذر تحميل تفاصيل الكتاب.");
+      .then((item) => {
+        if (active) {
+          setBook(item);
+          setError("");
+        }
       })
-      .finally(() => { if (active) setLoading(false); });
+      .catch((cause) => {
+        if (active) {
+          setBook(null);
+          setError(cause instanceof Error ? cause.message : "تعذر تحميل تفاصيل الكتاب.");
+        }
+      })
+      .finally(() => { if (active) setLoadedBookId(params.bookId); });
     return () => { active = false; };
   }, [params.bookId]);
 
