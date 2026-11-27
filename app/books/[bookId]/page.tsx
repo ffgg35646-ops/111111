@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowRight, BookOpen, Eye, Library, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpen, Eye, Library, ShieldCheck, ShoppingBag } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
 type Book = {
@@ -97,6 +97,13 @@ export default function BookDetailsPage() {
                 <span>السعر المنشور</span>
                 <strong>{Number(book.price).toLocaleString("ar-SA")} {book.currency || "SAR"}</strong>
               </div>
+              {book.productType !== "physical" || Number(book.stock) > 0 ? (
+                <Link className="portal-button book-purchase-button" href={"/books/" + encodeURIComponent(book.bookId) + "/purchase"}>
+                  <ShoppingBag size={16} /> شراء
+                </Link>
+              ) : (
+                <button className="portal-button book-purchase-button" type="button" disabled>غير متوفر حالياً</button>
+              )}
 
               {book.productType === "physical" && (
                 <div className="book-details-stock">
@@ -136,6 +143,8 @@ export default function BookDetailsPage() {
         .book-details-price span{color:#698087;font-size:12px}
         .book-details-price strong{color:#147f76;font-size:21px}
         .book-details-stock{margin-top:12px;color:#657c80;font-size:12px}
+        .book-purchase-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;min-width:150px}
+        .book-purchase-button:disabled{opacity:.55;cursor:not-allowed}
         .book-details-rights{display:flex;align-items:flex-start;gap:8px;margin-top:18px;padding:13px;border:1px solid #e5ece9;border-radius:10px;color:#71858a;font-size:11px;line-height:1.9}
         .book-details-rights svg{flex:none;color:#168b86}
         .book-preview-link{display:inline-flex;margin-top:18px}
