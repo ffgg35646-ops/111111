@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import Link from "next/link";
-import {BookOpen,Download,Eye,Library,Search,ShoppingBag,FileText,ShieldCheck} from "lucide-react";
+import {BookOpen,Eye,Library,Search,ShoppingBag,ShieldCheck,X} from "lucide-react";
 import {PlatformLayout} from "@/components/platform-layout";
 type Book={bookId:string;title:string;author?:string;category:string;description:string;format:string;productType:"digital"|"physical";price:number;currency:string;coverUrl?:string;previewUrl?:string;rightsNote?:string;stock?:number;published:boolean};
 const categories=["الكل","الخدمة الاجتماعية","علم النفس","الإرشاد الأسري","العلاج المعرفي السلوكي CBT","التوحد","الاضطرابات النمائية","القياس والتقييم","التدريب المهني","الصحة النفسية","مراجع عامة"];
@@ -18,7 +18,7 @@ export default function BooksPage(){
    <div className="scientific-book-cover" style={book.coverUrl?{backgroundImage:"linear-gradient(180deg,rgba(10,30,34,.05),rgba(10,30,34,.72)),url("+JSON.stringify(book.coverUrl)+")"}:undefined}><BookOpen size={35}/><span>{book.category}</span></div>
    <div className="scientific-book-body"><div className="scientific-book-tags"><span>{book.format}</span><span>{book.productType==="digital"?"إلكتروني":"ورقي"}</span></div><h3>{book.title}</h3><small>{book.author||"مرجع اتزان"}</small><p>{book.description}</p>
     <div className="scientific-book-bottom"><strong>{Number(book.price).toLocaleString("ar-SA")} {book.currency||"SAR"}</strong>{book.productType==="physical"&&<small>{Number(book.stock)>0?"متاح: "+book.stock:"غير متوفر حالياً"}</small>}</div>
-    <div className="scientific-book-actions">{book.previewUrl&&<button className="portal-button secondary" type="button" onClick={()=>setPreview(book)}><Eye size={14}/> معاينة</button>}<Link className="portal-button secondary" href={"/books/"+encodeURIComponent(book.bookId)}>عرض المزيد</Link><Link className="portal-button" href={"/books/"+encodeURIComponent(book.bookId)+"/purchase"}><ShoppingBag size={14}/> شراء الكتاب</Link></div>
+    <div className="scientific-book-actions">{book.previewUrl&&<button className="portal-button secondary" type="button" onClick={()=>setPreview(book)}><Eye size={14}/> معاينة</button>}<Link className="portal-button secondary" href={"/books/"+encodeURIComponent(book.bookId)}>عرض المزيد</Link>{book.productType==="physical"&&!(Number(book.stock)>0)?<button className="portal-button" type="button" disabled>غير متوفر حالياً</button>:<Link className="portal-button" href={"/books/"+encodeURIComponent(book.bookId)+"/purchase"}><ShoppingBag size={14}/> شراء الكتاب</Link>}</div>
     <small className="scientific-rights">{book.rightsNote||"الاستخدام وفق حقوق الناشر."}</small>
    </div>
   </article>)}</div>}
