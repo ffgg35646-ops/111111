@@ -19,11 +19,11 @@ function AcademyWorkspace() {
   const [track,setTrack]=useState(() => requestedTrack || "all");
   const [mode,setMode]=useState("all");
   const [contentType,setContentType]=useState<"all"|"course"|"program">("all");
-  const [selectedCourse,setSelectedCourse]=useState<string|null>(null);
+  const [selectedCourse,setSelectedCourse]=useState<string|null>(()=>params.get("course"));
   const [coursePrices,setCoursePrices]=useState<Record<string,number>>({});
   const [publishedCourses,setPublishedCourses]=useState<PublishedCourse[]>([]);
   useEffect(()=>{let active=true;fetch("/api/specialist-tracks",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active&&Array.isArray(data.tracks)){const rows=data.tracks.map((item:{id:string;title:string;summary:string;accent?:string;skills?:string[]})=>({id:item.id,title:item.title,summary:item.summary,accent:item.accent||"teal",skills:Array.isArray(item.skills)?item.skills:[]}));setAvailableTracks(rows);if(requestedTrack&&rows.some((item:{id:string})=>item.id===requestedTrack))setTrack(requestedTrack);else if(requestedTrack)setTrack("all");}}).catch(error=>console.error("ETZAN specialist track catalog unavailable",error));return()=>{active=false}},[requestedTrack]);
-  useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));fetch("/api/academy/courses",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const rows=Array.isArray(data.courses)?data.courses:[];setPublishedCourses(rows);setCoursePrices(current=>({...current,...Object.fromEntries(rows.filter((item:PublishedCourse)=>typeof item.price==="number").map((item:PublishedCourse)=>[item.id,item.price]))}));}}).catch(error=>console.error("Published ETZAN courses unavailable",error));return()=>{active=false}},[]);
+  useEffect(()=>{let active=true;fetch("/api/platform/commerce/course-prices",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const next:Record<string,number>={};for(const item of data.courses||[]){if(item.active===true&&typeof item.price==="number")next[item.courseId]=item.price;}setCoursePrices(next);}}).catch(error=>console.error("ETZAN course prices unavailable",error));fetch("/api/academy/courses",{cache:"no-store"}).then(async response=>{const data=await response.json();if(response.ok&&active){const rows=Array.isArray(data.courses)?data.courses:[];setPublishedCourses(rows);}}).catch(error=>console.error("Published ETZAN courses unavailable",error));return()=>{active=false}},[]);
   const allCourses=useMemo<AcademyCourse[]>(()=>[...courses.map(item=>({...item,contentType:"course" as const})),...publishedCourses.map(item=>({...item,contentType:item.contentType==="program"?"program" as const:"course" as const,lessons:item.lessons.map(lesson=>lesson.title)}))],[publishedCourses]);
   const filtered=useMemo(()=>allCourses.filter(course=>(track==="all"||course.trackId===track)&&(mode==="all"||course.mode===mode)&&(contentType==="all"||(course.contentType||"course")===contentType)),[allCourses,track,mode,contentType]);
   const chosen=allCourses.find(course=>course.id===selectedCourse);
@@ -56,8 +56,14 @@ function AcademyWorkspace() {
       {filtered.map(course=><article className="portal-card course-card" key={course.id}>
         <div className="course-card-top"><span className={"course-mode "+course.mode}>{modeLabels[course.mode]}</span><small>{course.contentType === "program" ? "برنامج تدريبي" : course.level}</small></div>
         <h3>{course.title}</h3><p>{course.summary}</p>
-        <div className="course-meta"><span><Clock3 size={13}/>{course.duration}</span><span><BookOpen size={13}/>{course.lessons.length} دروس</span>{typeof coursePrices[course.id]==="number"&&<strong>{coursePrices[course.id].toFixed(2)} SAR</strong>}</div>
-        <div className="course-card-actions"><Link className="portal-button" href={"/academy/"+course.id}>ابدأ التعلم</Link><button className="portal-button secondary" onClick={()=>setSelectedCourse(course.id)}>طلب الالتحاق</button></div>
+        <div className="course-meta"><span><Clock3 size={13}/>{course.duration}</span><span><BookOpen size={13}/>{course.lessons.length} دروس</span></div>
+        <div className="course-card-actions" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginTop:14}}>
+          <Link className="portal-button" href={"/academy/"+course.id}>تفاصيل الكورس</Link>
+          <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>
+            <strong style={{fontSize:12,color:"#147f76"}}>{typeof coursePrices[course.id]==="number"?coursePrices[course.id].toFixed(2)+" SAR":"يحدد بعد مراجعة الطلب"}</strong>
+            <button className="portal-button secondary" onClick={()=>setSelectedCourse(course.id)}>اشترك الآن</button>
+          </div>
+        </div>
       </article>)}
     </div>
     {chosen&&<section className="course-detail-panel">

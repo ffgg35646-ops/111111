@@ -85,6 +85,22 @@ export async function GET(request: NextRequest) {
       }];
     }).sort((a, b) => Number(b.paid) - Number(a.paid));
 
+    const coursePriceRows = enrolledCourses.length
+      ? await db.collection("etzan_course_prices").find(
+          { courseId: { $in: enrolledCourses.map((course) => course.id) }, active: true },
+          { projection: { _id: 0, courseId: 1, price: 1, currency: 1 } },
+        ).toArray()
+      : [];
+    const coursePriceById = new Map(coursePriceRows.map((row) => [String(row.courseId), row]));
+    const enrolledCoursesWithPrices = enrolledCourses.map((course) => {
+      const configuredPrice = coursePriceById.get(course.id);
+      return {
+        ...course,
+        price: typeof configuredPrice?.price === "number" ? configuredPrice.price : null,
+        currency: typeof configuredPrice?.currency === "string" ? configuredPrice.currency : "SAR",
+      };
+    });
+
     const paidCourseIds = enrolledCourses.filter((course) => course.paid).map((course) => course.id);
     const [sessions] = await Promise.all([
       paidCourseIds.length
@@ -181,7 +197,7 @@ export async function GET(request: NextRequest) {
         simulations: activities.length,
         assessmentAttempts: allAssessmentAttempts.length,
       },
-      courses: enrolledCourses,
+      courses: enrolledCoursesWithPrices,
       tracks: learningTracks.map((track) => ({
         id: track.id,
         title: track.title,
