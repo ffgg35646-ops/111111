@@ -32,7 +32,7 @@ function AcademyWorkspace() {
       {availableTracks.map(item=><article className="portal-card track-card" key={item.id}>
         <span className="track-icon"><GraduationCap size={18}/></span><h3>{item.title}</h3><p>{item.summary}</p>
         <div className="portal-chip-row">{item.skills.map(skill=><span className="portal-chip" key={skill}>{skill}</span>)}</div>
-        <button className="portal-button secondary" onClick={()=>setTrack(item.id)>عرض دورات المسار</button>
+        <button className="portal-button secondary" onClick={()=>setTrack(item.id)}>عرض دورات المسار</button>
       </article>)}
     </div>
 
