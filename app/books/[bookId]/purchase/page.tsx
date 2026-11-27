@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowRight, BookOpen, CheckCircle2, CreditCard, LoaderCircle,
-  MapPin, Minus, Plus, ShoppingBag, Tag, Truck,
+  Minus, Plus, ShoppingBag, Tag, Truck,
 } from "lucide-react";
 import { PlatformLayout } from "@/components/platform-layout";
 
