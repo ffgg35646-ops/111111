@@ -70,7 +70,7 @@ export async function calculateCommercePrice(
     ? money(pricesIncludeVat ? taxable * vatRateBps / (10000 + vatRateBps) : taxable * vatRateBps / 10000)
     : 0;
   const totalAmount = money(pricesIncludeVat ? taxable : taxable + taxAmount);
-  if (totalAmount < (allowZeroTotal ? 0 : 1)) throw new Error("يجب ألا يقل إجمالي الطلب بعد الخصم والضريبة عن ريال واحد.");
+  if (allowZeroTotal ? totalAmount > 0 && totalAmount < 1 : totalAmount < 1) throw new Error("يجب ألا يقل إجمالي الطلب بعد الخصم والضريبة عن ريال واحد، إلا عند تغطيته بالكامل بكود الخصم.");
   return {
     subtotalAmount,
     discountAmount,
