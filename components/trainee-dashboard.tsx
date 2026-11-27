@@ -144,10 +144,14 @@ export function TraineeDashboard({ name, email }: { name: string; email: string 
             <small style={{ color: "#758493" }}>{course.completedLessons} من {course.totalLessons} وحدة · {course.progressPercent}%</small>
             <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
               <Link className="portal-button" href={"/academy/" + course.id + "/details"}>تفاصيل الكورس</Link>
-              <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-                <strong style={{ color: "#147f76", fontSize: 12 }}>{course.price !== null ? new Intl.NumberFormat("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(course.price) + " " + (course.currency || "SAR") : "يحدد بعد مراجعة الطلب"}</strong>
-                <Link className="portal-button secondary" href={"/academy?course=" + encodeURIComponent(course.id)}>اشترك الآن</Link>
-              </div>
+              {course.paid ? (
+                <Link className="portal-button secondary" href={"/academy/" + course.id}>ابدأ التعلم</Link>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+                  <strong style={{ color: "#147f76", fontSize: 12 }}>{course.price !== null ? new Intl.NumberFormat("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(course.price) + " " + (course.currency || "SAR") : "يحدد بعد مراجعة الطلب"}</strong>
+                  <Link className="portal-button secondary" href={"/academy?course=" + encodeURIComponent(course.id)}>اشترك الآن</Link>
+                </div>
+              )}
             </div>
           </article>)}
           {!filteredCourses.length && <div className="portal-empty">{normalizedSearch ? "لا توجد دورات تطابق عبارة البحث." : "لم تسجل في دورة بعد. استعرض الأكاديمية واختر دورة للبدء."}</div>}

@@ -70,13 +70,18 @@ export async function POST(request: NextRequest) {
       schemaVersion: 1, couponCode: "", createdAt: new Date(),
     };
     if (coursePrice && typeof coursePrice.price === "number" && Number.isFinite(coursePrice.price) && coursePrice.price > 0) {
-      const breakdown = await calculateCommercePrice(db, coursePrice.price, "course");
-      Object.assign(record, {
-        status: "awaiting_payment", paymentStatus: "payment_due",
-        quotedAmount: breakdown.totalAmount, subtotalAmount: breakdown.subtotalAmount,
-        discountAmount: 0, taxAmount: breakdown.taxAmount, vatRateBps: breakdown.vatRateBps,
-        pricesIncludeVat: breakdown.pricesIncludeVat, currency: "SAR",
-      });
+      try {
+        const breakdown = await calculateCommercePrice(db, coursePrice.price, "course");
+        Object.assign(record, {
+          status: "awaiting_payment", paymentStatus: "payment_due",
+          quotedAmount: breakdown.totalAmount, subtotalAmount: breakdown.subtotalAmount,
+          discountAmount: 0, taxAmount: breakdown.taxAmount, vatRateBps: breakdown.vatRateBps,
+          pricesIncludeVat: breakdown.pricesIncludeVat, currency: "SAR",
+        });
+      } catch {
+        // Keep the order visible to the admin for manual pricing review if tax settings are incomplete.
+        record.pricingReviewRequired = true;
+      }
     }
     await orders.insertOne(record);
     return NextResponse.json({
